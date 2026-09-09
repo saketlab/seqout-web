@@ -164,6 +164,7 @@ export interface LongReadSummary {
   studies_human: number;
   studies_with_fastq: number;
   studies_single_cell: number;
+  studies_exact_chemistry: number;
   first_year: number | null;
   last_year: number | null;
 }
@@ -194,6 +195,8 @@ export interface LongReadProject {
   n_runs: number | null;
   n_fastq_runs: number | null;
   n_sra_runs: number | null;
+  chemistries: string[] | null;
+  n_chemistry_exact: number | null;
 }
 
 export function useLongReadSummary() {

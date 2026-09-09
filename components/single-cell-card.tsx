@@ -109,6 +109,12 @@ export interface SingleCellSample {
   sc_stats_scanned: boolean;
 }
 
+export interface LongReadRun {
+  run_accession: string;
+  chemistry: string | null;
+  chemistry_confidence: string | null;
+}
+
 export interface SingleCellResponse {
   study_accession: string;
   study_cells: number | null;
@@ -120,6 +126,7 @@ export interface SingleCellResponse {
   n_runs_preflightx: number | null;
   n_runs_measurable: number | null;
   sc_stats_study: ScStatsStudy | null;
+  longread_chemistry: LongReadRun[];
   samples: SingleCellSample[];
 }
 
@@ -511,6 +518,9 @@ export default function SingleCellCard({ accession }: { accession: string }) {
   if (isLoading) return <Spinner />;
 
   const head = data!.pages[0]!;
+  const exactChemistryCount = head.longread_chemistry.filter(
+    (r) => r.chemistry_confidence === "exact",
+  ).length;
 
   const allColumns: SingleCellCol[] = [
     {
@@ -681,6 +691,26 @@ export default function SingleCellCard({ accession }: { accession: string }) {
               style={{ cursor: "help" }}
             >
               <InfoCircledIcon /> not screened
+            </Badge>
+          </Tooltip>
+        )}
+        {head.longread_chemistry.length > 0 && (
+          <Tooltip
+            content={
+              <span style={{ whiteSpace: "pre-line" }}>
+                {head.longread_chemistry
+                  .map(
+                    (r) =>
+                      `${r.run_accession}: ${r.chemistry ?? "unresolved"} (${r.chemistry_confidence ?? "unknown"})`,
+                  )
+                  .join("\n")}
+              </span>
+            }
+          >
+            <Badge color="purple" size="1" variant="soft" style={{ cursor: "help" }}>
+              {head.longread_chemistry.length} long-read run
+              {head.longread_chemistry.length === 1 ? "" : "s"}
+              {exactChemistryCount > 0 && ` (${exactChemistryCount} exact)`}
             </Badge>
           </Tooltip>
         )}

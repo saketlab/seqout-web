@@ -202,6 +202,20 @@ const COLUMNS: {
     render: (r) => <TagList values={r.instrument_models} />,
   },
   {
+    label: "Chemistry",
+    info: "Sequencing chemistry per run: exact when read from the submitted BAM's own header, otherwise a model/date guess.",
+    render: (r) => (
+      <Flex align="center" gap="1" wrap="wrap">
+        <TagList values={r.chemistries} color="gray" />
+        {r.n_chemistry_exact ? (
+          <Badge size="1" color="purple" variant="soft">
+            {r.n_chemistry_exact} exact
+          </Badge>
+        ) : null}
+      </Flex>
+    ),
+  },
+  {
     label: "Strategy",
     info: "Library strategies of the long-read experiments.",
     render: (r) => <TagList values={r.library_strategies} color="gray" />,
@@ -395,6 +409,10 @@ export default function LongReadCollectionCard() {
           />
           <Stat label="Human" value={humanize(s.studies_human)} />
           <Stat label="With FASTQ" value={humanize(s.studies_with_fastq)} />
+          <Stat
+            label="Exact chemistry"
+            value={humanize(s.studies_exact_chemistry)}
+          />
         </Flex>
       ) : null}
 
