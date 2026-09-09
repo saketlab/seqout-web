@@ -40,6 +40,8 @@ const FACET_ORDER = [
   "library_strategy",
   "organism",
   "archive",
+  "chemistry",
+  "has_exact_chemistry",
   "assay_l1",
   "year",
   "long_read_only",
@@ -52,6 +54,8 @@ const FACET_LABELS: Record<string, string> = {
   library_strategy: "strategy",
   organism: "organism",
   archive: "archive",
+  chemistry: "chemistry",
+  has_exact_chemistry: "exact chemistry only",
   assay_l1: "assay",
   year: "year",
   long_read_only: "long-read only",
@@ -207,11 +211,11 @@ const COLUMNS: {
     render: (r) => (
       <Flex align="center" gap="1" wrap="wrap">
         <TagList values={r.chemistries} color="gray" />
-        {r.n_chemistry_exact ? (
+        {(r.n_chemistry_exact ?? 0) > 0 && (
           <Badge size="1" color="purple" variant="soft">
             {r.n_chemistry_exact} exact
           </Badge>
-        ) : null}
+        )}
       </Flex>
     ),
   },
