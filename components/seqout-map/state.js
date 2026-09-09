@@ -1,7 +1,7 @@
-// Ported from saketlab-experiments/js/state.js
+// Shared map engine state.
 export const state = {
   colorByClusters: false,
-  colorBySource: false, // color points by their archive (source) instead
+  colorBySource: false, // Color points by archive.
   sourceDomain: null, // archive strings in index order, e.g. ["geo","sra",...]
   sourceRange: null, // hex colors parallel to sourceDomain
   filterName: null, // transform name for the country hide-filter

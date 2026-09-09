@@ -40,8 +40,7 @@ type PublicationCardProps = {
 
 function extractYear(pubDate: string | number | null): string | null {
   if (!pubDate) return null;
-  // pub_date is usually a string ("2015-06-15") but can arrive as a bare
-  // year number (2025) — coerce before matching so it never crashes.
+  // Coerce pub_date to a string before matching; the API can return a date string or a numeric year.
   const match = String(pubDate)
     .trim()
     .match(/^\d{4}/);
@@ -78,8 +77,7 @@ function formatCellAuthors(authors: string): string {
   return formatted[0];
 }
 
-/** Only the fields a citation string needs — lets callers with a partial
- *  publication payload (e.g. the pmid page) reuse this. */
+/** Publication fields needed to format a citation. */
 type CitationFields = Pick<
   StudyPublication,
   "authors" | "pub_date" | "title" | "journal" | "doi"
@@ -162,11 +160,7 @@ export function CopyButton({
   );
 }
 
-/**
- * Chip that opens a dialog previewing the citation text with a copy action,
- * so the user sees what they're copying before it lands on the clipboard.
- * `getText` may be async (BibTeX is fetched); it runs on each open.
- */
+/** Citation preview dialog with a copy action. getText runs on each open and may fetch asynchronously. */
 export function CiteDialog({
   label,
   title,
@@ -253,9 +247,8 @@ export default function PublicationCard({
   publication: incoming,
   accession,
 }: PublicationCardProps) {
-  // Fallback: backend gave a PMID but no enriched details — pull them from
-  // NCBI PubMed. Tag the fetched fields with the PMID they belong to so a
-  // stale fallback never bleeds onto a different publication.
+  // Fetch missing publication details from NCBI PubMed. Tag fields with their PMID
+  // to prevent stale responses from appearing on a different publication.
   const [fallback, setFallback] = useState<{
     pmid: string;
     extra: Partial<StudyPublication>;
@@ -445,10 +438,7 @@ export default function PublicationCard({
   return (
     <Card>
       <Flex direction="column" gap="2">
-        {/* Header row: title (left, expands) + triage meta (right, wraps
-            below on narrow viewports). Same structural skeleton as the
-            search result card — citations, journal, year live next to the
-            title for one-glance scanning, not buried at the bottom. */}
+        {/* Title and publication metadata; metadata wraps below the title on narrow viewports. */}
         <Flex gap="3" justify="between" align="start" wrap="wrap">
           {titleLink ? (
             <Link
@@ -516,10 +506,7 @@ export default function PublicationCard({
           />
         )}
 
-        {/* Bottom row: canonical identifiers (PMID / DOI) rendered in
-            Geist Mono via the seqout-accession class, plus citation-copy
-            and BibTeX-copy actions. Parallel to the result-card's bottom
-            badge row (accession + modality tags). */}
+        {/* PMID and DOI in Geist Mono, with citation and BibTeX copy actions. */}
         <Flex gap="2" align="center" wrap="wrap">
           {publication.pmid && (
             <>

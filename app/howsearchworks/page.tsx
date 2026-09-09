@@ -25,8 +25,6 @@ export const metadata: Metadata = {
   },
 };
 
-// Written in Simplified Technical English (ASD-STE100): short sentences, active
-// voice, present tense, one instruction per sentence, consistent terms.
 const tips: { id: string; title: string; body: ReactNode }[] = [
   {
     id: "plain-keywords",
@@ -99,9 +97,7 @@ const tips: { id: string; title: string; body: ReactNode }[] = [
   },
 ];
 
-// KaTeX rendered at request time (server component), so no client JS ships. The
-// CSS import above loads the KaTeX fonts. `inline` renders a <span> for use in
-// prose; the default renders a centered display equation.
+// Server component: KaTeX renders at request time, so no client JS ships.
 function Tex({ tex, inline = false }: { tex: string; inline?: boolean }) {
   const html = katex.renderToString(tex, {
     displayMode: !inline,

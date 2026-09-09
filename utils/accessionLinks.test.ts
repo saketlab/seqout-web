@@ -116,7 +116,7 @@ describe("startsWithAccession", () => {
     expect(startsWithAccession("E_MTAB_11850")).toBe(true);
     expect(startsWithAccession("EMTAB11850")).toBe(true);
     expect(startsWithAccession("e geod 12345 kidney")).toBe(true);
-    // Unknown four-letter prefixes stay prose — "E coli 12345" is a search.
+    // Unknown four-letter prefixes stay prose: "E coli 12345" is a search.
     expect(startsWithAccession("E coli 12345")).toBe(false);
   });
 });
@@ -213,7 +213,7 @@ describe("isAccessionUrl", () => {
   it("ignores non-URLs and URLs with no accession", () => {
     expect(isAccessionUrl("https://seqout.org/about")).toBe(false);
     expect(isAccessionUrl("https://github.com/some/repo")).toBe(false);
-    // Not a URL: already handled by startsWithAccession, not this.
+    // Leading accessions are handled by startsWithAccession.
     expect(isAccessionUrl("GSE317357")).toBe(false);
     expect(isAccessionUrl("cancer single cell")).toBe(false);
   });

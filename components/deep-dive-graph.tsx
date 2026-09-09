@@ -1,10 +1,7 @@
 "use client";
 
-// Interactive ontology-hierarchy explorer for one search term.
-// Root = the picked query term; clicking a node selects it AND lazily fetches
-// its direct children (synonym-transparent, done server-side). Arrows only, no
-// edge labels. The Search button swaps the selected node's term into the
-// original query and opens the results in a new tab.
+// Interactive ontology hierarchy for a search term. Selecting a node fetches its direct children.
+// Search substitutes the selected term into the query and opens results in a new tab.
 
 import { getDeepDiveChildren, type DeepDiveChild } from "@/utils/api";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
@@ -27,8 +24,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const COL_W = 280; // horizontal gap between hierarchy levels
 const ROW_H = 58; // vertical gap between siblings in a column
 
-// Column-stack layout: each depth gets an x-column and a running y-cursor, so nodes
-// never overlap. Not a tidy tree (a node isn't centered on its parent); dagre if needed.
+// Each depth has an x-column and a running y-cursor to prevent node overlap.
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -59,9 +55,8 @@ function nodeStyle(isRoot: boolean, selected: boolean): React.CSSProperties {
     borderRadius: 6,
     cursor: "pointer",
     textAlign: "left" as const,
-    // Background & text are left to React Flow's colorMode theming so they stay
-    // readable in both light and dark; we only override the border to highlight
-    // the root / selected node.
+    // Background/text follow React Flow's colorMode theming; only the border
+    // marks root/selected nodes.
     ...(selected
       ? { border: "2px solid var(--accent-9)" }
       : isRoot
@@ -77,8 +72,7 @@ export default function DeepDiveGraph({
   searchParams,
   onLoadingChange,
 }: DeepDiveGraphProps) {
-  // The parent remounts this component per term (key=name), so state is
-  // initialised directly for the root instead of reset inside an effect.
+  // The parent remounts per term (key=name), so state starts at the root.
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeData>>([
     {
       id: rootName,
@@ -199,8 +193,7 @@ export default function DeepDiveGraph({
     [expand],
   );
 
-  // The full query the Search button will run: original query with the picked
-  // term swapped for the selected node's term.
+  // Query the Search button will run: root term swapped for the selected node's name.
   const newQuery = selected
     ? query.replace(new RegExp(escapeRegExp(rootTerm), "i"), selected.name)
     : null;
@@ -212,7 +205,7 @@ export default function DeepDiveGraph({
     window.open(`/search?${params.toString()}`, "_blank", "noopener");
   }, [newQuery, searchParams]);
 
-  // reflect selection with React Flow's built-in `selected` styling
+  // reflect selection via React Flow's built-in selected styling
   const displayNodes: Node<NodeData>[] = nodes.map((n) => ({
     ...n,
     selected: n.id === selected?.name,

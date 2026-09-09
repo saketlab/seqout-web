@@ -1,4 +1,4 @@
-// Ported verbatim from saketlab-experiments/js/utils.js
+// Map color and filter encodings.
 import { state } from "./state.js";
 import { DEFAULT_BG_OPACITY, DEFAULT_BG_SIZE, DEFAULT_BG_COLOR } from "./constants.js";
 
@@ -14,10 +14,7 @@ export function clusterColorEncoding() {
   };
 }
 
-// Archive coloring: only ~7 sources, so (unlike the fine cluster layers) they fit
-// deepscatter's categorical color texture. `source` is a baked dictionary column,
-// so color it directly with an ordinal scale — domain = the archive strings, range
-// = their parallel hex colors — giving each archive a fixed color.
+// Color the source dictionary column with an ordinal scale mapping archive strings to fixed hex colors.
 export function sourceColorEncoding() {
   return {
     field: "source",
@@ -40,18 +37,15 @@ export function pointInPolygon(px, py, verts) {
 
 export async function applyTransformation(sp, name, fn, prerequisites = []) {
   const dt = sp.deeptable;
-  // Sidecar columns (including cluster layers) are fetched lazily by
-  // deepscatter. Declare the source fields so a filter works even before that
-  // field has been used for a color encoding.
+  // Sidecar columns (cluster layers included) load lazily; declaring the source
+  // fields lets a filter work before the field is used for color encoding.
   dt.register_transformation(name, fn, prerequisites);
   await Promise.all(
     dt.map((t) => t.apply_transformation(name).catch(() => { }))
   );
 }
 
-// Foreground is owned by search/lasso (a dim highlight). The country filter is a
-// separate `filter` slot (hide), and color is owned by the cluster toggle — both
-// are left untouched here so they persist.
+// Search and lasso own foreground highlighting; country filtering and cluster coloring remain independent.
 export function restoreForeground(sp) {
   let encoding = { foreground: null };
 

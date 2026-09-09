@@ -268,8 +268,7 @@ const fetchProject = async (
     ),
   );
 
-  // alias can be a string OR an array (GEO projects list several aliases);
-  // only the string form is a GSE we'd fetch neighbors for.
+  // alias can be a string or an array; only string-form GSE aliases supply neighbors.
   const alias =
     typeof data?.alias === "string" ? data.alias.trim().toUpperCase() : null;
   const shouldFetchGeoNeighbors =
@@ -351,8 +350,7 @@ const fetchExperiments = async (
   );
 };
 
-/** Every experiment in one shot — the endpoint treats a missing `limit` as
- *  "all". Only for CSV export; the grid pages through fetchExperiments. */
+/** All experiments for CSV export; omitting limit fetches the full set. */
 const fetchAllExperiments = async (
   accession: string,
 ): Promise<Experiment[]> => {
@@ -385,8 +383,7 @@ const fetchRuns = async (
   full = false,
 ): Promise<RunsData | null> => {
   if (!accession) return null;
-  // Default is a 500-run preview — enough for the grid. `full` pulls every run
-  // for the TSV export, so it isn't silently cut off at 500.
+  // Default preview limit is 500 runs; full fetches all runs for TSV export.
   return getJsonOrNull<RunsData>(
     `/project/${accession}/runs${full ? "?full=true" : ""}`,
   );
@@ -401,12 +398,7 @@ const fetchBams = async (
 
 type DownloadSource = "fastq" | "sra" | "sra_lite" | "s3" | "gcs";
 
-/**
- * `<what you get> via <what you need installed>` — one axis, so the options
- * compare. The tool implies the host (AWS CLI → S3, gsutil → GCS, wget →
- * NCBI/ENA), and naming the format up front keeps it honest that s3/gcs serve
- * the SRA Lite object rather than FASTQ.
- */
+/** Download options identify the format and required tool. S3 and GCS supply SRA Lite objects. */
 const DOWNLOAD_SOURCE_LABELS: Record<DownloadSource, string> = {
   fastq: "FASTQ via wget",
   sra: "SRA via wget",
@@ -559,9 +551,8 @@ export function DownloadFastqSection({
   runsData: RunsData;
   agGridThemeClassName: string;
   expTitleMap: Map<string, string>;
-  // Rendered for a sub-scope (a single sample/experiment/run) rather than a
-  // whole study. Hides the "Download all runs" curl, which pulls the entire
-  // study — the grid's own buttons already cover the scoped run set.
+  // Scoped sample, experiment, or run view. Hide the study-wide download command
+  // to keep downloads within the scoped run set.
   scoped?: boolean;
 }) {
   const { showToast } = useToast();
@@ -579,9 +570,7 @@ export function DownloadFastqSection({
   // Full run list for exports, fetched at most once per study.
   const allRunsRef = useRef<RunRow[] | null>(null);
 
-  // The grid holds only a 500-run preview, so its client-side column filters are
-  // blind to runs past position 500. For studies bigger than the preview they
-  // are resolved server-side instead.
+  // Resolve filters server-side for studies exceeding the 500-run preview.
   const needsServerFind = runsData.total_runs > runsData.runs.length;
   const runFind = useServerFind<RunRow>(needsServerFind, (filters, signal) =>
     getJson<{ runs: RunRow[]; capped: boolean; filtered?: boolean }>(
@@ -601,13 +590,8 @@ export function DownloadFastqSection({
 
   const displayedRuns = runFind.rows ?? runsData.runs;
 
-  // The height has to cover the rows *and* the grid's own chrome. A row-count
-  // estimate covered neither: rows are autoHeight/wrapText so a run with four
-  // FASTQ files is far taller than the assumed 42px, and the table is wide
-  // enough to always carry a horizontal scrollbar. On a one-run table that left
-  // 48 + 42 = 90px with a 14px scrollbar inside it, so 26px of viewport showed
-  // a 42px row — the run's files were reachable only by scrolling a sliver.
-  // Measure all three parts instead of assuming any of them.
+  // Measure row heights, grid headers, and the horizontal scrollbar.
+  // Wrapped autoHeight rows can exceed the rowHeight estimate.
   const gridBoxRef = React.useRef<HTMLDivElement | null>(null);
   const [gridHeight, setGridHeight] = useState(
     Math.min(
@@ -637,8 +621,7 @@ export function DownloadFastqSection({
     const root = box?.querySelector<HTMLElement>(".ag-root-wrapper");
     const border = root ? root.offsetHeight - root.clientHeight : 0;
 
-    // Re-setting the same value is a no-op in React, so the resize this
-    // triggers settles instead of looping.
+    // React skips unchanged values, allowing the resize to settle.
     setGridHeight(
       Math.min(
         FASTQ_GRID_MAX_PX,
@@ -655,15 +638,7 @@ export function DownloadFastqSection({
     return r.ncbi_sra_lite_gs_url;
   };
 
-  /**
-   * Sources every run in the script can actually use, over the selection when
-   * there is one and the whole study otherwise.
-   *
-   * Every run must have the source, not just one: a script offering "SRA" when a
-   * single run of 44 has an .sra object silently downloads 1/44 of the study.
-   * To fetch that one run's SRA, select it -- the option appears once the
-   * selection is only runs that have it.
-   */
+  /** Sources available for every selected run, or every study run when selection is empty. */
   const availableSources = React.useMemo(() => {
     const runs = selectedRuns.length > 0 ? selectedRuns : runsData.runs;
     const sources = new Set<DownloadSource>();
@@ -671,8 +646,7 @@ export function DownloadFastqSection({
     for (const s of Object.keys(DOWNLOAD_SOURCE_LABELS) as DownloadSource[]) {
       if (runs.every((r) => sourceUrl(r, s))) sources.add(s);
     }
-    // when no source covers every run, offer the partial ones; the script
-    // header already reports "N files from M runs"
+    // Offer partial sources when none covers every run; the script header reports coverage.
     if (sources.size === 0) {
       for (const s of Object.keys(DOWNLOAD_SOURCE_LABELS) as DownloadSource[]) {
         if (runs.some((r) => sourceUrl(r, s))) sources.add(s);
@@ -708,11 +682,7 @@ export function DownloadFastqSection({
     gridRef.current = params.api;
   }, []);
 
-  /**
-   * Every run in the study. `runsData.runs` is only a 500-run preview, so a
-   * larger study is re-fetched in full — once, then cached, since the script
-   * preview rebuilds on every source/selection change.
-   */
+  /** All study runs, fetched in full and cached when the study exceeds the preview limit. */
   const getAllRuns = async (): Promise<RunRow[]> => {
     if (runsData.total_runs <= runsData.runs.length) return runsData.runs;
     if (!allRunsRef.current) {
@@ -722,10 +692,7 @@ export function DownloadFastqSection({
     return allRunsRef.current;
   };
 
-  /**
-   * Rows for an export: the ticked ones, else the whole study. Shared by the
-   * TSV and the download script so neither quietly stops at the first 500.
-   */
+  /** Export rows: selected runs, or the whole study when selection is empty. */
   const getExportRows = async (): Promise<RunRow[]> => {
     const selected = gridRef.current?.getSelectedRows() ?? [];
     return selected.length > 0 ? selected : getAllRuns();
@@ -783,7 +750,7 @@ export function DownloadFastqSection({
         });
       }
 
-      // No FASTQ — emit one row with cloud URLs
+      // Emit a cloud-URL row when FASTQ is absent.
       const bestUrl = getBestCloudUrl(run);
       if (!bestUrl && !s3Url && !gsUrl) return [];
       const filename = bestUrl
@@ -910,8 +877,7 @@ export function DownloadFastqSection({
     const entries = runs.flatMap((run) => resolveRunUrls(run, source));
     if (entries.length === 0) return "";
 
-    // Sum what this script downloads. Reading fastq_bytes here instead would
-    // print the FASTQ total above an .sra script.
+    // Sum bytes for the selected download source.
     const totalBytes = entries.reduce((sum, e) => sum + e.bytes, 0);
 
     type Entry = (typeof entries)[0];
@@ -1024,10 +990,8 @@ export function DownloadFastqSection({
         minWidth: 110,
         maxWidth: 140,
         pinned: "left",
-        // Exact match, not contains: on a study larger than the 500-run preview
-        // this filter is served by an indexed server lookup that only does
-        // equality (see onFilterChanged), and substring would seq-scan millions
-        // of rows. Accessions are opaque IDs, so equals is the natural search.
+        // Exact accession matches use the indexed server lookup beyond the preview limit.
+        // Substring matches would require a sequential scan.
         ...lookupColDef<RunRow>(),
       },
       {
@@ -1132,8 +1096,7 @@ export function DownloadFastqSection({
           );
         },
       },
-      // Shown whenever any run has cloud links, not only when FASTQ is missing:
-      // they are the only route to a run's .sra object, and a study can have both.
+      // Show cloud links whenever available; they provide access to .sra objects alongside FASTQ.
       ...(hasCloudLinks
         ? [
             {
@@ -1152,7 +1115,7 @@ export function DownloadFastqSection({
                   color: "orange" | "blue" | "gray" | "violet";
                 }[] = [];
 
-                // SRA Normalized (AWS S3 HTTPS — full SRA)
+                // SRA Normalized (AWS S3 HTTPS, full SRA)
                 if (row.ncbi_sra_normalized_url) {
                   entries.push({
                     url: row.ncbi_sra_normalized_url,
@@ -1162,7 +1125,7 @@ export function DownloadFastqSection({
                   });
                 }
 
-                // SRA Lite (NCBI HTTPS — smaller)
+                // SRA Lite (NCBI HTTPS)
                 if (row.ncbi_sra_lite_url) {
                   entries.push({
                     url: row.ncbi_sra_lite_url,
@@ -1192,7 +1155,7 @@ export function DownloadFastqSection({
                   });
                 }
 
-                // Legacy fallback: old ncbi_sra_url / ncbi_sra_url_aws columns
+                // Fallback: ncbi_sra_url / ncbi_sra_url_aws columns
                 if (entries.length === 0) {
                   const awsUrl = row.ncbi_sra_url_aws;
                   const ncbiUrl = row.ncbi_sra_url;
@@ -1277,8 +1240,7 @@ export function DownloadFastqSection({
         valueFormatter: (params) =>
           params.value > 0 ? formatBytes(params.value as number) : "-",
       },
-      // Last: the submitter's own label, rarely what you scan for, and often
-      // absent entirely.
+      // Submitter label as the last column.
       {
         headerName: "Run Alias",
         field: "run_alias",
@@ -1306,8 +1268,7 @@ export function DownloadFastqSection({
     [wrap],
   );
 
-  // "links", not "files": this saves a table of URLs, not the reads themselves
-  // — the script picker beside it is what actually fetches data.
+  // Saves a table of download URLs. The adjacent script fetches the reads.
   const downloadLabel =
     selectedCount > 0
       ? `Download ${selectedCount} selected links as TSV`
@@ -1351,9 +1312,7 @@ export function DownloadFastqSection({
 
       <Flex gap="3" justify={"between"} wrap="wrap">
         <Flex gap={"2"}>
-          {/* Runs whose layout is neither PAIRED nor SINGLE (unknown/blank in
-              SRA metadata) count toward neither, so both can be 0 while runs
-              exist — render the badge only when it would have content. */}
+          {/* Unknown layouts count toward neither PAIRED nor SINGLE; show badges only for nonzero counts. */}
           {(runsData.paired_runs > 0 || runsData.single_runs > 0) && (
             <Badge size={{ initial: "2", md: "3" }} color="blue" variant="soft">
               {runsData.paired_runs > 0 &&
@@ -1422,8 +1381,7 @@ export function DownloadFastqSection({
             <Dialog.Content size="3">
               <Flex justify="between" align="center" gap="3" mb="3" wrap="wrap">
                 <Dialog.Title mb="0">Script for downloading files</Dialog.Title>
-                {/* The source lives here, not in the toolbar: it only shapes
-                    this script, and here you watch the preview change. */}
+                {/* Source selection controls the script preview. */}
                 <Flex align="center" gap="2">
                   <Select.Root
                     size="2"
@@ -1512,15 +1470,12 @@ export function DownloadFastqSection({
             checkboxes: true,
             headerCheckbox: true,
           }}
-          // Pinned alongside Run: picking runs is what drives the download
-          // script, and the FASTQ/Cloud columns push the grid wide enough that
-          // an unpinned checkbox scrolls out of reach.
+          // Pin selection beside Run so download controls stay reachable during horizontal scrolling.
           selectionColumnDef={{ pinned: "left" }}
           onFilterChanged={onFilterChanged}
           onGridReady={onGridReady}
           onSelectionChanged={onSelectionChanged}
-          // autoHeight rows are measured after the first paint, so the model
-          // updates again once real heights are known — remeasure on both.
+          // autoHeight rows are measured after first paint; remeasure on model updates too.
           onFirstDataRendered={(e) => measureGridHeight(e.api)}
           onModelUpdated={(e) => measureGridHeight(e.api)}
           theme="legacy"
@@ -1578,7 +1533,7 @@ export function DownloadFastqSection({
 // Adapter for the sample/experiment/run detail pages: the same FASTQ section as
 // a study, but over a fixed set of already-loaded runs. total_runs === runs
 // length disables the server-side find and the full-study refetch, so the whole
-// section stays scoped to the runs passed in. `studyAccession` still names the
+// section stays scoped to the runs passed in. studyAccession still names the
 // parent study for the download-script's metadata line and file paths.
 export function ScopedFastqSection({
   runs,
@@ -2157,8 +2112,7 @@ export default function ProjectPage() {
     () => experimentsQuery.data?.pages.flatMap((p) => p.items),
     [experimentsQuery.data],
   );
-  // Full count from the X-Total-Count header so the badge shows the real total,
-  // not just the rows loaded so far.
+  // X-Total-Count supplies the full experiment count for the badge.
   const experimentsTotal =
     experimentsQuery.data?.pages[0]?.total ?? pagedExperiments?.length ?? 0;
 
@@ -2178,10 +2132,8 @@ export default function ProjectPage() {
         d.filtered === false ? null : { rows: d.experiments, capped: d.capped },
       ),
   );
-  // Grid rows only. Rebinding `experiments` itself would shrink everything
-  // derived from it while a filter is active — expTitleMap feeds the Title
-  // column of the FASTQ and BAM tables, so runs whose experiment fell outside
-  // the match set would lose their titles as the user typed in another grid.
+  // Filter grid rows without rebinding experiments: expTitleMap also supplies
+  // FASTQ and BAM titles for experiments outside the match set.
   const experiments = pagedExperiments;
   const gridExperiments = experimentFind.rows ?? pagedExperiments;
 
@@ -2214,7 +2166,7 @@ export default function ProjectPage() {
     Promise.all(missing.map((acc) => fetchSample(acc))).then((results) => {
       if (cancelled) return;
       const found = results.filter((s): s is Sample => !!s);
-      if (found.length === 0) return; // nothing new — avoid state churn / re-run loop
+      if (found.length === 0) return; // Skip unchanged samples to prevent an effect loop.
       setSamplesState((prev) => {
         const base =
           prev.accession === accession ? prev.map : new Map<string, Sample>();
@@ -2291,15 +2243,12 @@ export default function ProjectPage() {
     // Each side misses organisms the other has, and the column is there before
     // the samples page in. Taxids only exist on the sample side.
     const byName = new Map<string, string | null>();
-    // organisms_with_taxa carries the taxid; organisms is the older names-only
-    // shape, kept as a fallback until the lookup table is populated.
+    // organisms_with_taxa supplies taxids; organisms provides a names-only fallback.
     for (const entry of project?.organisms_with_taxa ?? []) {
       const name = entry?.name?.trim();
       if (name && name !== "-") byName.set(name, entry.taxon_id || null);
     }
-    // normalizeAliases handles the declared `string[] | string | null` shape;
-    // this page, unlike the GEO one, does not normalize it at fetch time, so an
-    // Array.isArray check alone would silently drop a string-form list.
+    // normalizeAliases accepts string[] | string | null; an array-only check would drop string aliases.
     for (const name of normalizeAliases(project?.organisms ?? null)) {
       const trimmed = name.trim();
       if (trimmed && trimmed !== "-" && !byName.has(trimmed)) {
@@ -2408,8 +2357,7 @@ export default function ProjectPage() {
     const headerHeight = 48;
     const rowHeight = 42;
     const maxHeight = 500;
-    // Wrapped rows grow past the fixed rowHeight estimate, so a row-count fit
-    // would clip them — give the grid its full max height instead.
+    // Wrapped rows exceed the rowHeight estimate; use the full maximum grid height to prevent clipping.
     if (wrap) return maxHeight;
     return Math.min(
       maxHeight,
@@ -2440,8 +2388,7 @@ export default function ProjectPage() {
         width: 130,
         pinned: "left",
         cellClass: "seqout-accession",
-        // Resolved server-side (see onExperimentFilterChanged) so the lookup
-        // covers the whole study, not just the loaded pages.
+        // Server-side experiment lookup covers the whole study.
         ...lookupColDef<ExperimentGridRow>(),
         cellRenderer: (params: ICellRendererParams<ExperimentGridRow>) => {
           const experimentAccession = toDisplayText(params.value);
@@ -2674,8 +2621,7 @@ export default function ProjectPage() {
             <Flex justify="start" align={"center"} gap="2" wrap={"wrap"}>
               <DbBadge
                 size={{ initial: "2", md: "3" }}
-                // Not dbForAccession: an ENA study keeps its NCBI PRJNA id, which
-                // that regex reads as SRA. externalStudyDb is the page's own source.
+                // Use externalStudyDb: an ENA study can retain a PRJNA ID that dbForAccession classifies as SRA.
                 db={externalStudyDb}
                 style={{ whiteSpace: "nowrap" }}
                 className="seqout-accession"
@@ -2925,17 +2871,9 @@ export default function ProjectPage() {
                 </Badge>
               }
               onExportOriginalCsv={async () => {
-                // Export every experiment, not just the rows scrolled into
-                // view. Fetch all experiments, then enrich the samples the
-                // loaded map is missing so sample/attribute columns are complete.
-                // one /sample request per missing sample; a bulk endpoint would
-                // be needed if huge studies lag
-                // Always re-fetch rather than reusing the loaded set when it
-                // looks complete: "complete" was judged against
-                // experimentsTotal, which falls back to the loaded count
-                // whenever X-Total-Count is unreadable (it is not CORS-exposed,
-                // so any cross-origin host sees null) — and the export then
-                // silently shrank to whatever had been scrolled into view.
+                // Fetch all experiments and missing sample details for complete export columns.
+                // experimentsTotal can fall back to the loaded count when X-Total-Count is
+                // unreadable, so it cannot establish completeness.
                 const allExps = accession
                   ? await fetchAllExperiments(accession)
                   : experiments;
@@ -2954,8 +2892,7 @@ export default function ProjectPage() {
                   for (const s of fetched) if (s) map.set(s.accession, s);
                 }
 
-                // Attribute columns must cover every exported sample, so derive
-                // the key set from the full map rather than the loaded one.
+                // Derive attribute columns from the full exported sample map.
                 const keySet = new Set<string>();
                 map.forEach((s) => {
                   if (s.attributes_json)

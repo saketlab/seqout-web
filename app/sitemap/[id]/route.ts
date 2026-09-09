@@ -14,6 +14,7 @@ const STATIC_PATHS = [
   "/map",
   "/mcp",
   "/stats",
+  "/technology/longread",
   "/api-docs",
   "/authors",
 ];

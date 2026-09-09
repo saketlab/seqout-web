@@ -1,22 +1,17 @@
-// Term expansion is off until someone switches it on: it widens a search a lot,
-// and a first-time visitor should get back what they asked for. Off means the search runs the words as
-// typed, which is the API's `structured` mode (exact terms, no ontology
-// synonyms). Two things can say so, and they have different lifetimes: the
-// `expand=0` URL param is the current search's override, and localStorage is
-// the default the *next* search starts from. The URL always wins where it
-// exists, so a shared link searches what its sender saw.
+// Query expansion defaults to off, using the API's structured mode.
+// URL settings override the stored default so shared links preserve their search.
 export const EXPANSION_PARAM = "expand";
 
 const STORAGE_KEY = "seqout:term-expansion";
 
-/** Did this search run without expansion? Reads the URL, not the preference. */
+/** Whether the URL disables expansion, independently of the stored preference. */
 export function expansionDisabled(params: {
   get(key: string): string | null;
 }): boolean {
   return params.get(EXPANSION_PARAM) === "0";
 }
 
-/** The stored default. Off (false) until it was explicitly turned on. */
+/** Stored expansion default, false until enabled. */
 export function readExpansionPreference(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -31,17 +26,11 @@ export function writeExpansionPreference(on: boolean): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, on ? "1" : "0");
   } catch {
-    // private mode / quota — the toggle still works for this page
+    // Storage unavailable; retain the setting for this page.
   }
 }
 
-/**
- * The eight ontologies whose synonyms feed query expansion. Mirrors
- * `expansions.ONTOLOGIES` on the server, which mirrors
- * `ontology-scripts/GRAPH.md` — the ingest set changes about never, and the
- * server ignores ids it doesn't know, so a drift here is inert rather than
- * broken.
- */
+/** Ontologies contributing synonyms, mirroring the server expansions.ONTOLOGIES list. The server ignores unknown IDs. */
 export const ONTOLOGIES: readonly {
   id: string;
   label: string;
@@ -124,7 +113,7 @@ export function writeDisabledOntologies(ids: string[]): void {
       JSON.stringify(clean(ids)),
     );
   } catch {
-    // private mode / quota — the dialog still works for this page
+    // Storage unavailable; retain the setting for this page.
   }
 }
 
@@ -133,11 +122,7 @@ export function sameOntologies(a: string[], b: string[]): boolean {
   return a.length === b.length && [...a].sort().join() === [...b].sort().join();
 }
 
-/**
- * What a search URL that says nothing about expansion should inherit from this
- * browser's stored default, or null when it should be left alone. A URL naming
- * either param is explicit — a shared link searches what its sender saw.
- */
+/** Stored expansion defaults to inherit when the URL omits explicit settings; null when the URL takes precedence. */
 export function inheritedSettings(params: {
   has(key: string): boolean;
 }): { off: boolean; disabled: string[] } | null {

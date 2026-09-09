@@ -77,17 +77,13 @@ export default function PublicationProjectsBody({ pmid }: { pmid: string }) {
     staleTime: Infinity,
   });
 
-  // The API 404s both for a PMID that doesn't exist and for a real paper no
-  // submission cites — from here they're the same thing, and "no datasets
-  // linked" is the honest phrasing for both. Any other failure is ours.
+  // 404 covers both an unknown PMID and a paper with no linked submissions. Other statuses indicate request failures.
   const notLinked = error instanceof ApiError && error.status === 404;
 
   const projects = data?.projects ?? [];
   const visible = showAll ? projects : projects.slice(0, INITIAL_ROWS);
   const pubDate = formatPubDate(data?.pub_date ?? null);
-  // Same preference as PublicationCard — DOI first, PubMed otherwise. Unlike the
-  // card there is no unlinked branch: this page is addressed by PMID, so the
-  // fallback always resolves.
+  // Prefer DOI; the page PMID provides a PubMed fallback.
   const titleLink = data?.doi ? doiHref(data.doi) : pubmedHref(pmid);
 
   return (
@@ -275,8 +271,7 @@ export default function PublicationProjectsBody({ pmid }: { pmid: string }) {
                   getText={() => pmid}
                   toast="PMID copied"
                 />
-                {/* No BibTeX: that endpoint is keyed by project accession, and
-                    this page spans every project linked to the paper. */}
+                {/* BibTeX requires a project accession; this page spans projects linked to a paper. */}
                 <CiteDialog
                   label="Cite"
                   title="Citation"
@@ -296,8 +291,7 @@ export default function PublicationProjectsBody({ pmid }: { pmid: string }) {
           </Text>
         )}
 
-        {/* The paper is in seqout (so its card renders above) but nothing cites
-            it — "Found 0 projects" over an empty list reads like a failure. */}
+        {/* Show an empty state for a paper with no linked projects. */}
         {data && projects.length === 0 && (
           <Text size="2" style={{ color: "var(--gray-11)" }}>
             We have this paper, but no dataset in {ARCHIVE_LIST_TEXT} is linked

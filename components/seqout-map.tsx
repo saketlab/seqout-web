@@ -51,15 +51,13 @@ import {
   useState,
 } from "react";
 
-// Layout effect on the client, plain effect on the server (avoids the SSR
-// useLayoutEffect warning). Used so the mobile/desktop layout is committed
-// before the map measures its container.
+// Client uses layout effect, server uses plain effect (avoids the SSR warning);
+// ensures the map measures its container after layout commits.
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const DEEPSCATTER_ID = "seqout-deepscatter";
-// Cap on the cluster picker's list. The fine layers have tens of thousands of
-// clusters, so at those zooms the list is the N biggest, not all of them.
+// Maximum number of clusters listed by size in the picker.
 const CLUSTER_LIST_LIMIT = 2000;
 const SIDEBAR_WIDTH = 272;
 const MOBILE_MAP_BREAKPOINT = 768;
@@ -87,17 +85,15 @@ type MapMeta = {
   filters?: { key: string; label: string; file: string }[];
 };
 
-// An enriched facet baked into the tiles: its column key + display label. Tallied
-// per lasso selection into a bar chart (no separate value list / filter UI).
+// Enriched tile facet: column key and display label for lasso statistics.
 type Facet = { key: string; label: string };
 
 // A named cluster of the picker's layer, with its centroid (so selecting one can
 // fly the view to it).
 type Cluster = { id: string; label: string; x: number; y: number };
 
-// Archive coloring: the source strings in a fixed index order and their parallel
-// hex colors (from the shared db-colors palette). Passed to the engine so points
-// can be colored by which repo they came from, and rendered as the map legend.
+// Archive coloring: source strings and their parallel hex colors (shared
+// db-colors palette), passed to the engine to color points and render the map legend.
 const SOURCE_DOMAIN: string[] = [...DB_ORDER];
 const SOURCE_RANGE: string[] = DB_ORDER.map((db) => DB_COLOR_MAP[db].hex);
 
@@ -381,9 +377,8 @@ export default function MapGraph() {
   const [countryFilter, setCountryFilter] = useState("");
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
-  // Cluster picker: the named clusters of the layer the current zoom is on (the
-  // same layer the points are colored and labeled by). Selecting some hides every
-  // point outside them (a facet filter on that layer's tile column).
+  // Cluster picker lists the named clusters of the zoom's active layer (the same
+  // layer points are colored/labeled by); selecting some filters out every other point.
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [clusterLevel, setClusterLevel] = useState<string | null>(null);
   const [clusterQuery, setClusterQuery] = useState("");
@@ -455,14 +450,11 @@ export default function MapGraph() {
     [],
   );
 
-  // Point the picker at a cluster layer: list its clusters (whole layer — the
-  // labels endpoint returns everything when no bbox is passed). Called by the
-  // engine whenever the zoom crosses into a new layer.
+  // Load all clusters in a picker layer when zoom changes the active layer.
   const clusterCacheRef = useRef(new Map<string, Cluster[]>());
   const loadClusterLevel = useCallback(async (level: string | null) => {
-    // Cluster ids are per-layer, so a level switch would invalidate an active
-    // selection (and the fly-to on select changes the zoom → the level). Stay put
-    // until the user clears; then the picker follows the zoom again.
+    // Cluster ids are per-layer: a level switch would invalidate an active selection
+    // (fly-to on select also changes zoom → level). Stay put until cleared.
     if (selectedClustersRef.current.length > 0) return;
     if (!level || level === clusterLevelRef.current) return;
     clusterLevelRef.current = level;
@@ -517,9 +509,8 @@ export default function MapGraph() {
     (async () => {
       if (!areaEl) return;
 
-      // On mobile the container can measure 0×0 on first paint (dynamic browser
-      // toolbars / 100dvh settling); deepscatter throws if built at zero size.
-      // Wait for a real box before initializing.
+      // Mobile containers can measure 0×0 on first paint (dynamic toolbars / 100dvh
+      // settling); deepscatter throws at zero size, so wait for a real box first.
       let rect = areaEl.getBoundingClientRect();
       if (!rect.width || !rect.height) {
         await new Promise<void>((resolve) => {
@@ -549,10 +540,8 @@ export default function MapGraph() {
         if (destroyed) return;
         engineRef.current = engine;
 
-        // Resolve the current asset version from the backend (this request lazily
-        // triggers tile generation the very first time), then load the versioned,
-        // purge-revisioned assets — JSON via the browser cache, tiles via the URL
-        // we hand to deepscatter.
+        // Resolving the asset version can trigger tile generation; the versioned
+        // JSON loads through the browser cache and feeds deepscatter's tile URLs.
         const meta: MapMeta = await fetch(`${SERVER_URL}/map/meta`).then((r) =>
           r.json(),
         );
@@ -561,9 +550,7 @@ export default function MapGraph() {
         const countries = await cachedJson<string[]>(`${base}/countries.json`);
         if (destroyed) return;
 
-        // Enriched facets baked into the tiles — used to label the lasso-stats bar
-        // charts and to force-load those columns. No value lists needed (counts
-        // come straight from the tiles when a lasso is drawn).
+        // Tile facets label the lasso charts and identify columns to load for counts.
         const facetList: Facet[] = (meta.filters ?? []).map((f) => ({
           key: f.key,
           label: f.label,
@@ -587,8 +574,8 @@ export default function MapGraph() {
           backgroundColor: backgroundForTheme(themeRef.current),
           labelFont: GeistSans.style.fontFamily,
           serverUrl: SERVER_URL,
-          // The engine owns the zoom→layer mapping; it tells us which layer the
-          // points are colored/labeled by so the picker can list that same layer.
+          // The engine owns zoom→layer mapping; onColorLevel reports the active
+          // layer so the picker can list it.
           onColorLevel: (level: string | null) => {
             void loadClusterLevel(level);
           },
@@ -636,9 +623,8 @@ export default function MapGraph() {
       destroyed = true;
       controller.abort();
       ctxRef.current?.destroy?.();
-      // Empty the whole holder, not just its canvases: deepscatter's bind() reuses an
-      // existing div.deepscatter_container and appends a second set of containers into
-      // it, then the renderer picks the *first* (stale, canvas-less) one → crash.
+      // Empty the holder before rebinding: deepscatter's bind() reuses an existing
+      // div.deepscatter_container, whose stale children cause the renderer to crash.
       document.getElementById(DEEPSCATTER_ID)?.replaceChildren();
       spRef.current = null;
     };
@@ -736,8 +722,7 @@ export default function MapGraph() {
     if (sp && ctx) {
       engineRef.current?.setColorByClusters(sp, value, ctx.clusterColors);
     }
-    // Keep selected-cluster labels on their original layer regardless of whether
-    // their point colors are currently enabled.
+    // Keep selected-cluster labels on their original layer even when point colors are disabled.
     if (selectedClustersRef.current.length > 0) {
       engineRef.current?.setClusterSelectionLevel(clusterLevelRef.current);
     }
@@ -786,9 +771,8 @@ export default function MapGraph() {
     (id: string, checked: boolean) => {
       setSelectedClusters((prev) => {
         const next = checked ? [...prev, id] : prev.filter((c) => c !== id);
-        // Set the ref here, not just in its effect: the fly-to below fires zoom
-        // events synchronously, and loadClusterLevel reads this ref to decide
-        // whether the picker's layer is locked.
+        // Set the ref before fly-to: zoom events fire synchronously, and loadClusterLevel
+        // reads the ref to determine whether the picker layer is locked.
         selectedClustersRef.current = next;
         // A cluster id only has meaning in the layer where it was selected, so
         // keep its labels (and, when enabled, colors) fixed while it is selected.
@@ -807,8 +791,7 @@ export default function MapGraph() {
     selectedClustersRef.current = [];
     engineRef.current?.setClusterSelectionLevel(null);
     applySelections(selectedCountriesRef.current, []);
-    // Unlocked again — catch the picker up to wherever the zoom drifted to while
-    // the selection held it in place.
+    // Sync the unlocked picker to the zoom level.
     void loadClusterLevel(engineRef.current?.colorLevel() ?? null);
   }, [applySelections, loadClusterLevel]);
 

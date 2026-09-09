@@ -152,6 +152,94 @@ export interface DiseaseProject {
   n_sra_runs: number | null;
 }
 
+export interface LongReadSummary {
+  studies: number;
+  experiments: number | null;
+  samples: number | null;
+  studies_pacbio: number;
+  studies_nanopore: number;
+  studies_both: number;
+  studies_long_read_only: number;
+  studies_hybrid: number;
+  studies_human: number;
+  studies_with_fastq: number;
+  studies_single_cell: number;
+  first_year: number | null;
+  last_year: number | null;
+}
+
+export interface LongReadProject {
+  study_accession: string;
+  accessions: string[];
+  archives: string[];
+  technologies: string[];
+  platforms: string[];
+  instrument_models: string[] | null;
+  library_strategies: string[] | null;
+  n_experiments: number;
+  n_experiments_total: number | null;
+  long_read_only: boolean | null;
+  title: string | null;
+  organism: string | null;
+  organisms: string[] | null;
+  n_samples: number | null;
+  assay_l1: string | null;
+  is_single_cell: boolean | null;
+  country: string | null;
+  pmid: string | null;
+  first_published: string | null;
+  year: number | null;
+  has_fastq: boolean | null;
+  has_sra: boolean | null;
+  n_runs: number | null;
+  n_fastq_runs: number | null;
+  n_sra_runs: number | null;
+}
+
+export function useLongReadSummary() {
+  return useQuery({
+    queryKey: ["longread-summary"],
+    queryFn: ({ signal }) =>
+      getJson<LongReadSummary>("/longread/summary", signal),
+    staleTime: ONE_DAY,
+  });
+}
+
+export function useLongReadFacets() {
+  return useQuery({
+    queryKey: ["longread-facets"],
+    queryFn: ({ signal }) => getJson<DiseaseFacets>("/longread/facets", signal),
+    staleTime: ONE_DAY,
+  });
+}
+
+export function useLongReadProjects(
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) {
+  const active = useMemo(
+    () => Object.entries(filters).sort(([a], [b]) => a.localeCompare(b)),
+    [filters],
+  );
+  return useQuery({
+    queryKey: ["longread-projects", active, sort],
+    queryFn: ({ signal }) => {
+      const qs = new URLSearchParams([
+        ["limit", "100"],
+        ["sort", sort.key],
+        ["order", sort.order],
+        ...active,
+      ]);
+      return getJson<{ total: number; results: LongReadProject[] }>(
+        `/longread/projects?${qs.toString()}`,
+        signal,
+      );
+    },
+    placeholderData: (prev) => prev,
+    staleTime: ONE_DAY,
+  });
+}
+
 export function useDiseaseSummary(collection: string) {
   return useQuery({
     queryKey: ["disease-summary", collection],

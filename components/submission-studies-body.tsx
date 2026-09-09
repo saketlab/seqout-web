@@ -44,17 +44,14 @@ export default function SubmissionStudiesBody({
     staleTime: Infinity,
   });
 
-  // The API 404s when nothing is filed under the submission; anything else is a
-  // failure on our side and shouldn't read as "not found".
+  // 404 indicates an empty submission; other statuses indicate request failures.
   const noStudies = error instanceof ApiError && error.status === 404;
 
   const studies = data?.studies ?? [];
   const visible = showAll ? studies : studies.slice(0, INITIAL_ROWS);
   const soleStudy = studies.length === 1 ? studies[0].accession : null;
 
-  // A submission that resolves to a single study is really just that study —
-  // send visitors straight there. (Search already jumps on single, so this only
-  // fires when the page is opened directly.)
+  // Redirect single-study submissions to the study page.
   useEffect(() => {
     if (soleStudy) router.replace(getProjectShortUrl(soleStudy));
   }, [soleStudy, router]);
@@ -71,17 +68,14 @@ export default function SubmissionStudiesBody({
         px={{ initial: "4", md: "3" }}
         direction="column"
       >
-        {/* Suppressed for a non-submission accession: the message below is its
-            own heading, and "Studies for submission FOO" above "FOO isn't a
-            submission accession" just contradicts itself. */}
+        {/* Invalid-accession messages provide their own heading. */}
         {isSubmission(acc) && (
           <Heading size="6">Studies for submission {acc}</Heading>
         )}
 
         {isLoading && <Text color="gray">Searching…</Text>}
 
-        {/* Not a submission accession at all, so the query never ran — without
-            this the page is just a heading over blank space. */}
+        {/* Explain invalid submission accessions before running the query. */}
         {!isSubmission(acc) && (
           <Flex
             align="center"

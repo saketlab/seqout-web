@@ -1,7 +1,6 @@
 "use client";
 
-// The toggle itself, shared by the two places that offer it: the navbar dialog
-// (during a search) and the home page popover (before one).
+// Toggle shared by the navbar dialog (during search) and the home popover (before search).
 
 import OntologySettingsButton from "@/components/ontology-settings-button";
 import { Flex, Link, Switch, Text } from "@radix-ui/themes";

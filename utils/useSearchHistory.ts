@@ -9,9 +9,7 @@ import { getProjectShortUrl } from "./shortUrl";
 
 const HISTORY_KEY = "searchHistory";
 const MAX_HISTORY = 5;
-// Modifier-bar params carried over to a new search so it keeps the user's
-// sort / time / source selections. (Deep "more filters" facets are not carried
-// — a fresh query text resets them.)
+// Carry sort, time, and source settings into a new search; reset the deeper facets.
 const CARRIED_PARAM_KEYS = [
   "db",
   "sort",
@@ -69,9 +67,7 @@ export function useSearchHistory() {
     );
     saveHistory(newHistory);
 
-    // "<accession> ..." (optionally with a pasted title/notes), or an archive URL
-    // with the accession inside it → jump to the first recognized accession
-    // instead of full-text search. Any further accessions in the text are ignored.
+    // Jump to the first recognized accession in pasted text or an archive URL.
     if (startsWithAccession(trimmed) || isAccessionUrl(trimmed)) {
       const first = parseAccessions(trimmed)[0];
       if (first) {
@@ -104,9 +100,7 @@ export function useSearchHistory() {
         }
 
         if (first.isSubmission) {
-          // A submission accession maps to one or many studies. Resolve first so
-          // the common single-study case jumps straight to the study; only the
-          // rare multi-study submission loads the listing page.
+          // Resolve submissions first: single-study submissions open the study; multiple studies open a listing.
           try {
             const res = await fetch(
               `${SERVER_URL}/submission/${encodeURIComponent(first.raw)}`,

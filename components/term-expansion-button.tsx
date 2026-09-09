@@ -1,8 +1,6 @@
 "use client";
 
-// Home-page twin of the navbar's expansion button. There's no search to explain
-// yet, so the button goes straight to the ontology dialog: the master switch
-// rides on the title row, the per-ontology switches below it.
+// Home-page ontology dialog with a master expansion switch and per-ontology switches.
 
 import { OntologyList } from "@/components/ontology-settings-button";
 import { WaypointsIcon } from "@/components/term-expansion-control";

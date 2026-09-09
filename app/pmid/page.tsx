@@ -12,7 +12,7 @@ export default function PublicationsIndexPage() {
   const router = useRouter();
   const [pmid, setPmid] = React.useState("");
 
-  // Submitting a non-numeric PMID used to do nothing at all, with no hint why.
+  // Validate numeric PMIDs before navigation.
   const [invalid, setInvalid] = React.useState(false);
 
   const go = () => {

@@ -40,7 +40,7 @@ const fetchTaxon = async (
         info.division = rec.division || rec.genbankdivision || null;
       }
     } catch {
-      /* NCBI unreachable — leave those fields null */
+      /* NCBI unreachable; fields remain null. */
     }
   }
   try {
@@ -54,14 +54,12 @@ const fetchTaxon = async (
       info.wikiUrl = data?.content_urls?.desktop?.page || null;
     }
   } catch {
-    /* no Wikipedia page — no image/blurb */
+    /* Wikipedia page unavailable; image and blurb remain null. */
   }
   return info;
 };
 
-// Info button for the sample's organism, shown at the far end of the Sample
-// metadata section heading — the sample-side analog of the experiment section's
-// /e badge. Opens a popover with NCBI + Wikipedia details.
+// Organism info popover with NCBI and Wikipedia details, beside the sample metadata heading.
 export function OrganismInfoButton({
   name,
   taxonId,

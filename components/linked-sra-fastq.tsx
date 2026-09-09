@@ -37,7 +37,7 @@ export default function LinkedSraFastq({
 }: {
   aliasField: string | string[] | null | undefined;
   agGridThemeClassName: string;
-  /** accession -> PMID, for studies resolved via publication rather than a link. */
+  /** Accession -> PMID for studies resolved through a shared publication. */
   inferredVia?: Record<string, string>;
 }) {
   const sraAliases = React.useMemo(
@@ -92,8 +92,7 @@ export default function LinkedSraFastq({
     );
   }
 
-  // Several studies share the paper, and only one is likely to be this project's
-  // data — so let the user pick instead of stacking them as if all were equal.
+  // Several studies share the paper; let the user choose the project's data.
   return (
     <Tabs.Root defaultValue={data[0].accession}>
       <Tabs.List>
@@ -105,10 +104,7 @@ export default function LinkedSraFastq({
       </Tabs.List>
       {data.map((entry) => (
         <Tabs.Content key={entry.accession} value={entry.accession} mt="4">
-          {/* DownloadFastqSection returns a fragment whose blocks are spaced by the
-              PARENT's flex gap. Tabs.Content is a plain div, so without this the
-              heading, toolbar and grid collapse together. gap="4" matches the page
-              column the untabbed section renders into. */}
+          {/* DownloadFastqSection returns a fragment that depends on its parent's flex gap. Match the page column gap inside Tabs.Content. */}
           <Flex direction="column" gap="4">
             {inferredVia?.[entry.accession] && (
               <ViaPmidNote

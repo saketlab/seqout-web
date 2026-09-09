@@ -58,9 +58,7 @@ interface PlatformTotalsResponse {
   took_ms: number;
 }
 
-// Distinct colors for up to 8 comparison platforms, sourced from the
-// shared chart-theme palette so all multi-series charts use the same
-// 8-step sequence.
+// Shared chart palette for comparison platforms.
 const COMPARISON_COLORS = CHART_SERIES_PALETTE;
 
 async function fetchPlatformTotals(): Promise<PlatformTotalsResponse> {
@@ -145,16 +143,13 @@ export default function StatsPlatformComparisonCard() {
     setSelectedPlatforms((prev) => prev.filter((p) => p !== platform));
   }, []);
 
-  // Stable query list: fetch all known platforms (not just selected).
-  // This prevents useQueries from remounting when selection changes.
+  // Fetch all known platforms so selection changes preserve query identities.
   const allPlatformCodes = useMemo(
     () => (totalsData?.platforms ?? []).map((p) => p.platform),
     [totalsData],
   );
 
-  // All queries stay enabled and use staleTime: Infinity (no refetch).
-  // Selection only controls which series appear in the chart, not which queries run.
-  // This prevents data loss when deselecting a platform.
+  // Keep queries enabled with staleTime: Infinity; selection controls series visibility.
   const growthQueries = useQueries({
     queries: allPlatformCodes.map((platform) => ({
       queryKey: ["platform-growth", platform, mode] as const,

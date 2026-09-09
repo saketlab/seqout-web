@@ -7,16 +7,9 @@ type TextFilterModel = {
   filter?: unknown;
 };
 
-/**
- * Translate AG Grid's filter model into the payload the /find endpoints take.
- *
- * Only single-condition text filters cross the wire. Number ranges, and any
- * column the server does not know about, are left to the grid — which re-applies
- * the whole model to whatever comes back, so the server only ever has to return
- * a superset.
- *
- * Returns "" when nothing is translatable, which callers treat as "no lookup".
- */
+/** Translate single-condition text filters for server lookup.
+ * The grid reapplies the full model, including number ranges and unknown columns, to the returned superset.
+ * Returns "" when no filter is translatable. */
 export const toServerFilters = (
   model: Record<string, unknown> | null | undefined,
 ): string => {

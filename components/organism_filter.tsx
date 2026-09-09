@@ -15,11 +15,8 @@ import * as React from "react";
 export type ScientificFacet = {
   name: string;
   count: number;
-  // Summed match rank of this organism's studies, from /search/facets. The
-  // sidebar orders on it so an organism that matched a lot of studies weakly
-  // (an ontology synonym colliding with unrelated wording) sits below one that
-  // matched fewer studies well. Absent for client-derived counts and 0 for a
-  // query-less search, where the count tiebreak carries the order.
+  // Summed study match rank for organism ordering. Absent for client-derived counts
+  // and zero for query-less searches, where counts determine order.
   score?: number;
 };
 
@@ -79,9 +76,9 @@ function getCachedCommonNames(scientificNames: string[]): Map<string, string> {
   return commonNames;
 }
 
-// Resolve every missing scientific name in a single /common-names request.
-// Rows come back keyed by scientific_name (case-insensitive); anything the
-// server omits is cached as null so we don't re-ask for it.
+// Resolve missing scientific names via one /common-names request; rows come back
+// keyed by scientific_name (case-insensitive). Anything the server omits caches as
+// null to skip re-asking.
 const COMMON_NAMES_CHUNK = 50;
 
 async function fetchCommonNamesChunk(

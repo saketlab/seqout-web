@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Accessions are uppercase in every namespace we serve (GSE, SRP, SRR, PRJNA,
-// E-MTAB-*, CRA/HRA), so lowercase URLs are duplicates, not distinct pages.
+// Accessions use uppercase in every supported namespace; lowercase URLs duplicate their pages.
 const ACCESSION_ROUTE = /^\/([pser])\/([^/]+)$/;
 const ACCESSION_SHAPE = /^[A-Z0-9][A-Z0-9._-]*$/;
 
@@ -49,7 +48,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // Also handle the shorter variants for completeness
+  // Redirect the short GEO URL format.
   // /project/g/{accession} -> /p/{accession}
   if (pathname.startsWith("/project/g/")) {
     const accession = pathname.slice(11); // Remove '/project/g/'

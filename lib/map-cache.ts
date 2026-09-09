@@ -1,25 +1,15 @@
-/**
- * Browser caching for the JSON map assets (geojson + country list) using the
- * Cache Storage API. Entries are keyed by their full versioned URL, so a new
- * backend version or a bumped purge-revision yields a fresh URL and a fresh
- * fetch automatically. `purgeMapCache` drops everything so the next load
- * re-fetches from the server.
- *
- * (The Arrow tiles are fetched internally by deepscatter and are cached by the
- * browser's HTTP cache via the backend's immutable Cache-Control headers; the
- * purge revision in their URL is what forces those to refetch.)
- */
+/** Browser caching for JSON map assets. Versioned URLs and purge revisions invalidate cached assets; the purge revision also invalidates HTTP-cached Arrow tiles. */
 const CACHE_NAME = "seqout-map";
 const REV_KEY = "seqout-map-rev";
 const DEFAULT_REV = "s";
 
-/** Current purge revision (persisted). Part of every asset URL. */
+/** Persisted purge revision included in every asset URL. */
 export function getMapRev(): string {
   if (typeof localStorage === "undefined") return DEFAULT_REV;
   return localStorage.getItem(REV_KEY) || DEFAULT_REV;
 }
 
-/** Fetch JSON, serving from (and populating) the Cache Storage entry for `url`. */
+/** Fetch JSON, serving from (and populating) the Cache Storage entry for the url. */
 export async function cachedJson<T = unknown>(url: string): Promise<T> {
   if (typeof caches === "undefined") {
     const res = await fetch(url);

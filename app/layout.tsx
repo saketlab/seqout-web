@@ -1,4 +1,6 @@
 import ClickTracker from "@/components/click-tracker";
+import ServerAnalytics from "@/components/server-analytics";
+import { Suspense } from "react";
 import FooterGate from "@/components/footer-gate";
 import Wrapper from "@/components/wrapper";
 import { BRAND_BG } from "@/utils/constants";
@@ -224,6 +226,7 @@ function RootBody({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <body suppressHydrationWarning>
       <ClickTracker />
+      <Suspense fallback={null}><ServerAnalytics /></Suspense>
       <a href="#main-content" className="seqout-skip-link">
         Skip to content
       </a>
@@ -343,15 +346,13 @@ export default function RootLayout({
             font-feature-settings: "tnum" 1, "cv11" 1;
           }
 
-          /* Sticky footer. Radix's theme root already carries min-height:100vh,
-             but as a block box a short page stacks main+footer at the top and
-             strands the footer mid-viewport. Flex column + a growing main pins
-             it to the bottom. The -16px offsets body's default 8px margin
-             (there's no reset), which otherwise pushes every page 16px past
-             the fold.
-             Keyed to .seqout-root-theme, NOT .radix-themes: portalled popovers
-             and dialogs render their own nested .radix-themes, and would
-             inherit this min-height and balloon to full viewport height. */
+          /* Sticky footer: flex column with a growing main pins the footer to
+             the bottom (block layout strands it mid-viewport despite
+             min-height:100vh from Radix's theme root).
+             -16px offsets body's default 8px margin (no reset).
+             Keyed to .seqout-root-theme, not .radix-themes, so nested
+             popover/dialog theme roots don't inherit this and balloon to
+             full viewport height. */
           .seqout-root-theme {
             display: flex;
             flex-direction: column;

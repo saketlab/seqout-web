@@ -16,13 +16,13 @@ describe("formatPubDate", () => {
   });
 
   it("does not shift the day across timezones", () => {
-    // Parsed as UTC; a naive `new Date("2017-08-02")` renders as 1 Aug
-    // for viewers west of Greenwich.
+    // Parsed as UTC; a naive new Date("2017-08-02") renders as 1 Aug for
+    // viewers west of Greenwich.
     expect(formatPubDate("2017-01-01")).toBe("1 Jan 2017");
   });
 
   it("keeps a bare year as a year", () => {
-    // `new Date(2025)` is 1 Jan 1970 — the number must not reach the parser.
+    // new Date(2025) is 1 Jan 1970; the number must not reach the parser.
     expect(formatPubDate(2025)).toBe("2025");
     expect(formatPubDate("2025")).toBe("2025");
   });

@@ -8,7 +8,6 @@ type Props = Omit<ComponentProps<typeof Badge>, "color"> & {
   db?: DbSource | null;
 };
 
-/** A Badge in its source's colour. Plain Badge if the source is unknown. */
 export default function DbBadge({ db, variant, className, style, ...rest }: Props) {
   if (!db) {
     return (

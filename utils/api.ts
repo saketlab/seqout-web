@@ -1,23 +1,16 @@
 import { SERVER_URL } from "@/utils/constants";
 import { parseMaybeJson } from "@/utils/json";
 
-// Combine an optional caller signal (React Query passes one) with a 30s timeout
-// so superseded/hung requests get aborted instead of clobbering fresh results.
+// Combine the caller signal with a 30s timeout to abort superseded or stalled requests.
 export function withTimeout(signal?: AbortSignal): AbortSignal {
   const timeout = AbortSignal.timeout(30000);
   return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
-/**
- * A non-ok response, carrying the status so callers can tell "the server says
- * this doesn't exist" (404) apart from "the request failed" — they read very
- * differently to a user. Message is unchanged so anything rendering the error
- * text keeps its current wording.
- */
+/** HTTP error carrying the response status, including 404 for missing resources. */
 export class ApiError extends Error {
   constructor(public readonly status: number) {
-    // Message and name deliberately unchanged from the plain Error this
-    // replaced: submission-studies-body renders String(error) verbatim.
+    // Preserve the Error message and name: submission-studies-body renders String(error) verbatim.
     super("Network error");
   }
 }
@@ -59,7 +52,7 @@ export async function getJsonOrNull<T>(
   return (await res.json()) as T;
 }
 
-// --- Deep dive (ontology hierarchy) ---------------------------------------
+// Ontology hierarchy
 
 export interface DeepDiveTerm {
   term: string; // phrase as it appeared in the query (Select label / swap target)
@@ -88,7 +81,7 @@ export function getDeepDiveChildren(term: string, signal?: AbortSignal) {
   );
 }
 
-// --- Synonym expansion (what the search actually ran) ----------------------
+// Synonym expansion
 
 export interface ExpansionChunk {
   term: string; // the query term, as the expander chunked it
@@ -117,7 +110,7 @@ export function getSearchExpansion(
   );
 }
 
-/** One comma-joined `exclude_ontology`, the shape /search and /search/facets take. */
+/** One comma-joined exclude_ontology, the shape /search and /search/facets take. */
 export function ontologyParams(ids: string[]): string {
   return ids.length ? `&exclude_ontology=${encodeURIComponent(ids.join(","))}` : "";
 }

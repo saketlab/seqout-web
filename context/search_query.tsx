@@ -9,11 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
-// In-memory only: the last submitted query persists across client-side
-// navigation between pages (the provider lives above the router outlet),
-// but intentionally NOT across a full reload. We deliberately do NOT touch
-// localStorage — the search bar should only show a query the user actually
-// typed this session, never auto-fill itself on a fresh visit.
+// Retain the submitted query in memory across client-side navigation.
+// A full reload clears it so fresh visits start with an empty search.
 let currentQuery = "";
 
 function readQuery(): string {
@@ -24,9 +21,8 @@ function writeQuery(q: string): void {
   currentQuery = q;
 }
 
-// Multiple components subscribe in the same tab (e.g. the results page sets
-// the query while the header bar reads it), so we run a small pub/sub to
-// keep every subscriber in sync.
+// Multiple components subscribe in the same tab (the results page sets the query,
+// the header bar reads it); a small pub/sub keeps every subscriber in sync.
 const listeners = new Set<() => void>();
 function subscribe(callback: () => void) {
   listeners.add(callback);

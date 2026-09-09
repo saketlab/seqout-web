@@ -13,14 +13,7 @@ export function cleanJournalName(name: string): string {
   return cleaned.trimEnd();
 }
 
-/**
- * Never hand an unrecognised string to `new Date`: V8 scavenges digits out of
- * junk rather than rejecting it, so "Spring 2017" becomes 1 Jan 2017 and
- * "2017 Jun" becomes 1 Jun 2017 — both invent a day PubMed never stated, and
- * neither trips a NaN check. Same reason a bare year is returned as-is:
- * `new Date(2017)` is 1 Jan 1970. Recognised dates are pinned to UTC so a
- * date-only value doesn't slip back a day for viewers west of Greenwich.
- */
+/** Parse recognized dates in UTC and preserve bare years. V8 extracts dates from unrecognized strings and interprets numeric years as timestamps, inventing dates that pass a NaN check. */
 export function formatPubDate(value: string | number | null): string | null {
   if (value == null) return null;
   const raw = String(value).trim();

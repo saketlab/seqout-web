@@ -1,10 +1,6 @@
 import { copyToClipboard } from "@/utils/clipboard";
 
-/**
- * Copies a link to the current page pointing at the given hash (section id,
- * optionally with a tab suffix — see {@link buildSectionHash}) and updates the
- * address bar to match. Returns whether the copy succeeded.
- */
+/** Copy the current page URL with a section hash and optional tab suffix, updating the address bar. Returns whether copying succeeded. See {@link buildSectionHash}. */
 export async function copySectionLink(hash: string): Promise<boolean> {
   const url = new URL(window.location.href);
   url.hash = hash;

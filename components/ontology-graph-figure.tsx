@@ -1,14 +1,6 @@
 "use client";
 
-// Example illustration of the ontology graph around the query `nafld`, built on
-// React Flow (@xyflow/react) — the same library as the search deep-dive graph.
-//
-// `nafld` sits at the center; every equivalent name is joined to it by a MAPS_TO
-// edge (the synonym cluster the search expands into). Node/edge data comes from
-// querying the ontology graph for `nafld`.
-//
-// Drag a node to tease it out of place; on release it springs back to its home
-// (CSS bounce transition). Colors are Radix CSS variables, so it adapts to theme.
+// React Flow illustration of the MAPS_TO synonym cluster around nafld.
 
 import { Flex, Text } from "@radix-ui/themes";
 import {
@@ -36,8 +28,6 @@ interface TermData extends Record<string, unknown> {
 
 const HUB = "metabolic dysfunction associated steatotic liver disease";
 
-// `nafld` at the center; the rest of its MAPS_TO cluster fanned around it in a
-// star — every alias links only to the center.
 const CENTER = { x: 400, y: 250 };
 const RING: { id: string; label: string; kind: Kind }[] = [
   { id: "hub", label: HUB, kind: "syn" },
@@ -112,8 +102,7 @@ function TermNode({ data }: { data: TermData }) {
 
 const nodeTypes = { term: TermNode };
 
-// --- Floating edges: attach at the node boundary facing the other node, so the
-// links radiate cleanly from the center in the ring layout.
+// Floating edges attach at the node boundary facing the other node.
 function nodeBoundaryPoint(node: InternalNode, other: InternalNode) {
   const { width: w = 0, height: h = 0 } = node.measured;
   const p = node.internals.positionAbsolute;
@@ -178,14 +167,11 @@ function FloatingEdge({
 
 const edgeTypes = { floating: FloatingEdge };
 
-// Stable no-op subscription: the store never changes, so the snapshot flips from
-// the server value (false) to the client value (true) on hydration only.
+// Stable no-op subscription: snapshot flips false-server to true-client only on hydration.
 const subscribeNoop = () => () => {};
 
 export default function OntologyGraphFigure() {
-  // next-themes resolves the theme only on the client, so gate colorMode behind a
-  // client flag: server and first client render both use "light" (no hydration
-  // mismatch), then it switches to the real theme once hydrated.
+  // Gate colorMode behind a client flag since next-themes resolves theme client-side only; avoids a hydration mismatch, switching to the real theme once mounted.
   const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
   const { resolvedTheme } = useTheme();
   const colorMode: "light" | "dark" =
@@ -217,9 +203,7 @@ export default function OntologyGraphFigure() {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
-  // Spring-back: on release, dispatch the node back to its home position. The CSS
-  // bounce transition (below) animates the return; the `dragging` class disables
-  // it mid-drag so following the cursor stays crisp.
+  // Spring-back: on release, reset to home position. CSS bounce animates it; the dragging class disables that transition mid-drag so cursor tracking stays crisp.
   const onNodeDragStop = useCallback((_e: unknown, node: Node) => {
     const home = HOME[node.id];
     if (home) onNodesChange([{ id: node.id, type: "position", position: { ...home } }]);

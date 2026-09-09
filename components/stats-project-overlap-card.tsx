@@ -127,7 +127,7 @@ export default function StatsProjectOverlapCard() {
           `Bars are log-scaled. ${label(biggest.id)} holds ${humanize(
             biggest.size,
           )} projects, ${label(smallest.id)} ${humanize(smallest.size)}.`}{" "}
-        {/* rebuilt by a script, not a matview, so it can lag an ingest */}
+        {/* Rebuilt by a script; refresh timing depends on that script. */}
         Links last mapped {new Date(builtAt).toLocaleDateString()}.
       </Text>
 

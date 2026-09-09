@@ -1,8 +1,6 @@
 "use client";
 
-// Navbar button (next to the search box, only once a search has run) that opens
-// the synonym network for the current query: which synonyms the search actually
-// used, per term. Fetched only when the dialog is opened.
+// Navbar dialog showing the synonyms used for each search term. Fetches data when opened.
 
 import OntologySettingsButton from "@/components/ontology-settings-button";
 import {
@@ -39,7 +37,7 @@ import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-// client-only: React Flow touches the DOM and has no business rendering on the server
+// Client-only: React Flow accesses the DOM.
 const ExpansionGraph = dynamic(() => import("@/components/expansion-graph"), {
   ssr: false,
 });
@@ -51,16 +49,13 @@ export default function ExpansionSection({ query }: { query: string }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // What the results on screen actually ran with. The switch starts there and
-  // can drift from it; the apply button below is what closes the gap, so
-  // flicking the switch never silently re-runs a search behind the dialog.
+  // Pending expansion settings start from the displayed search and take effect on Apply.
   const ranExpanded = !expansionDisabled(searchParams);
   const ranWithout = disabledOntologies(searchParams);
   const [on, setOn] = useState(ranExpanded);
   const [without, setWithout] = useState(ranWithout);
-  // Re-sync when the search itself changes (adjust during render, as elsewhere
-  // in the search UI) so applying the change doesn't leave the controls pending
-  // against the results they just produced.
+  // Re-sync during render when the search changes, so pending controls don't
+  // lag the results already shown.
   const [prevRan, setPrevRan] = useState<[boolean, string]>([
     ranExpanded,
     ranWithout.join(),
@@ -71,14 +66,11 @@ export default function ExpansionSection({ query }: { query: string }) {
     setOn(ranExpanded);
     setWithout(ranWithout);
   }
-  // Nothing left to draw, and nothing left to expand with: the search runs the
-  // words as typed. Asking the server would answer with the same emptiness.
+  // Skip the graph fetch when expansion is disabled or all ontologies are excluded.
   const allOff = without.length >= ONTOLOGIES.length;
   const expansionChanged = on !== ranExpanded;
   const ontologiesChanged = !sameOntologies(without, ranWithout);
-  // The switch label described the switch, so changing only the ontologies
-  // offered "Search with term expansion" — the state the search was already in,
-  // which reads as a no-op rather than an offer to re-run.
+  // Label the action for the pending expansion and ontology settings.
   const applyLabel = expansionChanged
     ? on
       ? "Search with term expansion"
@@ -96,9 +88,7 @@ export default function ExpansionSection({ query }: { query: string }) {
     setOpen(false);
     router.push(`${pathname}?${next.toString()}`);
   };
-  // Keyed on the gear's current selection, not the URL's: switching an ontology
-  // off redraws the graph straight away, so the picture is what the apply button
-  // is offering to search rather than what the last search used.
+  // Key the graph on pending ontology settings so it previews the search Apply will run.
   const { data, isLoading, isError } = useQuery({
     queryKey: ["search-expansion", query, without.join()],
     queryFn: ({ signal }) => getSearchExpansion(query, without, signal),
@@ -108,8 +98,7 @@ export default function ExpansionSection({ query }: { query: string }) {
 
   // Only terms that kept at least one synonym have a graph to draw.
   const chunks = (data?.chunks ?? []).filter((c) => c.synonyms.length > 0);
-  // Default to the first term; fall back to it if the selection isn't in the
-  // (possibly refreshed) list. Derived, so no reset-in-effect needed.
+  // Default to the first term if the selection is absent from the list.
   const active =
     chunks.find((c) => c.term === selectedTerm) ?? chunks[0] ?? null;
 

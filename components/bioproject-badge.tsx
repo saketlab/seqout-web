@@ -2,9 +2,7 @@ import { EnterIcon, ExternalLinkIcon } from "@radix-ui/react-icons";
 import { Badge, Flex } from "@radix-ui/themes";
 import type { CSSProperties } from "react";
 
-// A BioProject id maps to the same archive as its study accession (PRJNA -> SRA),
-// so in that archive's colour it reads as a second SRP. Grey it instead (tab10
-// muted's grey), so the two are told apart at a glance.
+// Use muted grey to distinguish BioProject IDs from study accession badges.
 const PRJ_STYLE = {
   "--db": "#797979",
   "--db-fg": "#696969",
@@ -13,7 +11,7 @@ const PRJ_STYLE = {
   whiteSpace: "nowrap",
 } as CSSProperties;
 
-// tab10 muted's blue (GSE badges wore it, and sat right beside this button).
+// tab10 muted's blue.
 const VISIT_STYLE = {
   "--db": "#4878d0",
   "--db-fg": "#3265c3",

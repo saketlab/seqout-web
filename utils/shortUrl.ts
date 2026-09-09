@@ -24,8 +24,7 @@ export function getSampleUrl(accession: string): string {
   return `/s/${accession}`;
 }
 
-// Submission accession (SRA######/ERA######/DRA######) — the page resolves it to
-// its one-or-many studies.
+// Submission accession (SRA######/ERA######/DRA######), resolved to its studies by the page.
 export function getSubmissionUrl(accession: string): string {
   return `/submission/${accession}`;
 }

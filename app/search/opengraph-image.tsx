@@ -39,7 +39,7 @@ export default async function OpengraphImage({ searchParams }: Props) {
         total = data.total ?? null;
       }
     } catch {
-      // fall through
+      // ignore, total stays null
     }
   }
 

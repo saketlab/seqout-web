@@ -95,10 +95,7 @@ const toSource = (
 
 const MIN_RADIUS = 45;
 const TARGET_MEDIAN_RADIUS = 170;
-// Layout scales distances by the median neighbor radius, so a rare far-outlier
-// neighbor (e.g. one at p99 ~600x the median) lands tens of thousands of units
-// out. zoomToFit then frames that outlier and the whole cluster collapses to a
-// speck (blank graph). Clamp the rendered radius so outliers sit at the rim.
+// Clamp rendered radii so far outliers cannot expand the camera bounds and shrink the cluster to a speck.
 const MAX_RADIUS = TARGET_MEDIAN_RADIUS * 4;
 const ALL_ORGANISMS = "__all__";
 
@@ -255,12 +252,7 @@ export default function SimilarProjectsGraph({
     zoomMsRef.current = zoomMs;
   }, [zoomMs]);
 
-  // Fit the camera to the graph, deferred by two animation frames. A
-  // synchronous zoomToFit (and even one fired from onEngineStop) runs before
-  // force-graph applies the nodes' three.js positions, so it reads a bbox
-  // collapsed to the origin and slams the camera onto the center node (the
-  // "very zoomed in / blank" bug). Two rAFs guarantee at least one rendered
-  // frame with real node positions before we measure the bbox.
+  // Defer camera fitting two animation frames so force-graph applies node positions first; earlier measurements collapse to the origin.
   const fitView = useCallback(() => {
     requestAnimationFrame(() =>
       requestAnimationFrame(() =>
@@ -509,8 +501,7 @@ export default function SimilarProjectsGraph({
     };
   }, [graphData, organismFilter, neighborLimit]);
 
-  // Latest data for the async mount effect; synced before it so a graph created
-  // mid-fetch seeds with real nodes, not the empty set.
+  // Sync data before the async mount effect so a graph created mid-fetch starts with loaded nodes.
   const filteredGraphDataRef = useRef(filteredGraphData);
   useEffect(() => {
     filteredGraphDataRef.current = filteredGraphData;
@@ -550,7 +541,7 @@ export default function SimilarProjectsGraph({
     }));
   }, [filteredGraphData, neighborDistanceByAccession]);
 
-  // Reset to "all" if the active organism is no longer a valid option (adjust during render).
+  // Reset to "all" during render if the active organism is absent from the options.
   if (
     organismFilter !== ALL_ORGANISMS &&
     !organismOptions.includes(organismFilter)
@@ -598,8 +589,7 @@ export default function SimilarProjectsGraph({
 
       const rect = mountRef.current.getBoundingClientRect();
       graph.width(Math.max(320, rect.width)).height(420);
-      // Seed with current data; the [filteredGraphData] effect no-ops while
-      // graph is null.
+      // Seed with current data; the [filteredGraphData] effect no-ops while graph is null.
       graph.graphData(filteredGraphDataRef.current);
       fitView();
     };

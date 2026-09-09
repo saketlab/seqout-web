@@ -1,9 +1,6 @@
 "use client";
 
-// Radial network of the synonyms one query term actually searched with: the term
-// at the centre, its surviving synonyms around it. Static layout (plain
-// trigonometry, no layout library) — the graph is tiny, and React Flow gives
-// pan/zoom plus node dragging on top.
+// Radial synonym graph for a query term, with React Flow pan, zoom, and dragging.
 
 import type { ExpansionChunk } from "@/utils/api";
 import {
@@ -61,8 +58,7 @@ function build(chunk: ExpansionChunk): { nodes: Node[]; edges: Edge[] } {
   return { nodes, edges };
 }
 
-// The parent remounts this per term (key=term), so the layout is built once at
-// mount and node drags are kept in React Flow's own state from there on.
+// Parent remounts per term (key=term); layout builds once, drags stay in React Flow's own state.
 export default function ExpansionGraph({ chunk }: { chunk: ExpansionChunk }) {
   const initial = build(chunk);
   const [nodes, , onNodesChange] = useNodesState(initial.nodes);

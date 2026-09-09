@@ -780,7 +780,7 @@ export default function StatsGlobalContributionsCard() {
     containerWidth: number;
   } | null>(null);
 
-  // Track the map container width for popover placement (read in render, not via ref).
+  // Track container width in state for popover placement during render.
   useEffect(() => {
     const el = deckContainerRef.current;
     if (!el) return;

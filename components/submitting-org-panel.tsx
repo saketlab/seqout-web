@@ -71,9 +71,8 @@ export default function SubmittingOrgPanel({ center }: Props) {
   const entries = React.useMemo(() => {
     if (!center) return [];
     const arr = Array.isArray(center) ? center : [center];
-    // Geocoding can emit the same org several times (varying coords/address);
-    // keep one per org name, preferring an entry that has coordinates so the
-    // map still gets a marker.
+    // Geocoding can emit the same org multiple times (varying coords/address); keep
+    // one per name, preferring an entry with coordinates so the map gets a marker.
     const seen = new Map<string, CenterInfo>();
     for (const c of arr) {
       if (!c.organization || c.organization === "GEO") continue;

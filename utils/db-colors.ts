@@ -25,11 +25,7 @@ type DbColor = {
   og: { primary: string; secondary: string; accent: string };
 };
 
-/**
- * Seaborn's `muted` palette (tab10 at muted luminance), except geo: tab10's blue
- * is worn by the "Visit BioProject page" button, so GEO takes a brighter one.
- * `og.secondary` is the hex darkened, `og.accent` the hex over white.
- */
+/** Seaborn's muted palette with a brighter GEO blue. og.secondary darkens the hex; og.accent blends it over white. */
 export const DB_COLOR_MAP: Record<DbSource, DbColor> = {
   geo: {
     hex: "#0090ff",
@@ -107,7 +103,7 @@ export const DB_LABELS: Record<string, string> = {
   sra_sra_bytes: "SRA (SRA archive)",
 };
 
-/** The sources `/search?db=` dispatches to. Order is the order the picker lists them. */
+/** The sources /search?db= dispatches to. Order is the order the picker lists them. */
 export const SEARCH_DBS = [
   "geo",
   "sra",

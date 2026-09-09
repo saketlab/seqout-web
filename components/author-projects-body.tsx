@@ -60,7 +60,7 @@ const fetchAuthorProjects = async (name: string) => {
   return { ...data, took_ms: performance.now() - start };
 };
 
-// `institute` must already be lowercased.
+// institute must already be lowercased.
 function hasInstitute(r: AuthorProject, institute: string): boolean {
   return (r.institute ?? "")
     .split(";")

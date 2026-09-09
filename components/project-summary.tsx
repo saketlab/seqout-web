@@ -38,8 +38,7 @@ function stripTags(html: string): string {
 }
 
 type ProjectSummaryProps = {
-  // DDBJ GEA sends overall_design as a list of protocols; every other source
-  // sends one string. Render the list comma-separated rather than crashing.
+  // DDBJ GEA sends overall_design as a protocol list; other sources send a string. Render lists comma-separated.
   text?: string | string[] | null;
   charLimit?: number;
   size?: ComponentProps<typeof Text>["size"];

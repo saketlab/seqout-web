@@ -1,7 +1,5 @@
-// DOM-free deepscatter engine. All the visualization logic ported from the
-// original saketlab modules (index/search/country-filter/lasso) lives here;
-// it only ever touches the Scatterplot instance and the shared `state` object.
-// The React component (seqout-map.tsx) owns all UI and calls into these.
+// Deepscatter engine for map rendering, search, filtering, and lasso selection.
+// The React component owns the UI; the engine uses the Scatterplot instance and shared state.
 import { hsl } from "d3-color";
 import { Scatterplot } from "deepscatter";
 
@@ -48,8 +46,7 @@ function buildCountryColorMap(sorted) {
 // data extent shown around it on load. fraction < 1 zooms in past full-fit;
 // smaller = more zoomed in.
 const DEFAULT_CENTER = { x: 1.1495, y: -1.5695 };
-// Start just inside the first label threshold so the initial viewport has a
-// visible cluster-label layer rather than the unlabeled overview boundary.
+// Start inside the first label threshold so cluster labels are visible.
 const DEFAULT_VIEW_FRACTION = 0.35;
 const SEARCH_VIEW_FRACTION = 0.02;
 const DOUBLE_CLICK_MS = 350;
@@ -71,25 +68,16 @@ const HTML_ESC = {
 };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => HTML_ESC[c]);
 
-// Create the scatterplot. The React layer passes the tiles URL (deepscatter
-// source_url), the country list, and the label config (layers/extent/color
-// layer). Labels are the one thing fetched from inside the engine — the dynamic
-// system below needs the live zoom/viewport, so it owns those requests.
-// The caller is responsible for the `onPick` callback wiring.
-// Current label text color, kept in sync with the theme (white on dark bg,
-// near-black on light). The proxy below remaps deepscatter's hardcoded white.
+// Create the scatterplot from supplied assets and label configuration.
+// Fetch labels using the live zoom and viewport; synchronize their color with the theme.
 let labelColor = "#ffffff";
 const labelColorFor = (bg) => (bg === "#ffffff" ? "#1a1a1a" : "#ffffff");
 
-// Color for noise points (cluster -1) when coloring by cluster. deepscatter
-// forces palette colors fully opaque, so instead of real transparency we use a
-// faint near-background grey — noise fades out and the colored clusters pop.
+// Use near-background grey for noise points (cluster -1); deepscatter forces palette colors opaque.
 const noiseColorFor = (bg) => (bg === "#ffffff" ? "#f0f0f0" : "#141414");
 
-// Keep the source cluster id separate from the numeric field sent to the color
-// scale. Cluster ids are stored as Arrow dictionaries in the tiles; color
-// transforms turn them into numbers so all eight levels can use a continuous
-// GPU palette instead of the 4,096-category ordinal texture.
+// Keep source cluster IDs separate from numeric color transforms.
+// Continuous GPU palettes support cluster counts beyond the 4,096-category texture limit.
 const colorValueFieldFor = (level) => `__seqout_color_${level}`;
 
 // deepscatter draws cluster labels onto a canvas and hardcodes a 12px shadowBlur,
@@ -254,10 +242,8 @@ export async function createMap({
     svgEl()?.addEventListener("mousemove", (e) => {
       lastMove = { clientX: e.clientX, clientY: e.clientY };
     });
-    // deepscatter drops label hit-box <rect>s into #labelrects (inside the
-    // interaction SVG); they steal pointer events so points under a label become
-    // unhoverable. We don't use label clicks, so make the whole group transparent
-    // to the pointer — hovers fall through the text to the points beneath.
+    // Label hit-box rects intercept point hover events. Disable pointer events on
+    // #labelrects so the points beneath labels remain interactive.
     const labelrects = svgEl()?.querySelector("#labelrects");
     if (labelrects) labelrects.style.pointerEvents = "none";
   });
@@ -381,9 +367,7 @@ export async function createMap({
   };
 }
 
-// ---------------------------------------------------------------------------
-// Dynamic labels — fetch per viewport + zoom layer
-// ---------------------------------------------------------------------------
+// Dynamic labels fetched per viewport and zoom layer.
 const LABEL_DEBOUNCE_MS = 220;
 const LABEL_LIMIT = 400;
 const LABEL_BBOX_MARGIN = 0.25; // prefetch slightly past the screen for smooth pans
@@ -561,10 +545,8 @@ function setupDynamicLabels({
   const top = levels.length - 1;
   const colorFloor = 0;
 
-  // Coarsest layer we can color/filter by: it has to exist as a tile column (the
-  // backend bakes the finest _COLOR_LAYER_COUNT layers, which may be fewer than
-  // /map/meta advertises — coloring by a missing column paints nothing). Resolved
-  // in start(), once a tile is loaded.
+  // Resolve available tile columns in start() before selecting a color layer;
+  // the backend may advertise more layers than it bakes into tiles.
   let colorCeil = top;
 
   // Point coloring follows the zoom layer just like labels, clamped into
@@ -605,7 +587,7 @@ function setupDynamicLabels({
     const colorIdx = lockedLevel ? levels.indexOf(lockedLevel) : q.colorIdx;
     syncColor(colorIdx);
     if (!level) {
-      // Zoomed out past the label window — show nothing.
+      // Hide labels beyond the zoom window.
       clearLabels(sp);
       appliedLevel = null;
       return;
@@ -648,10 +630,8 @@ function setupDynamicLabels({
     timer = setTimeout(run, LABEL_DEBOUNCE_MS);
   };
 
-  // Fires on every raw zoom/pan frame. The moment the layer changes, drop the old
-  // layer's labels right away — don't wait for the debounced fetch — so a coarser
-  // layer's labels never linger at a finer zoom (or vice-versa). The actual
-  // fetch+apply for the new layer is still debounced via schedule().
+  // Drop labels immediately on layer changes to prevent stale layers during zoom.
+  // Debounce fetching and applying replacements through schedule().
   const onZoom = () => {
     if (destroyed) return;
     let q = null;
@@ -664,8 +644,7 @@ function setupDynamicLabels({
     if (q) {
       syncColor(lockedLevel ? levels.indexOf(lockedLevel) : q.colorIdx);
     }
-    // Clear on any layer change — including crossing out of the l0…l3 window
-    // (lvl null), so coarse-zoom views show no stale labels.
+    // Clear labels on every layer change, including leaving the label window (null level).
     if (lvl !== appliedLevel) {
       clearLabels(sp);
       appliedLevel = null;
@@ -749,10 +728,8 @@ export function setBackgroundColor(sp, backgroundColor) {
 // its center, and re-fit. factor < 1 zooms in, > 1 zooms out.
 const ZOOM_DURATION = 300;
 
-// plotAPI zooms don't go through d3-zoom, so the "zoom.seqoutlabels" listener
-// never fires for them — labels and the color/picker layer would stay stuck at
-// whatever the last user-driven zoom left them on. Re-run the layer sync once the
-// animation has settled.
+// plotAPI zooms bypass the d3-zoom listener. Resync labels and the color/picker
+// layer after the animation settles.
 function resyncAfterZoom() {
   setTimeout(() => activeLabels?.refresh?.(), ZOOM_DURATION + 50);
 }
@@ -781,9 +758,7 @@ export function zoomBy(sp, factor) {
   }
 }
 
-// Fit the view to some data-space points (the selected clusters' centroids). A
-// cluster is a tiny share of the points, and deepscatter only loads the tiles for
-// the current view — so without flying there, a cluster selection just looks empty.
+// Fly to selected cluster centroids so deepscatter loads their viewport tiles.
 export function zoomToPoints(sp, points) {
   const extent = state.mapExtent;
   if (!points.length || !extent) return;
@@ -830,9 +805,7 @@ export async function resolveAccession(sp, datum) {
   return accession;
 }
 
-// ---------------------------------------------------------------------------
 // Search
-// ---------------------------------------------------------------------------
 export async function runSearch(sp, accessionId) {
   const dt = sp.deeptable;
 
@@ -911,16 +884,9 @@ export function clearSearch(sp) {
   restoreForeground(sp);
 }
 
-// ---------------------------------------------------------------------------
-// Facet filters (multi-select, multi-column): HIDE points that don't match every
-// active facet (countries + enriched), via deepscatter's single `filter` slot.
-// Independent of color (clusters) and foreground (lasso/search), so cluster
-// coloring still applies to the visible points.
-//
-// `selections` is { column: string[] }; only columns with a non-empty list are
-// active. Replaces the previous country-only filter — countries is now just one
-// of the facet columns.
-// ---------------------------------------------------------------------------
+// Hide points failing any active facet through deepscatter’s filter slot.
+// Selections map columns to value lists; empty lists are inactive.
+// Color and foreground highlighting remain independent.
 export async function applyFilters(sp, selections) {
   const dt = sp.deeptable;
   const old = state.filterName;
@@ -994,9 +960,7 @@ export function setColorBySource(sp, value) {
   applyColorEncoding(sp);
 }
 
-// ---------------------------------------------------------------------------
 // Lasso
-// ---------------------------------------------------------------------------
 export function screenToData(sp, screenX, screenY) {
   try {
     const scales = sp.zoom.scales();
@@ -1008,8 +972,7 @@ export function screenToData(sp, screenX, screenY) {
   return { x: screenX, y: screenY };
 }
 
-// Lasso membership: inside the polygon AND passing every active facet filter — so
-// the selection/stats respect the sidebar filters.
+// Lasso membership requires polygon inclusion and every active facet match.
 function lassoSelector(dataVerts) {
   const pred = makeFilterPredicate();
   return (row) =>
@@ -1072,10 +1035,7 @@ function topEntries(counts, n = 5) {
   return top;
 }
 
-// Tally the lasso selection straight from the loaded tile columns: accessions
-// (for download), country distribution, and one distribution per enriched facet
-// (organism/tissue/disease/…). All columns are force-loaded with every tile, so
-// no network round-trip is needed — the stats render instantly.
+// Tally selected accessions and facet distributions from columns loaded with each tile.
 export async function collectLassoData(sp) {
   const selectionName = state.currentLassoName;
   const facetColumns = state.facetColumns ?? [];

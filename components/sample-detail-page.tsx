@@ -135,8 +135,7 @@ function ProjectBadge({
   );
 }
 
-// The sample's organism (name + NCBI taxid), from the SRA field or, for GEO
-// samples, the first channel's Organism.
+// Organism name + taxid: from the SRA field, or a GEO sample's first channel Organism.
 function sampleOrganism(
   sample: Sample,
 ): { name: string; taxonId: string | null } | null {
@@ -151,10 +150,7 @@ function sampleOrganism(
   return null;
 }
 
-// GEO sample metadata as a table, matching the SRA sample section. Title and
-// organism live in the page header, so they're flattened out here; channel
-// fields and characteristics become rows (prefixed by channel when there's
-// more than one).
+// GEO sample metadata table; title/organism live in the page header. Channel fields and characteristics become rows, prefixed by channel when there's more than one.
 function GeoSampleDetail({ sample }: { sample: Sample }) {
   const channels = sample.channels || [];
   const multi = channels.length > 1;
@@ -184,8 +180,6 @@ function GeoSampleDetail({ sample }: { sample: Sample }) {
   return <MetadataTable rows={rows} />;
 }
 
-// The experiment's full metadata, shown as its own section (not a card) with a
-// badge linking to the dedicated /e page, mirroring what that page displays.
 function ExperimentSection({ experiment }: { experiment: Experiment }) {
   return (
     <Flex direction="column" gap="3">
@@ -206,8 +200,6 @@ function ExperimentSection({ experiment }: { experiment: Experiment }) {
           </a>
         }
       />
-      {/* design_description is prose, so it reads as a description above the
-          table rather than a cramped cell — matching the /e page. */}
       {experiment.design_description && (
         <Text>{experiment.design_description}</Text>
       )}
@@ -228,12 +220,10 @@ function ExperimentSection({ experiment }: { experiment: Experiment }) {
   );
 }
 
-// Sample metadata as a table, mirroring the experiment section. Title and
-// organism live in the page header, so they're not repeated here.
+// Sample metadata table, mirroring the experiment section; title/organism live in the page header.
 function SraSampleDetail({ sample }: { sample: Sample | null }) {
   if (!sample) return null;
-  // attributes_json is built server-side with jsonb_object_agg, so it arrives
-  // as a plain object
+  // attributes_json arrives as a plain object; server builds it with jsonb_object_agg.
   const attributes: Record<string, string> =
     sample.attributes_json && !Array.isArray(sample.attributes_json)
       ? sample.attributes_json
@@ -402,7 +392,6 @@ export default function SampleDetailPage() {
           direction="column"
           gap="4"
         >
-          {/* Sample header */}
           <Flex justify="between" style={{ width: "100%" }} align="center">
             <Heading as="h1" size={{ initial: "6", md: "8" }} weight="bold">
               {sample?.title || accession}
@@ -471,7 +460,6 @@ export default function SampleDetailPage() {
             </a>
           </Flex>
 
-          {/* Sample detail */}
           <Flex direction="column" gap="3">
             <SectionHeader
               id="sample"
@@ -492,12 +480,10 @@ export default function SampleDetailPage() {
             )}
           </Flex>
 
-          {/* Experiment (SRA/ENA/DDBJ samples only) */}
           {sampleType !== "geo_sample" && experiment && (
             <ExperimentSection experiment={experiment} />
           )}
 
-          {/* Runs */}
           {runs && runs.length > 0 && (
             <ScopedFastqSection
               runs={runs}
@@ -511,8 +497,7 @@ export default function SampleDetailPage() {
             />
           )}
 
-          {/* The sample's own supplementary files, then the parent study's —
-              both as tables, self-hiding when there are no valid files. */}
+          {/* Sample supplementary files, then the parent study's. */}
           {sample?.supplementary_data ? (
             <SupplementaryDataSection
               accession={accession ?? ""}
@@ -532,7 +517,6 @@ export default function SampleDetailPage() {
             />
           ) : null}
 
-          {/* Project context */}
           {project && (
             <Flex direction="column" gap="3">
               <SectionHeader
@@ -557,7 +541,7 @@ export default function SampleDetailPage() {
             </Flex>
           )}
 
-          {/* Linked publications — before the submitting-org map below. */}
+          {/* Linked publications before the submitting-org map. */}
           {publications && publications.length > 0 && (
             <Flex direction="column" gap="3">
               <SectionHeader id="publications" title="Linked publications" />

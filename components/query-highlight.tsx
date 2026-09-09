@@ -6,7 +6,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 const HIGHLIGHT_NAME = "seqout-query";
-/** Words the query itself does not explain — painted a different hue, and hoverable. */
+/** Expansion-derived words with a distinct hue and source tooltip. */
 const DERIVED_HIGHLIGHT_NAME = "seqout-query-derived";
 const SHOW_MS = 50000;
 /** Project pages fetch client-side, so give the text time to arrive. */
@@ -14,11 +14,7 @@ const GIVE_UP_MS = 10000;
 const MAX_RANGES = 500;
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NAV", "FOOTER", "BUTTON"]);
 
-/**
- * Whole-word matcher for the surface forms Postgres reported. It already
- * returned every inflection it matched ("rat" *and* "rats"), so matching inside
- * words is not just unnecessary, it is wrong — that is what lit up "accurate".
- */
+/** Match whole words reported by Postgres, which includes matched inflections. Substring matching would also select unrelated words such as "accurate" for "rat". */
 export function wordsPattern(words: string[]): RegExp | null {
   const escaped = words
     .filter((w) => w.trim())
@@ -30,12 +26,7 @@ export function wordsPattern(words: string[]): RegExp | null {
   );
 }
 
-/**
- * Split the matched words by whether the typed query explains them. The server
- * lowercases both the words and the keys of `derived`, so the lookup has to be
- * case-folded — page text is matched case-insensitively and comes back in
- * whatever case it appears ("SINGLE", "Single").
- */
+/** Separate literal and expansion-derived matches. Case-fold lookups because server keys are lowercase and page text retains its case. */
 export function partitionWords(
   words: string[],
   derived: Record<string, string> | undefined,
@@ -106,24 +97,12 @@ function caretAt(x: number, y: number): { node: Node; offset: number } | null {
     : null;
 }
 
-/**
- * Briefly highlights the words that made this project a search hit. Reads `q`
- * from the URL, which search results append when they link here, and asks the
- * server which words actually matched.
- *
- * Words the query does not itself explain — the ones expansion brought in — are
- * painted a shade darker and name their source term on hover. Highlight ranges
- * are paint-only (no elements, so no `title` and nothing to hover), hence the
- * pointer hit-test and the hand-placed tooltip; the alternative is wrapping page
- * text in <mark>, which means mutating DOM React owns.
- */
+/** Highlight words matched by the search query in the URL. Expansion-derived words use a distinct hue and source tooltip. CSS highlight ranges require pointer hit-testing for tooltips. */
 export default function QueryHighlight() {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
   const accession = (useParams().accession as string | undefined) ?? "";
-  // The search that linked here carries its expansion settings in the URL, so
-  // the words marked are the ones that actually matched — not what a fresh,
-  // fully-expanded query would have matched.
+  // Use the URL expansion settings to highlight the words matched by the originating search.
   const noExpansion = expansionDisabled(searchParams);
   const excludeOntology = disabledOntologies(searchParams).join();
 
@@ -204,9 +183,7 @@ export default function QueryHighlight() {
                   "font-family:var(--default-font-family,ui-sans-serif,system-ui,sans-serif);" +
                   "background:var(--gray-12);color:var(--gray-1);" +
                   "box-shadow:0 4px 12px rgba(0,0,0,.18)";
-                // Inside the theme root, not <body>: --default-font-family and
-                // the gray scale are declared there, so hanging it off body
-                // would render serif text on a transparent background.
+                // Attach to the theme root, where --default-font-family and the gray scale are defined.
                 (
                   document.querySelector(".seqout-root-theme") ?? document.body
                 ).appendChild(tooltip);
@@ -232,9 +209,7 @@ export default function QueryHighlight() {
   }, [q, accession, noExpansion, excludeOntology]);
 
   return (
-    // Same weight as the query's own words, a different hue — an expanded match
-    // is a different KIND of match, not a stronger one, and amber-on-amber read
-    // as emphasis.
+    // Use a distinct hue for expanded matches while preserving the weight of literal matches.
     <style>{`
       ::highlight(${HIGHLIGHT_NAME}) { background-color: var(--amber-a6); color: var(--gray-12); }
       ::highlight(${DERIVED_HIGHLIGHT_NAME}) { background-color: var(--cyan-a6); color: var(--gray-12); }

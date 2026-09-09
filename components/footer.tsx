@@ -14,9 +14,7 @@ export default function Footer() {
         px={{ initial: "4", sm: "6" }}
         wrap="wrap"
       >
-        {/* Brand wordmark — picks up the same Geist Sans typographic
-            voice as the rest of the product. Sentence-case "seqout" with
-            a tight negative tracking to feel display-grade. */}
+        {/* Brand wordmark in Geist Sans. */}
         <Flex align="center" gap="2">
           <Text
             size="3"
@@ -42,9 +40,7 @@ export default function Footer() {
           </Link>
         </Flex>
 
-        {/* Cmd+K discoverability — surfaces the command palette
-            keyboard shortcut without requiring users to find it in
-            the docs or stumble onto it by accident. */}
+        {/* Command palette keyboard shortcut. */}
         <Flex align="center" gap="1">
           <Text size="1" style={{ color: "var(--gray-11)" }}>
             Press

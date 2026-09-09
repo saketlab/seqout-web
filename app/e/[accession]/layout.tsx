@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonicalUrl,
     },
-    // ssr:false — crawlers get an empty body. Index once server-rendered.
+    // ssr:false gives crawlers an empty body; indexing requires server rendering.
     robots: { index: false, follow: true },
   };
 }

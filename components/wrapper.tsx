@@ -20,11 +20,8 @@ export default function Wrapper({
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Treat fetched data as fresh for a minute so remounts and
-            // client-side navigation reuse the cache instead of refiring
-            // the request, and don't refetch just because the tab regained
-            // focus. Queries that need different behaviour (e.g. the stats
-            // cards with staleTime: Infinity) still override these per-query.
+            // Cache data as fresh for a minute and disable refetch on window focus.
+            // Individual queries can override these defaults.
             staleTime: 60_000,
             refetchOnWindowFocus: false,
           },
@@ -37,9 +34,7 @@ export default function Wrapper({
         <DynamicFavicon />
         <PwaRegistrar />
         <SearchQueryProvider>
-          {/* seqout-root-theme marks THIS Theme as the page-level one. Radix
-              portals (popover/tooltip/dialog) render their own nested
-              .radix-themes, so page-layout CSS must not key off that class. */}
+          {/* seqout-root-theme identifies the page Theme. Radix portals also create .radix-themes elements, so page-layout CSS requires the root marker. */}
           <Theme accentColor="indigo" className="seqout-root-theme">
             <ToastProvider>
               {children}

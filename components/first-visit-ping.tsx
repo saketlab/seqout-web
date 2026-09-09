@@ -1,7 +1,6 @@
 "use client";
 
-// Pulsing dot that nags first-time users toward a feature they've never used,
-// and the localStorage flag that retires it once they have.
+// Pulsing dot nagging first-time users toward an unused feature; localStorage retires it once seen.
 
 import type { CSSProperties } from "react";
 import { useSyncExternalStore } from "react";
@@ -20,10 +19,7 @@ function subscribe(callback: () => void) {
   };
 }
 
-/**
- * `[seen, markSeen]` for one feature, persisted under `key`. Server snapshot is
- * `true` so the ping never flashes on a hydrating page for a returning user.
- */
+/** [seen, markSeen] for one feature, persisted under key; server snapshot is true so the ping never flashes for a returning user during hydration. */
 export function useFirstVisit(key: string): [boolean, () => void] {
   const seen = useSyncExternalStore(
     subscribe,
@@ -37,7 +33,7 @@ export function useFirstVisit(key: string): [boolean, () => void] {
   return [seen, markSeen];
 }
 
-/** Absolutely positioned — the parent needs `position: relative`. */
+/** Absolutely positioned; requires a relatively positioned parent. */
 export function FirstVisitPing({ style }: { style?: CSSProperties }) {
   return (
     <span

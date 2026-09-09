@@ -20,7 +20,7 @@ import { useMemo, useState } from "react";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-// Keep `value`s in sync with backend ENRICHED_CROSSTAB_COLUMNS.
+// Keep values in sync with backend ENRICHED_CROSSTAB_COLUMNS.
 const COLUMNS: { value: string; label: string }[] = [
   { value: "organism", label: "Organism" },
   { value: "tissue", label: "Tissue" },

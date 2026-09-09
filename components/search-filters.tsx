@@ -47,10 +47,7 @@ import {
 
 countries.registerLocale(enLocale);
 
-// A Tabs.List that reveals a left/right triangle when the tab strip overflows
-// that way — so users know the filter tabs scroll horizontally. The arrows also
-// nudge-scroll on click. Shown only in the direction there's more to see (so at
-// the leftmost you get just the right arrow).
+// Scrollable tabs with overflow arrows that indicate direction and scroll on click.
 function ScrollableTabsList({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -157,9 +154,7 @@ const PLATFORM_DISPLAY: Record<string, string> = {
 export type TimeFilter = "any" | "1" | "5" | "10" | "20" | "custom";
 
 /** Exact facet counts from /search/facets, keyed by facet name. */
-// score is the summed match rank of the studies behind a value — the server
-// orders on it so a value with many weak matches sits below one with fewer
-// strong ones. 0 on a query-less search.
+// Summed study match rank, used to order facet values by relevance. Zero for query-less searches.
 export type SearchFacetList = {
   value: string;
   count: number;
@@ -174,12 +169,7 @@ export type SearchFacets = {
   instrument_model?: SearchFacetList;
 };
 
-/**
- * Counts for one sidebar facet. Client-derived from the loaded results, then
- * overridden by exact server totals where available — server is authoritative
- * for its (capped) top values, while the client base still supplies the long
- * tail so search-within-filter keeps finding rare values beyond that cap.
- */
+/** Facet counts from loaded results, overridden by server totals for its capped top values. Client counts retain the long tail for search within filters. */
 function buildFacetCounts(
   serverList: SearchFacetList | undefined,
   results: SearchResult[],
@@ -209,18 +199,13 @@ type SearchFiltersProps = {
   timeFilter: TimeFilter;
   customYearRange: { from: string; to: string };
   setCustomYearRange: (value: { from: string; to: string }) => void;
-  // The source-database select is only rendered when a handler is given —
-  // author search has no per-source view.
+  // Render the source selector when a handler is supplied.
   db?: string | null;
   query?: string | null;
   onDatabaseChange?: (value: SearchDb | "both") => void;
 };
 
-/**
- * The `YYYY-MM-DD` start of a "last N years" preset — a rolling window, not a
- * calendar-year one. Shared with the URL builder so the client-side pass and the
- * server's `updated_at::date >=` use the identical boundary.
- */
+/** Rolling YYYY-MM-DD cutoff for a "last N years" preset. Shared with the URL builder to align client filtering with server date bounds. */
 export function rollingCutoff(years: number): string {
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - years);
@@ -228,9 +213,8 @@ export function rollingCutoff(years: number): string {
 }
 
 /**
- * Client-side date filter over anything carrying `updated_at`. Day-precise, and
- * bounded identically to what the server is asked for, so the rendered list and
- * the sidebar counts agree.
+ * Client-side date filter over anything carrying updated_at. Day-precise and
+ * bounded identically to the server, so the rendered list and sidebar counts agree.
  */
 export function applyTimeFilter<T extends { updated_at: string | null }>(
   results: T[],
@@ -249,7 +233,7 @@ export function applyTimeFilter<T extends { updated_at: string | null }>(
     from = rollingCutoff(years);
   }
   const fromT = from ? new Date(from).getTime() : -Infinity;
-  // Both bounds name a whole day, so `to` runs to that day's last millisecond.
+  // Both bounds name a whole day, so the to bound runs to that day's last millisecond.
   const toT = to ? new Date(to).getTime() + 86_400_000 - 1 : Infinity;
   if (Number.isNaN(fromT) || Number.isNaN(toT)) return results;
   return results.filter((r) => {
@@ -440,6 +424,8 @@ export function SearchOrganismRail({
   setSelectedPlatformFilters,
   multiPlatformOnly,
   setMultiPlatformOnly,
+  longReadOnly,
+  setLongReadOnly,
   onClearMoreFilters,
   onApplyMoreFilters,
   onDiscardMoreFilters,
@@ -472,6 +458,8 @@ export function SearchOrganismRail({
   setSelectedPlatformFilters: (value: string[]) => void;
   multiPlatformOnly: boolean;
   setMultiPlatformOnly: (value: boolean) => void;
+  longReadOnly: boolean;
+  setLongReadOnly: (value: boolean) => void;
   onClearMoreFilters: () => void;
   // Commit the pending (optimistic) more-filter selections to the URL / search.
   onApplyMoreFilters: () => void;
@@ -690,7 +678,8 @@ export function SearchOrganismRail({
     selectedLibrarySourceFilters.length +
     selectedInstrumentModelFilters.length +
     selectedPlatformFilters.length +
-    (multiPlatformOnly ? 1 : 0);
+    (multiPlatformOnly ? 1 : 0) +
+    (longReadOnly ? 1 : 0);
 
   return (
     <>
@@ -857,10 +846,12 @@ export function SearchOrganismRail({
                     <Flex align="center" gap="1">
                       <span>Platform</span>
                       {selectedPlatformFilters.length > 0 ||
-                      multiPlatformOnly ? (
+                      multiPlatformOnly ||
+                      longReadOnly ? (
                         <Badge>
                           {selectedPlatformFilters.length +
-                            (multiPlatformOnly ? 1 : 0)}
+                            (multiPlatformOnly ? 1 : 0) +
+                            (longReadOnly ? 1 : 0)}
                         </Badge>
                       ) : null}
                     </Flex>
@@ -1175,6 +1166,24 @@ export function SearchOrganismRail({
                         </Tooltip>
                       </Flex>
                     </Text>
+                    <Text as="label" size="2">
+                      <Flex align="center" gap="2">
+                        <Checkbox
+                          checked={longReadOnly}
+                          onCheckedChange={(checked) =>
+                            setLongReadOnly(checked === true)
+                          }
+                        />
+                        <span>Long-read studies only</span>
+                        <Tooltip content="Studies with PacBio or Oxford Nanopore sequencing in any archive, hybrid designs included. Browse the whole set at /technology/longread.">
+                          <InfoCircledIcon
+                            width="13"
+                            height="13"
+                            style={{ opacity: 0.6 }}
+                          />
+                        </Tooltip>
+                      </Flex>
+                    </Text>
                     <Separator size="4" />
                     <TextField.Root
                       value={platformQuery}
@@ -1370,10 +1379,12 @@ export function SearchOrganismRail({
                     <Flex align="center" gap="1">
                       <span>Platform</span>
                       {selectedPlatformFilters.length > 0 ||
-                      multiPlatformOnly ? (
+                      multiPlatformOnly ||
+                      longReadOnly ? (
                         <Badge>
                           {selectedPlatformFilters.length +
-                            (multiPlatformOnly ? 1 : 0)}
+                            (multiPlatformOnly ? 1 : 0) +
+                            (longReadOnly ? 1 : 0)}
                         </Badge>
                       ) : null}
                     </Flex>
@@ -1680,6 +1691,24 @@ export function SearchOrganismRail({
                         />
                         <span>Multi-platform studies only</span>
                         <Tooltip content="Studies that sequenced the same samples on 2+ platforms (e.g. Illumina + Oxford Nanopore). Useful for benchmarking or hybrid assembly papers.">
+                          <InfoCircledIcon
+                            width="13"
+                            height="13"
+                            style={{ opacity: 0.6 }}
+                          />
+                        </Tooltip>
+                      </Flex>
+                    </Text>
+                    <Text as="label" size="2">
+                      <Flex align="center" gap="2">
+                        <Checkbox
+                          checked={longReadOnly}
+                          onCheckedChange={(checked) =>
+                            setLongReadOnly(checked === true)
+                          }
+                        />
+                        <span>Long-read studies only</span>
+                        <Tooltip content="Studies with PacBio or Oxford Nanopore sequencing in any archive, hybrid designs included. Browse the whole set at /technology/longread.">
                           <InfoCircledIcon
                             width="13"
                             height="13"

@@ -316,8 +316,7 @@ function SearchBarContent({
               position="absolute"
             />
           </Box>
-          {/* Only on a page that ran a search — the expansion is of that query.
-              Hidden wherever the search field itself is (compact mobile). */}
+          {/* Query expansion appears after a search, and is hidden beside the compact mobile search field. */}
           <Box
             display={{ initial: compactMobile ? "none" : "block", md: "block" }}
           >

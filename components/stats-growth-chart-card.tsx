@@ -108,7 +108,7 @@ export default function StatsGrowthChartCard() {
     }
     const ticks: number[] = [];
     for (let y = minYear; y <= maxYear; y++) {
-      ticks.push(new Date(y, 0, 1).getTime()); // Jan
+      ticks.push(new Date(y, 0, 1).getTime());
     }
     return ticks;
   }, [data]);

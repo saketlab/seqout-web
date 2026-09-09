@@ -214,8 +214,7 @@ export default function CommandPalette() {
     );
   }, [commands, query]);
 
-  // Derive (don't set in effect) so the React Compiler stays happy when
-  // the filtered list shrinks under us.
+  // Derive the selection during render when the filtered list shrinks.
   const safeActiveIndex =
     filtered.length === 0 ? 0 : Math.min(activeIndex, filtered.length - 1);
 

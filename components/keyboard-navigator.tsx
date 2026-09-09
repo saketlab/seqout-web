@@ -8,7 +8,7 @@ function isInputContext(target: EventTarget | null): boolean {
   const tag = target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   if (target.isContentEditable) return true;
-  // Radix Dialog / Popover focus traps — don't hijack their keys.
+  // Leave keys to Radix Dialog / Popover focus traps.
   if (target.closest('[role="dialog"]')) return true;
   return false;
 }

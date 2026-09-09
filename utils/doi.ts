@@ -1,8 +1,8 @@
 import type { StudyPublication } from "@/utils/types";
 
-// OpenAlex works API, resolved by DOI. CORS-enabled; `mailto` joins the polite
-// pool. Used to enrich a submitter-provided citation whose DOI isn't in PubMed
-// (so our backend has no record) but is a real registered work.
+// OpenAlex works API, resolved by DOI. CORS-enabled; mailto joins the polite
+// pool. Enriches a submitter-provided citation with a DOI that isn't in PubMed
+// but is a real registered work.
 const OPENALEX_BY_DOI = "https://api.openalex.org/works/https://doi.org/";
 
 type OpenAlexWork = {
@@ -14,10 +14,7 @@ type OpenAlexWork = {
   authorships?: { author?: { display_name?: string } }[];
 };
 
-/**
- * Fetch title/journal/authors/date/citations for a DOI from OpenAlex.
- * Returns {} on any failure — the caller falls back to the raw citation text.
- */
+/** Fetch publication metadata for a DOI from OpenAlex. Returns {} on failure so the caller can retain the raw citation. */
 export async function fetchDoiSummary(
   doi: string,
   signal?: AbortSignal,

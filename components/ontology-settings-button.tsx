@@ -1,9 +1,7 @@
 "use client";
 
-// Gear beside the term expansion switch: which ontologies may contribute
-// synonyms. Switching one off drops synonyms attributable to it alone — terms
-// are merged by name, so a disease that carries MONDO *and* MeSH ids survives
-// MeSH being off.
+// Ontology controls for synonym expansion. Terms merge by name and survive
+// when any contributing ontology remains enabled.
 
 import { ONTOLOGIES } from "@/utils/termExpansion";
 import { useState } from "react";
@@ -22,15 +20,12 @@ export default function OntologySettingsButton({
   disabled,
   onChange,
 }: {
-  /** Ontology ids currently switched off. */
+  /** Disabled ontology IDs. */
   disabled: string[];
   onChange: (next: string[]) => void;
 }) {
-  // Radix opens a tooltip on focus as well as hover, and every surface this gear
-  // sits in hands it focus unasked: the home popover on open, the navbar dialog
-  // on open, its own dialog on close. So the label kept appearing with the
-  // pointer nowhere near it. Hover only; the aria-label names the button for
-  // anyone not using a pointer.
+  // Show tooltips on hover: Radix dialogs and popovers automatically focus this
+  // button. The aria-label provides its accessible name.
   const [hovering, setHovering] = useState(false);
 
   return (

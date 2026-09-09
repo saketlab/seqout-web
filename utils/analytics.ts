@@ -1,5 +1,3 @@
-// Thin wrapper over the gtag.js already loaded in app/layout.tsx. GA4
-// auto-tracks page views; this is for custom events (search, clicks).
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;

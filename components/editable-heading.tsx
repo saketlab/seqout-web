@@ -17,10 +17,7 @@ type Props = {
   inputMode?: React.ComponentProps<"input">["inputMode"];
 };
 
-/**
- * A heading whose subject can be re-typed in place — "Projects by <author>",
- * "Projects for PMID <pmid>". Shared by the author and publication pages.
- */
+/** Editable subject heading shared by author and publication pages. */
 export default function EditableHeading({
   label,
   value,

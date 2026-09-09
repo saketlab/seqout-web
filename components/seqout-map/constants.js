@@ -1,4 +1,3 @@
-// Ported verbatim from saketlab-experiments/js/constants.js
 export const SIDEBAR_WIDTH = 272;
 export const COLOR_PALETTE_SIZE = 4096;
 export const HUE_GOLDEN_ANGLE = 137.508;

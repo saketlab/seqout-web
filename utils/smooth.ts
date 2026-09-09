@@ -1,9 +1,4 @@
-/**
- * LOESS (locally weighted scatterplot smoothing) for time series.
- *
- * Uses a tricube kernel with local linear regression.
- * Bandwidth controls the fraction of data used at each point (0-1).
- */
+/** LOESS smoothing: tricube-kernel local linear regression; bandwidth is the fraction of data used at each point (0-1). */
 export function loess(
   xs: number[],
   ys: number[],
@@ -19,13 +14,11 @@ export function loess(
   for (let i = 0; i < n; i++) {
     const xi = xs[i];
 
-    // Find k nearest neighbors by x-distance
     const distances = xs.map((x, j) => ({ j, d: Math.abs(x - xi) }));
     distances.sort((a, b) => a.d - b.d);
     const neighbors = distances.slice(0, k);
     const maxDist = neighbors[neighbors.length - 1].d || 1;
 
-    // Tricube kernel weights
     let sumW = 0;
     let sumWx = 0;
     let sumWy = 0;

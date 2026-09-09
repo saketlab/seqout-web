@@ -45,8 +45,7 @@ export function SupplementaryDataSection({
   rawSupplementaryData: unknown;
   agGridThemeClassName: string;
   title?: string;
-  // Samples have no /project/{acc}/supplementary/download endpoint — build the
-  // download-all script from the file URLs instead of pointing at that route.
+  // Build sample download scripts from file URLs; the project download endpoint requires a project accession.
   clientScriptOnly?: boolean;
 }) {
   const { showToast } = useToast();

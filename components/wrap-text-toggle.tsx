@@ -2,11 +2,7 @@
 import { IconButton, Tooltip } from "@radix-ui/themes";
 import { useCallback, useSyncExternalStore } from "react";
 
-// Per-scope wrap-text preference. Each `scope` is an independent toggle (e.g.
-// "table" for samples/experiments, "fastq" for the FASTQ files table). Grids
-// read it via useWrapText(scope); toolbars flip it via <WrapTextToggle scope/>.
-// Kept in localStorage + a custom event so all mounted grids of a scope stay in
-// sync without threading props through their parents.
+// Per-scope text-wrapping preferences, synchronized through localStorage and a custom event.
 const KEY_PREFIX = "seqout:wrap-text";
 const EVENT = "seqout:wrap-text-change";
 const keyFor = (scope: string): string => `${KEY_PREFIX}:${scope}`;

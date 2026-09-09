@@ -1,19 +1,9 @@
 import { getJson, getJsonOrNull } from "@/utils/api";
 import { buildSupplementaryItems } from "@/utils/supplementary";
 
-/**
- * Combined metadata export: one CSV joining every source a project touches —
- * sample/experiment metadata, the FASTQ side, and both levels of supplementary
- * file.
- *
- * The join key across sources is the GEO sample accession: a GEO-submitted SRA
- * sample carries its GSM in `sample_alias`, which is what links a GSM row to
- * its runs. Studies with no GEO side just skip that step.
- *
- * Granularity is one row per run, matching what /metadata/rows already returns
- * for SRA studies. A sample with no runs still gets its row, with the run
- * columns blank — dropping it would lose samples from the export.
- */
+/** Combine project metadata, runs, and supplementary files in a CSV.
+ * GEO accessions join samples to SRA runs through sample_alias.
+ * Each run gets a row; samples without runs retain a row with blank run columns. */
 
 type Row = Record<string, unknown>;
 
@@ -93,7 +83,7 @@ const prefixSraRow = (row: Row): Row =>
 
 export type CombinedCsvResult = {
   rows: Row[];
-  /** True when a source hit its server-side row cap — the export is partial. */
+  /** True when a source reaches its server row cap, leaving a partial export. */
   truncated: boolean;
 };
 
@@ -105,7 +95,7 @@ export const buildCombinedRows = async (
   }: {
     /** The project the page is showing. */
     accession: string;
-    /** SRA studies to pull runs/FASTQ from — the page's own, or its linked ones. */
+    /** SRA studies supplying runs and FASTQ: the page's study or linked studies. */
     sraAccessions: string[];
     /** GEO series supplying supplementary files, if any. */
     geoAccession: string | null;
@@ -186,7 +176,7 @@ export const combineRows = ({
       rows.push({ ...row, ...extras });
       continue;
     }
-    // One row per run: the run columns are what differ, everything else repeats.
+    // Run rows repeat the sample columns.
     for (const run of runs) {
       rows.push({ ...row, ...prefixSraRow(run), ...extras });
     }
@@ -194,7 +184,7 @@ export const combineRows = ({
   return rows;
 };
 
-/** Union of every key across rows — sources contribute different columns. */
+/** Union of keys across source rows. */
 export const combinedHeaders = (rows: Row[]): string[] => {
   const headers: string[] = [];
   const seen = new Set<string>();

@@ -21,10 +21,7 @@ export function makeOrganismRowStyle<T>(
       : undefined;
 }
 
-/**
- * Sort comparator that pushes rows matching highlightOrganism to the top.
- * Use as AG Grid's `postSortRows` callback.
- */
+/** AG Grid postSortRows comparator that puts matching organisms first. */
 export function makeOrganismPostSort<T>(
   highlightOrganism: string | null,
   getOrganism: (data: T) => string | null | undefined,

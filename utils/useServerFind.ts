@@ -2,24 +2,11 @@ import React from "react";
 
 export type FindResult<T> = { rows: T[]; capped: boolean };
 
-/**
- * Server-side accession lookup for a paginated grid.
- *
- * A grid that pages its rows in can only filter what it has loaded, so an
- * accession filter on a large study silently misses rows past the last page.
- * This resolves the filter against the whole study instead.
- *
- * `rows` is null while no lookup is active, meaning "show the paged rows".
- * Pass enabled=false when the loaded rows already are the whole study; the
- * grid's own client-side filter is correct then and no request is made.
- */
+/** Server-side accession lookup across a paginated grid’s full study.
+ * Null rows preserve the paged view; disabled lookups use client-side filtering. */
 export function useServerFind<T>(
   enabled: boolean,
-  /**
-   * Resolve null when the server could not narrow on any supplied column —
-   * an empty result then means "no answer", not "no matches", and the grid
-   * keeps filtering its loaded rows instead of blanking.
-   */
+  /** Resolves null when supplied columns cannot narrow the server lookup, preserving client-side filtering. An empty array means no matches. */
   fetchRows: (
     needle: string,
     signal: AbortSignal,
@@ -27,9 +14,7 @@ export function useServerFind<T>(
 ) {
   const [rows, setRows] = React.useState<T[] | null>(null);
   const [capped, setCapped] = React.useState(false);
-  // A failed lookup must read differently from an empty one: on a 100k-row
-  // study "no match" would otherwise imply the accession does not exist when
-  // the search merely errored out.
+  // Distinguish failed lookups from empty results so errors cannot imply a missing accession.
   const [error, setError] = React.useState(false);
   const seqRef = React.useRef(0);
   const lastNeedleRef = React.useRef<string | null>(null);

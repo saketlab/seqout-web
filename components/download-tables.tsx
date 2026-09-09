@@ -14,8 +14,7 @@ import {
 } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 
-// Files are served (with HTTP range support) from this static location. Same
-// origin in production; absolute so it also works from a local dev frontend.
+// Static file host with HTTP range support; absolute URL so local dev also works.
 const BASE = "https://seqout.org/data";
 
 type Table = { file: string; name: string; desc: string };

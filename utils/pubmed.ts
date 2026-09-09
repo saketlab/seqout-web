@@ -1,7 +1,6 @@
 import type { StudyPublication } from "@/utils/types";
 
-// Anonymous NCBI E-utilities: 3 req/s cap, no key needed for the handful of
-// PMIDs on one project page. CORS is enabled on eutils.ncbi.nlm.nih.gov.
+// Anonymous NCBI E-utilities requests have a 3 req/s cap; CORS is enabled on eutils.ncbi.nlm.nih.gov.
 const ESUMMARY =
   "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json";
 
@@ -14,11 +13,7 @@ type EsummaryDoc = {
   articleids?: { idtype?: string; value?: string }[];
 };
 
-/**
- * Fallback for when our backend has a PMID but no enriched publication
- * metadata. Pulls title/journal/authors/date/doi from NCBI PubMed.
- * Returns {} on any failure — the caller keeps whatever it already had.
- */
+/** Fetch missing publication metadata from NCBI PubMed using the backend PMID. Returns {} on failure, preserving existing fields. */
 export async function fetchPubmedSummary(
   pmid: string,
   signal?: AbortSignal,

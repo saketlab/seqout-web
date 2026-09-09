@@ -1,8 +1,7 @@
 import { parsePostgresTextArray } from "@/utils/project";
 import { buildCurlCommand } from "@/utils/downloadScript";
 
-// No size: GEO's supplementary_data entries only ever carry the URL (#text)
-// and a type (@type) — there is no size to read, in any series or sample.
+// GEO supplementary_data entries carry URL (#text) and type (@type); file size is unavailable.
 export type SupplementaryDataRecord = {
   url: string;
   "@type": string | null;

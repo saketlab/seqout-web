@@ -1,8 +1,6 @@
 "use client";
 
-// "Enhance search" dialog on the search page (trigger sits below More filters).
-// Lists the query terms that have hierarchy children in the ontology graph;
-// picking one renders an interactive React Flow explorer of its children.
+// "Enhance search" dialog: lists query terms with ontology-graph children, opening an interactive explorer for the picked one.
 
 import { FirstVisitPing, useFirstVisit } from "@/components/first-visit-ping";
 import { getDeepDiveTerms } from "@/utils/api";
@@ -34,7 +32,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
-// client-only: React Flow touches the DOM and has no business rendering on the server
+// Client-only: React Flow accesses the DOM.
 const DeepDiveGraph = dynamic(() => import("@/components/deep-dive-graph"), {
   ssr: false,
 });
@@ -57,8 +55,7 @@ export function DeepDiveSection() {
   });
 
   const terms = useMemo(() => data?.terms ?? [], [data]);
-  // Default to the first term; fall back to it if the current selection isn't in
-  // the (possibly refreshed) term list. Derived, so no reset-in-effect needed.
+  // Default to the first term if the selection is absent from the term list.
   const activeName =
     selectedName && terms.some((t) => t.name === selectedName)
       ? selectedName

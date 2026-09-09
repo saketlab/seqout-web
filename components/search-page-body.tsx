@@ -142,8 +142,7 @@ function DidYouMean({
 
 function CorrectionNotice({ correction }: { correction: SearchCorrection }) {
   const { corrected_query, original_query, mode } = correction;
-  // Augmented mode renders as a divider between the literal matches above and
-  // the corrected stream below, so the rule reads as the boundary itself.
+  // Banner separating literal matches from corrected-query results.
   if (mode !== "replaced") {
     return (
       <Flex align="center" gap="3">
@@ -193,10 +192,8 @@ const SORT_CONFIG: Record<
 const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
-// The server pages relevance results 200 at a time. Text search fetches whole
-// server pages by offset (not cursor) so any UI page can be jumped to directly
-// without walking the pages in between. Every perPage option divides 200, so a
-// UI page always lands inside a single server page.
+// Text search fetches server pages by offset. Each perPage option divides the
+// 200-row server page size, keeping each UI page within a server page.
 const SERVER_PAGE_SIZE = 200;
 
 // Below this share of the query's best rank, a result is flagged "Low relevance".
@@ -216,6 +213,7 @@ const FILTER_PARAM_KEYS = {
   instrumentModel: "filter_instrument_model",
   platform: "filter_platform",
   multiPlatform: "multi_platform",
+  longRead: "long_read",
 } as const;
 
 function parseSortBy(value: string | null): SortBy {
@@ -242,8 +240,7 @@ function normalizeMultiValueFilter(values: string[]): string[] {
   return values.map((item) => item.trim()).filter(Boolean);
 }
 
-// Active sidebar filters sent to the server so /search returns an already-
-// filtered, paginated list (no client-side filtering of a fully-prefetched set).
+// Sidebar filters sent to the server for filtered, paginated results.
 type SearchFilterParams = {
   organism: string | null;
   country: string[];
@@ -253,6 +250,7 @@ type SearchFilterParams = {
   platform: string[];
   journal: string[];
   multi_platform: boolean;
+  long_read: boolean;
   // Every time bound is day-level; the server's year_* params go unused.
   date_from?: string;
   date_to?: string;
@@ -269,6 +267,7 @@ function appendFilterParams(url: string, f: SearchFilterParams): string {
   for (const v of f.platform) add("platform", v);
   for (const v of f.journal) add("journal", v);
   if (f.multi_platform) add("multi_platform", "true");
+  if (f.long_read) add("long_read", "true");
   if (f.date_from) add("date_from", f.date_from);
   if (f.date_to) add("date_to", f.date_to);
   return url;
@@ -321,7 +320,7 @@ function buildSearchUrl(
   if (db && (SEARCH_DBS as readonly string[]).includes(db)) {
     url += `&db=${encodeURIComponent(db)}`;
   }
-  // The server's filtered path now honors sortby too, so emit it either way.
+  // Include sortby for filtered and unfiltered searches.
   if (sortBy !== "relevance") {
     const config = SORT_CONFIG[sortBy];
     url += `&sortby=${config.param}&order=${config.order}`;
@@ -645,6 +644,8 @@ type ActiveFilterChipsProps = {
   setSelectedPlatformFilters: (next: string[]) => void;
   multiPlatformOnly: boolean;
   setMultiPlatformOnly: (next: boolean) => void;
+  longReadOnly: boolean;
+  setLongReadOnly: (next: boolean) => void;
   onClearAll: () => void;
 };
 
@@ -724,6 +725,16 @@ function ActiveFilterChips(props: ActiveFilterChipsProps) {
         key="multi-platform"
         label="Multi-platform only"
         onRemove={() => props.setMultiPlatformOnly(false)}
+      />,
+    );
+  }
+
+  if (props.longReadOnly) {
+    chips.push(
+      <FilterChip
+        key="long-read"
+        label="Long-read only"
+        onRemove={() => props.setLongReadOnly(false)}
       />,
     );
   }
@@ -831,10 +842,7 @@ function ActiveFilterChips(props: ActiveFilterChipsProps) {
   );
 }
 
-// Map the time-filter UI to day-level server bounds. The "last N years" presets
-// are a ROLLING window, matching applyTimeFilter's client-side cutoff — asking
-// the server for whole calendar years instead would count more than the list
-// shows.
+// Use rolling day-level bounds for 'last N years', matching applyTimeFilter's cutoff.
 function timeFilterToYears(
   timeFilter: string,
   customYearRange: { from: string; to: string },
@@ -929,6 +937,20 @@ function applyMultiPlatformFilter(
   return results.filter((r) => (r.platforms ?? []).length >= 2);
 }
 
+const LONG_READ_PLATFORMS = new Set(["PACBIO_SMRT", "OXFORD_NANOPORE"]);
+
+// Client-side twin of the server's long_read filter for the geo path. Only GEO
+// and SRA rows carry platforms, so this can only narrow, never widen.
+function applyLongReadFilter(
+  results: SearchResult[],
+  longReadOnly: boolean,
+): SearchResult[] {
+  if (!longReadOnly) return results;
+  return results.filter((r) =>
+    (r.platforms ?? []).some((p) => LONG_READ_PLATFORMS.has(p.trim())),
+  );
+}
+
 function getAvailableJournals(results: SearchResult[]): Set<string> {
   const journals = new Set<string>();
   for (const result of results) {
@@ -990,8 +1012,6 @@ export default function SearchPageBody() {
   useEffect(() => {
     if (query) {
       setLastSearchQuery(query);
-      // GA4 canonical search event — fires once per committed query (URL-driven),
-      // so every entry point (search bars, example links, direct links) counts.
       track("search", { search_term: query, ...(db ? { db } : {}) });
     }
   }, [query, db, setLastSearchQuery]);
@@ -1055,11 +1075,8 @@ export default function SearchPageBody() {
   );
   const excludeOntologyKey = excludeOntology.join();
 
-  // A search reached without these params — shared link, back button, a search
-  // bar that predates them — would run fully expanded while the home popover
-  // still shows the settings this browser stored. Fold the stored default into
-  // the URL once, so the search, the sidebar counts and the navbar dialog all
-  // read the same thing. A URL that names either param is explicit and wins.
+  // Inherit stored expansion defaults when the URL omits expansion settings.
+  // Explicit URL settings take precedence so shared links preserve their search.
   const normalizedSettings = useRef(false);
   useEffect(() => {
     if (normalizedSettings.current) return;
@@ -1072,7 +1089,7 @@ export default function SearchPageBody() {
     });
   }, [searchParams, updateSearchUrl]);
 
-  // Filters below are client-side only — not in the queryKey.
+  // Client-side filters excluded from queryKey.
   const selectedJournalFilters = useMemo(
     () =>
       normalizeMultiValueFilter(searchParams.getAll(FILTER_PARAM_KEYS.journal)),
@@ -1113,9 +1130,9 @@ export default function SearchPageBody() {
   );
   const multiPlatformOnly =
     searchParams.get(FILTER_PARAM_KEYS.multiPlatform) === "true";
+  const longReadOnly = searchParams.get(FILTER_PARAM_KEYS.longRead) === "true";
 
-  // Sidebar filters sent to the server (text search) so it returns an already-
-  // filtered, paginated list — no client-side filtering of a prefetched set.
+  // Sidebar filters sent to the server for filtered, paginated text search.
   const searchFilters: SearchFilterParams = useMemo(
     () => ({
       organism: selectedOrganismKey,
@@ -1126,6 +1143,7 @@ export default function SearchPageBody() {
       platform: selectedPlatformFilters,
       journal: selectedJournalFilters,
       multi_platform: multiPlatformOnly,
+      long_read: longReadOnly,
       ...timeFilterToYears(timeFilter, customYearRange),
     }),
     [
@@ -1137,6 +1155,7 @@ export default function SearchPageBody() {
       selectedPlatformFilters,
       selectedJournalFilters,
       multiPlatformOnly,
+      longReadOnly,
       timeFilter,
       customYearRange,
     ],
@@ -1189,8 +1208,7 @@ export default function SearchPageBody() {
       geoSource,
     ],
     queryFn: async ({ pageParam, signal }) => {
-      // Measure real wall-clock (fetch + network), not the server's took_ms —
-      // backend time alone hides the latency the user actually waits through.
+      // Measure elapsed fetch and network time.
       const start = performance.now();
       const res = await getGeoSearchResults(
         geoLat!,
@@ -1211,11 +1229,8 @@ export default function SearchPageBody() {
     enabled: isGeoSearch,
   });
 
-  // Text search paginates on the server by offset, so a UI page maps directly
-  // to the one 200-row server page that contains it. We fetch only that page (a
-  // far jump never drags the pages in between across the network), and revisits
-  // are served from the react-query cache. perPage divides 200, so a UI page
-  // never straddles two server pages — but the range handles it just in case.
+  // Fetch the server pages containing the UI page and cache them for revisits.
+  // perPage divides the 200-row server page size; the range also handles boundary crossings.
   const neededServerPages = useMemo(() => {
     if (isGeoSearch || !query) return [];
     const startIdx = (currentPage - 1) * perPage;
@@ -1226,8 +1241,7 @@ export default function SearchPageBody() {
     return pages;
   }, [isGeoSearch, query, currentPage, perPage]);
 
-  // One react-query config for a given server page — shared by the live queries
-  // and the look-ahead prefetch so both hit the exact same cache entry.
+  // Share query configuration between live fetches and prefetches to reuse cache entries.
   const serverPageQuery = useCallback(
     (p: number) => ({
       queryKey: [
@@ -1289,10 +1303,8 @@ export default function SearchPageBody() {
   };
   const windowFirstServerPage = neededServerPages[0] ?? 0;
 
-  // Exact sidebar facet counts, fetched in parallel with the results so the
-  // organism/journal/etc. counts are correct outright instead of climbing as
-  // result pages stream in. Best-effort: if it's absent (geo search, timeout,
-  // error) the rail falls back to client-derived counts. Not used for geo search.
+  // Fetch sidebar facet counts alongside text results. Fall back to client-derived
+  // counts for geo search or unavailable server facets.
   const { data: facetsResponse, isLoading: facetsLoading } = useQuery({
     queryKey: [
       "search-facets",
@@ -1328,13 +1340,8 @@ export default function SearchPageBody() {
   const facetsTotal =
     typeof facetsResponse?.total === "number" ? facetsResponse.total : null;
 
-  // A result whose rank is a rounding error next to the query's best match got in
-  // on something incidental — an expanded ontology synonym that happens to share
-  // a couple of stems with the text. Flag those on the card rather than silently
-  // ranking them last, since a sidebar filter can make them the whole page.
-  // max_rank comes from the server over the UNFILTERED match set, so the
-  // threshold survives filtering; without it (geo search, facets still loading)
-  // nothing is flagged.
+  // Flag results scoring below the relevance threshold. Use the unfiltered
+  // server max_rank so filtering preserves the cutoff; skip flags when it is unavailable.
   const lowRelevanceCutoff =
     typeof facetsResponse?.max_rank === "number" && facetsResponse.max_rank > 0
       ? facetsResponse.max_rank * LOW_RELEVANCE_FRACTION
@@ -1353,9 +1360,7 @@ export default function SearchPageBody() {
     ? undefined
     : serverPageQueries.find((q) => q.data?.correction)?.data?.correction;
 
-  // For text search this is only the currently-viewed server page (≤200 rows),
-  // not every loaded page — the exact total comes from facets, and the rail
-  // counts from serverFacets, so we no longer need the whole set on the client.
+  // Text search holds the displayed server page. Facets supply total and sidebar counts.
   const allResults = useMemo(() => {
     const flat = isGeoSearch
       ? (geoData?.pages.flatMap((page) => page?.results ?? []) ?? [])
@@ -1374,23 +1379,19 @@ export default function SearchPageBody() {
   const total = isGeoSearch
     ? (geoData?.pages?.[0]?.total ?? 0)
     : (facetsTotal ?? allResults.length);
-  // Only "pending" while facets is still in flight; a failed/degraded facets
-  // (total stays null) falls back to the loaded "N+" instead of an endless skeleton.
+  // Facets are pending only while fetching; a failed or missing total falls back to the loaded count with "+".
   const totalPending =
     !isGeoSearch && !!query && facetsTotal === null && facetsLoading;
 
-  // Full-page skeleton only while the first block (server page 0) is loading with
-  // nothing to show — i.e. the initial load. This must NOT depend on the total,
-  // which arrives from facets in parallel and can land first. A jump to a deeper
-  // unloaded page (window past page 0) falls through to the inline spinner.
+  // Show the full-page skeleton while server page 0 loads with no rows.
+  // Use row availability independently of the parallel facets total. Deeper page loads use the inline spinner.
   const isLoading = isGeoSearch
     ? geoIsLoading
     : !!query &&
       anyTextLoading &&
       allResults.length === 0 &&
       windowFirstServerPage === 0;
-  // "There are results to show" even while the current page's rows are still
-  // fetching — keeps the header, paginator, and rail mounted across a page jump.
+  // Keep the header, paginator, and rail mounted while a page jump fetches rows.
   const hasResults = isGeoSearch
     ? allResults.length > 0
     : total > 0 || allResults.length > 0;
@@ -1409,9 +1410,7 @@ export default function SearchPageBody() {
     }
   }, [isGeoSearch, geoHasNextPage, geoIsFetchingNextPage, fetchNextPage]);
 
-  // Look-ahead: warm the next server page in the background so crossing into it
-  // (the common forward-paging case) is instant instead of showing a spinner.
-  // Only when we know from the total that a next page exists.
+  // Prefetch the next server page when the total confirms it exists.
   const queryClient = useQueryClient();
   useEffect(() => {
     if (isGeoSearch || !query || total <= 0) return;
@@ -1478,6 +1477,7 @@ export default function SearchPageBody() {
     );
     results = applyPlatformFilter(results, selectedPlatformFilters);
     results = applyMultiPlatformFilter(results, multiPlatformOnly);
+    results = applyLongReadFilter(results, longReadOnly);
     return results;
   }, [
     isGeoSearch,
@@ -1491,6 +1491,7 @@ export default function SearchPageBody() {
     selectedInstrumentModelFilters,
     selectedPlatformFilters,
     multiPlatformOnly,
+    longReadOnly,
   ]);
 
   const moreFilterBaseResults = useMemo(() => {
@@ -1564,6 +1565,7 @@ export default function SearchPageBody() {
     );
     results = applyPlatformFilter(results, selectedPlatformFilters);
     results = applyMultiPlatformFilter(results, multiPlatformOnly);
+    results = applyLongReadFilter(results, longReadOnly);
     return results;
   }, [
     moreFilterBaseResults,
@@ -1572,6 +1574,7 @@ export default function SearchPageBody() {
     selectedLibraryStrategyFilters,
     selectedPlatformFilters,
     multiPlatformOnly,
+    longReadOnly,
   ]);
 
   const platformFilterResults = useMemo(() => {
@@ -1596,9 +1599,8 @@ export default function SearchPageBody() {
   ]);
 
   useEffect(() => {
-    // Only safe for geo, which holds the full result set. Text search paginates
-    // server-side, so the loaded pages aren't the whole set — a still-valid
-    // filter whose matches are all on later pages would be wrongly pruned.
+    // Prune filters only for geo search, which holds the full set. Text search may
+    // have valid filter matches on unloaded pages.
     if (!isGeoSearch) return;
     const nextJournalFilters = selectedJournalFilters.filter((journal) =>
       getAvailableJournals(journalFilterResults).has(journal),
@@ -1671,12 +1673,10 @@ export default function SearchPageBody() {
     : textLocalStart < 0
       ? []
       : filteredResults.slice(textLocalStart, textLocalStart + perPage);
-  // "More pages exist" — geo grows as it streams; text knows from the total.
+  // Further pages: geo count grows while streaming; text uses the server total.
   const hasNextPage = isGeoSearch ? geoHasNextPage : safePage < totalPages;
 
-  // Carries the organism filter and the query (which the project page briefly
-  // highlights) over to the project page. Send the corrected query when one was
-  // applied — that is the query these results actually came from.
+  // Carry the organism filter and effective query to the project page for highlighting.
   const projectHref = (accession: string) => {
     const params = new URLSearchParams();
     if (selectedOrganismKey) params.set("organism", selectedOrganismKey);
@@ -1834,10 +1834,8 @@ export default function SearchPageBody() {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  // --- "More filters": tick several boxes, apply (and refetch) once on Apply ---
-  // `localMore` is the optimistic copy the rail's checkboxes read, so ticks show
-  // instantly; the dialog's Apply button then commits them all to the URL at
-  // once (one refetch). Chips/search keep reading the committed URL values.
+  // More filters use an optimistic local copy; Apply commits selections to the URL
+  // in one update. Chips and search read committed URL values.
   const committedMoreFilters = useMemo(
     () => ({
       journal: selectedJournalFilters,
@@ -1847,6 +1845,7 @@ export default function SearchPageBody() {
       instrument_model: selectedInstrumentModelFilters,
       platform: selectedPlatformFilters,
       multi_platform: multiPlatformOnly,
+      long_read: longReadOnly,
     }),
     [
       selectedJournalFilters,
@@ -1856,13 +1855,12 @@ export default function SearchPageBody() {
       selectedInstrumentModelFilters,
       selectedPlatformFilters,
       multiPlatformOnly,
+      longReadOnly,
     ],
   );
   const committedMoreKey = JSON.stringify(committedMoreFilters);
   const [localMore, setLocalMore] = useState(committedMoreFilters);
-  // Re-sync the optimistic copy whenever the URL's filters actually change
-  // (Apply committing, a chip removal, a deep link, back/forward).
-  // Adjusted during render (per React docs) rather than in an effect.
+  // Sync the optimistic copy during render when URL filters change.
   const [prevCommittedMoreKey, setPrevCommittedMoreKey] =
     useState(committedMoreKey);
   if (committedMoreKey !== prevCommittedMoreKey) {
@@ -1886,6 +1884,8 @@ export default function SearchPageBody() {
     setLocalMore((p) => ({ ...p, platform: v }));
   const railSetMultiPlatform = (v: boolean) =>
     setLocalMore((p) => ({ ...p, multi_platform: v }));
+  const railSetLongRead = (v: boolean) =>
+    setLocalMore((p) => ({ ...p, long_read: v }));
   const applyMoreFilters = () =>
     updateSearchUrl({
       [FILTER_PARAM_KEYS.journal]: localMore.journal,
@@ -1897,6 +1897,7 @@ export default function SearchPageBody() {
       [FILTER_PARAM_KEYS.multiPlatform]: localMore.multi_platform
         ? "true"
         : null,
+      [FILTER_PARAM_KEYS.longRead]: localMore.long_read ? "true" : null,
     });
   const discardMoreFilters = () => setLocalMore(committedMoreFilters);
 
@@ -1956,6 +1957,14 @@ export default function SearchPageBody() {
     },
     [updateSearchUrl],
   );
+  const handleSetLongRead = useCallback(
+    (val: boolean) => {
+      updateSearchUrl({
+        [FILTER_PARAM_KEYS.longRead]: val ? "true" : null,
+      });
+    },
+    [updateSearchUrl],
+  );
   const handleClearMoreFilters = useCallback(() => {
     updateSearchUrl({
       [FILTER_PARAM_KEYS.journal]: [],
@@ -1965,6 +1974,7 @@ export default function SearchPageBody() {
       [FILTER_PARAM_KEYS.instrumentModel]: [],
       [FILTER_PARAM_KEYS.platform]: [],
       [FILTER_PARAM_KEYS.multiPlatform]: null,
+      [FILTER_PARAM_KEYS.longRead]: null,
     });
   }, [updateSearchUrl]);
 
@@ -1974,8 +1984,7 @@ export default function SearchPageBody() {
 
   const shouldShowOrganismRail = !isLoading && !isError && hasResults;
   const shouldReserveRailSpace = isLoading;
-  // No results (or an error) means no rail is coming, so nothing needs holding
-  // open — drop the reserved column and centre the message on the viewport.
+  // Release the reserved rail column and center the message for empty results or errors.
   const emptyStateFullWidth =
     !isLoading && (!!query || isGeoSearch) && (isError || !hasResults);
 
@@ -2002,9 +2011,7 @@ export default function SearchPageBody() {
       .replace("T", "_");
 
     try {
-      // Geo/map search paginates client-side and eagerly prefetches every page,
-      // so the browser already holds the whole result set (filters included) —
-      // no server round trip needed, and no /search/structured download endpoint.
+      // Geo search holds the full filtered result set for client-side export.
       if (isGeoSearch) {
         downloadCsv(
           filteredResults.map((r) => resultToCsvRow(r)),
@@ -2014,20 +2021,16 @@ export default function SearchPageBody() {
         return;
       }
 
-      // Text search: the server streams every match. Send the same db + sidebar
-      // filters the results list was fetched with, so the CSV is the search, not
-      // the page. Year range rides along inside searchFilters.
+      // Stream every text-search match using the same database and sidebar filters,
+      // including the year range in searchFilters.
       let url = `${SERVER_URL}/download/query?q=${encodeURIComponent(
-        // The displayed results are the corrected query's when a typo was
-        // auto-corrected; download what is on screen, not the typo.
+        // Download results for the effective query, including any applied spelling correction.
         correction?.corrected_query ?? query!,
       )}`;
       if (db && (SEARCH_DBS as readonly string[]).includes(db)) {
         url += `&db=${encodeURIComponent(db)}`;
       }
-      // The expansion settings decide which rows matched at all, so the CSV has
-      // to run with them too — without these the download is a different search
-      // from the one on screen.
+      // Include expansion settings so the CSV matches the displayed search.
       if (noExpansion) url += "&structured=true";
       url += ontologyParams(excludeOntology);
       url = appendFilterParams(url, searchFilters);
@@ -2106,6 +2109,8 @@ export default function SearchPageBody() {
     setSelectedPlatformFilters: railSetPlatform,
     multiPlatformOnly: localMore.multi_platform,
     setMultiPlatformOnly: railSetMultiPlatform,
+    longReadOnly: localMore.long_read,
+    setLongReadOnly: railSetLongRead,
     onClearMoreFilters: handleClearMoreFilters,
     onApplyMoreFilters: applyMoreFilters,
     onDiscardMoreFilters: discardMoreFilters,
@@ -2120,6 +2125,7 @@ export default function SearchPageBody() {
     selectedInstrumentModelFilters.length > 0 ||
     selectedPlatformFilters.length > 0 ||
     multiPlatformOnly ||
+    longReadOnly ||
     timeFilter !== "any" ||
     sortBy !== "relevance" ||
     db != null;
@@ -2159,6 +2165,7 @@ export default function SearchPageBody() {
       [FILTER_PARAM_KEYS.instrumentModel]: [],
       [FILTER_PARAM_KEYS.platform]: [],
       [FILTER_PARAM_KEYS.multiPlatform]: null,
+      [FILTER_PARAM_KEYS.longRead]: null,
     });
     if (db) handleDatabaseChange("both");
   }, [updateSearchUrl, db, handleDatabaseChange]);
@@ -2220,6 +2227,8 @@ export default function SearchPageBody() {
       setSelectedPlatformFilters={handleSetPlatformFilters}
       multiPlatformOnly={multiPlatformOnly}
       setMultiPlatformOnly={handleSetMultiPlatform}
+      longReadOnly={longReadOnly}
+      setLongReadOnly={handleSetLongRead}
       onClearAll={handleClearAllFilters}
     />
   );
@@ -2444,9 +2453,7 @@ export default function SearchPageBody() {
                   <span className="seqout-accession">GSE196830</span>).
                 </Text>
               )}
-              {/* This search ran narrower than the default, and that may be why
-                  it found nothing — say so, and point at the control that
-                  widens it (navbar, next to the search box). */}
+              {/* Explain restricted expansion settings and link to the control that widens the search. */}
               {noExpansion || excludeOntology.length ? (
                 <Text
                   size="2"
@@ -2460,9 +2467,7 @@ export default function SearchPageBody() {
                   box above.
                 </Text>
               ) : null}
-              {/* Shown alongside a "did you mean" too: a misspelling and a query
-                  keyword search can't express are both cases where describing
-                  the data in plain English gets further. */}
+              {/* Offer natural-language search alongside spelling suggestions. */}
               <Card mt="1" style={{ maxWidth: "32rem" }}>
                 <Text size="2" as="p" weight="medium" mb="1">
                   Need to query in natural language?

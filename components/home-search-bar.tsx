@@ -26,9 +26,7 @@ export default function HomeSearchBar() {
       mt={{ initial: "3rem", md: "5rem" }}
       px="4"
     >
-      {/* Logo — monotonic width progression: small on mobile, bigger on
-          desktop. The previous values shrank at md and grew again at lg,
-          which was a responsive bug. */}
+      {/* Logo width increases with viewport size. */}
       <Box
         pb="2"
         width={{ initial: "18rem", sm: "22rem", md: "24rem", lg: "28rem" }}
@@ -84,9 +82,7 @@ export default function HomeSearchBar() {
 
       <HeroSearchBar />
 
-      {/* Teaching empty state: two real accession chips + a keyword hint.
-          First-time users learn the accession format; returning users get
-          a one-click fast path to canonical examples. */}
+      {/* Accession examples and a keyword hint. */}
       <Flex
         direction="column"
         gap="2"

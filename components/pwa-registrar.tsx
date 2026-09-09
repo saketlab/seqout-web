@@ -9,7 +9,7 @@ export default function PwaRegistrar() {
 
     const register = () => {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-        // Installation should never block normal browsing if SW registration fails.
+        // Continue browsing if service worker registration fails.
       });
     };
 

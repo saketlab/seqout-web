@@ -1,10 +1,4 @@
-/**
- * URL-hash encoding for sharable sections.
- *
- * A plain section link is just the section id (e.g. `#samples`). When a section
- * has a tabbed table (Original / Enriched), the active tab is appended after an
- * `=` so the selection can be restored from the URL (e.g. `#samples=enriched`).
- */
+/** Encode section links with an optional active tab after `=`, as in `#samples=enriched`. */
 export function buildSectionHash(id: string, tab?: string): string {
   return tab ? `${id}=${tab}` : id;
 }

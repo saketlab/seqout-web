@@ -85,9 +85,7 @@ async function fetchTools(): Promise<McpTool[]> {
   }
 }
 
-// Each client: the one-line CLI command (fastest path) plus the config file it
-// writes, for people who prefer to edit it by hand. Formats verified against
-// each project's own docs.
+// Client setup commands and their corresponding config files.
 const CLIENTS: {
   id: string;
   name: string;

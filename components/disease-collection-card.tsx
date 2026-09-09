@@ -77,7 +77,7 @@ function TagList({
   const [expanded, setExpanded] = useState(false);
   const list = values ?? [];
   if (list.length === 0) {
-    // null and [] both render as "—"; the column tooltip says which
+    // null and [] share the placeholder; the column tooltip distinguishes them.
     return (
       <Text size="1" color="gray">
         —

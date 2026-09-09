@@ -15,8 +15,7 @@ describe("expansionDisabled", () => {
   it("is off only for the explicit expand=0", () => {
     expect(expansionDisabled(new URLSearchParams("expand=0"))).toBe(true);
     expect(expansionDisabled(new URLSearchParams("q=liver"))).toBe(false);
-    // Anything else means on — a stray value must not silently disable
-    // expansion for a shared link.
+    // Other values enable expansion to preserve shared-link behavior.
     expect(expansionDisabled(new URLSearchParams("expand=1"))).toBe(false);
     expect(expansionDisabled(new URLSearchParams("expand=false"))).toBe(false);
   });
@@ -57,8 +56,7 @@ describe("ontology exclusions", () => {
     const params = new URLSearchParams(
       "exclude_ontology=MeSH&exclude_ontology=nope&exclude_ontology=MeSH",
     );
-    // Deduped and filtered: an unknown id would be sent to the API and quietly
-    // exclude nothing, which reads as "the toggle is broken".
+    // Deduplicate and drop unknown IDs so URL settings correspond to supported filters.
     expect(disabledOntologies(params)).toEqual(["MeSH"]);
     expect(disabledOntologies(new URLSearchParams("q=liver"))).toEqual([]);
   });

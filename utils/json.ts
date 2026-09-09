@@ -8,13 +8,7 @@ export function parseMaybeJson<T>(value: unknown, fallback: T): T {
   }
 }
 
-/**
- * Serializes JSON for embedding in an HTML <script> element.
- *
- * JSON.stringify alone leaves HTML-significant characters intact, allowing a
- * value such as </script> to close the element early. JSON parsers treat the
- * Unicode escapes below as the original characters after the script is read.
- */
+/** Escapes HTML-significant characters so a value like </script> can't close the element early; JSON parsers still recover the originals from these Unicode escapes. */
 export function escapeHtmlJson(value: unknown): string {
   return JSON.stringify(value)
     .replace(/</g, "\\u003c")

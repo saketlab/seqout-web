@@ -34,8 +34,7 @@ export default function HeroSearchBar() {
     readDisabledOntologies,
   );
 
-  // The toggle is a default, so it travels into the search URL rather than
-  // staying a private setting — the resulting search is then shareable as-is.
+  // Carry the expansion default into the URL so the resulting search is shareable.
   const expansionParams = () => {
     const carry = new URLSearchParams();
     if (!expansionOn) carry.set(EXPANSION_PARAM, "0");

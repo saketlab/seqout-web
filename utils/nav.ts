@@ -5,19 +5,13 @@ import {
   InfoCircledIcon,
   KeyboardIcon,
   MagicWandIcon,
+  ReaderIcon,
   SewingPinIcon,
 } from "@radix-ui/react-icons";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 
-/**
- * Single source of truth for the global navigation items.
- *
- * Used by both `components/navbar.tsx` (homepage) and
- * `components/search-bar.tsx` (every other page) so there's no drift.
- *
- * Order matters: items render left-to-right in the desktop nav.
- */
+/** Shared global navigation items, ordered left-to-right on desktop. */
 export type NavItem = {
   label: string;
   href: string;
@@ -56,6 +50,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Map",
     href: "/map",
     icon: createElement(SewingPinIcon),
+  },
+  {
+    label: "Long reads",
+    href: "/technology/longread",
+    icon: createElement(ReaderIcon),
   },
   {
     label: "Use with LLMs",

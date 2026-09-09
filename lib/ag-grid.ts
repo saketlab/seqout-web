@@ -40,13 +40,7 @@ export const truncatableColDef = <T>(
   },
 });
 
-/**
- * A single-condition text filter is a search, not a filter, so its header
- * button gets a magnifying glass instead of the funnel. `filter` is the header
- * button; `filterActive` is the indicator shown beside the label once a value
- * is entered. Number columns keep the funnel — a greater-than/less-than range
- * really is a filter.
- */
+/** Magnifying-glass icons for text search. filter is the header button; filterActive marks an entered value. */
 const SEARCH_ICONS = {
   filter: '<span class="ag-icon ag-icon-search" role="presentation"></span>',
   filterActive:
@@ -67,11 +61,7 @@ export const searchColDef = <T>(): SearchColDef<T> => ({
   icons: SEARCH_ICONS,
 });
 
-/**
- * Number columns: opt back out of a grid-wide text default. A range really is
- * a filter, so these keep AG Grid's number filter and its funnel — the empty
- * `icons` map falls through to the theme's own icon.
- */
+/** Number columns use AG Grid's range filter. An empty icons map preserves the theme's funnel icon. */
 export const numberColDef = <T>(): Pick<
   ColDef<T>,
   "filter" | "filterParams" | "icons"

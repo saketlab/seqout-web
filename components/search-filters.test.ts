@@ -33,8 +33,7 @@ describe("applyTimeFilter custom range", () => {
 
 describe("last-N-years presets", () => {
   it("roll from today, not from Jan 1", () => {
-    // rollingCutoff is what the URL builder sends as date_from, so the two must
-    // agree exactly — a row on the boundary day is in or out of both.
+    // The URL builder and client filter share rollingCutoff so boundary-day results agree.
     const cutoff = rollingCutoff(1);
     const rows = [
       { updated_at: cutoff },

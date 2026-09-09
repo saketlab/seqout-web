@@ -188,8 +188,7 @@ const fetchSamples = async (
     `/geo/series/${accession}/samples?limit=${TABLE_PAGE_SIZE}&offset=${offset}`,
   );
 
-/** Every sample in one shot — the endpoint treats a missing `limit` as "all".
- *  Only for exports; the grid pages through fetchSamples instead. */
+/** All samples for export; omitting limit fetches the full set. */
 const fetchAllSamples = async (accession: string): Promise<GeoSample[]> => {
   const { items } = await getJsonWithTotal<GeoSample[]>(
     `/geo/series/${accession}/samples`,
@@ -384,11 +383,8 @@ export default function GeoProjectPage() {
       }),
     [projectAliases],
   );
-  // Supplementary files sit on whichever twin the archive happened to attach them
-  // to: E-GEOD-1160 carries 12 BioStudies files while its GEO twin GSE1160 carries
-  // none. Without a fallback the same study shows files on one accession and an
-  // empty section on the other. Computed here (not with the other supplementary
-  // state below) so the twin query can be a hook in the normal order.
+  // Supplementary files can belong to either archive twin. Resolve the twin before
+  // the supplementary state so its query keeps a stable hook order.
   const ownSupplementaryItems = React.useMemo(
     () =>
       buildSupplementaryItems({
@@ -411,9 +407,8 @@ export default function GeoProjectPage() {
     enabled: !!supplementaryTwinAccession,
   });
 
-  // No declared link to raw data? The project's paper may still name an SRA study
-  // (~3.3k GEO series). /xref returns those with source='pmid'; they are inferred
-  // from a shared publication, so the FASTQ section labels their provenance.
+  // A shared publication can identify linked SRA data. /xref marks inferred links
+  // with source='pmid', which the FASTQ section labels as provenance.
   const { data: xrefData } = useQuery({
     queryKey: ["xref", accession],
     queryFn: () =>
@@ -473,8 +468,7 @@ export default function GeoProjectPage() {
     () => samplesQuery.data?.pages.flatMap((p) => p.items),
     [samplesQuery.data],
   );
-  // Full count from the X-Total-Count header so the badge shows the real total,
-  // not just the rows loaded so far.
+  // X-Total-Count supplies the full sample count for the badge.
   const samplesTotal =
     samplesQuery.data?.pages[0]?.total ?? samples?.length ?? 0;
   const isSamplesLoading = samplesQuery.isLoading;
@@ -508,8 +502,7 @@ export default function GeoProjectPage() {
     // Each side misses organisms the other has, and the column is there before
     // the samples page in. Taxids only exist on the sample side.
     const byName = new Map<string, string | null>();
-    // organisms_with_taxa carries the taxid; organisms is the older names-only
-    // shape, kept as a fallback until the lookup table is populated.
+    // organisms_with_taxa supplies taxids; organisms provides a names-only fallback.
     for (const entry of project?.organisms_with_taxa ?? []) {
       const name = entry?.name?.trim();
       if (name && name !== "-") byName.set(name, entry.taxon_id || null);
@@ -716,22 +709,13 @@ export default function GeoProjectPage() {
     }
   };
 
-  /**
-   * Supplementary files across every sample in the series.
-   *
-   * `sampleSupplementaryDataItems` is derived from `samples`, a 20-per-page
-   * infinite query — so it only covers what the grid has scrolled through, and
-   * an export built from it would silently vary with scroll position. Fetch
-   * the samples unpaginated instead, once, then cache.
-   */
+  /** All sample supplementary files in the series, fetched unpaginated and cached for export. */
   const getAllSampleSupplementaryItems = async (): Promise<
     SupplementaryDataItem[]
   > => {
     if (!samplesAccession) return sampleSupplementaryDataItems;
-    // No "the loaded set is already complete" shortcut: that test leans on
-    // samplesTotal, which silently degrades to the loaded count when
-    // X-Total-Count cannot be read — reintroducing exactly the scroll-dependent
-    // export this function exists to avoid. The ref below caches the fetch.
+    // Fetch the full set: samplesTotal falls back to the loaded count when
+    // X-Total-Count is unreadable, so it cannot establish export completeness.
     if (!allSampleSupplementaryRef.current) {
       const all = await fetchAllSamples(samplesAccession);
       allSampleSupplementaryRef.current = all.flatMap((sample, sampleIndex) =>
@@ -745,7 +729,7 @@ export default function GeoProjectPage() {
     return allSampleSupplementaryRef.current;
   };
 
-  /** Ticked rows, else every sample's files — never just the loaded ones. */
+  /** Selected samples' files, or every sample's files when selection is empty. */
   const getSampleSupplementaryDownloadItems = async (): Promise<
     SupplementaryDataItem[]
   > => {
@@ -874,8 +858,7 @@ export default function GeoProjectPage() {
     const headerHeight = 48;
     const rowHeight = 42;
     const maxHeight = 500;
-    // Wrapped rows grow past the fixed rowHeight estimate, so a row-count fit
-    // would clip them — give the grid its full max height instead.
+    // Wrapped rows exceed the rowHeight estimate; use the full maximum grid height to prevent clipping.
     if (wrap) return maxHeight;
     return Math.min(maxHeight, headerHeight + sampleRows.length * rowHeight);
   }, [sampleRows.length, wrap]);
@@ -903,8 +886,7 @@ export default function GeoProjectPage() {
         width: 160,
         pinned: "left",
         cellClass: "seqout-accession",
-        // Resolved server-side (see onSampleFilterChanged) so the lookup covers
-        // the whole series, not just the loaded pages.
+        // Server-side sample lookup covers the whole series.
         ...lookupColDef<GeoSampleGridRow>(),
         cellRenderer: (params: ICellRendererParams<GeoSampleGridRow>) => {
           const sampleAccession = toDisplayText(params.value);
@@ -1044,9 +1026,7 @@ export default function GeoProjectPage() {
     });
   }, [sampleColumnDefs, sampleRows]);
 
-  // Own files win; otherwise take the linked twin's (see supplementaryTwinAccession).
-  // The old code read these off `dataProject`, which on an E-* page is the borrowed
-  // GEO/SRA twin -- so a twin with no files erased the AE project's real ones.
+  // Prefer this project's supplementary files, falling back to its linked twin.
   const fallbackSupplementarySource =
     supplementaryTwinProject ?? borrowedProject ?? null;
   const fallbackSupplementaryItems = fallbackSupplementarySource
@@ -1059,8 +1039,7 @@ export default function GeoProjectPage() {
   const supplementaryDataItems = usingOwnSupplementary
     ? ownSupplementaryItems
     : fallbackSupplementaryItems;
-  // The bulk-download endpoint must target whichever project actually holds the
-  // files, or it 404s ("No supplementary files found for GSE1160").
+  // Target the project that holds the files; another accession returns 404.
   const supplementaryAccession = usingOwnSupplementary
     ? accession
     : (supplementaryTwinAccession ?? dataAccession ?? accession);
@@ -1294,8 +1273,7 @@ export default function GeoProjectPage() {
         </Flex>
       )}
 
-      {/* Error state. The API answers 200/null for an accession it doesn't
-          have, so a null project is a not-found, not a still-loading page. */}
+      {/* The API returns 200/null for a missing accession; render the not-found state. */}
       {accession && (isError || (!isLoading && !project)) && (
         <Flex
           gap="3"
@@ -1439,8 +1417,7 @@ export default function GeoProjectPage() {
                   if (!bioProject) return null;
                   const prjAccession = bioProject["@target"].split("/").pop();
                   if (!prjAccession) return null;
-                  // Already rendered above via linkedBioProjectAliases — don't
-                  // double up.
+                  // Rendered above via linkedBioProjectAliases.
                   if (
                     linkedBioProjectAliases.some(
                       (a) => a.toUpperCase() === prjAccession.toUpperCase(),
@@ -1633,20 +1610,14 @@ export default function GeoProjectPage() {
                 ) : undefined
               }
               onExportOriginalCsv={async () => {
-                // Export every sample, not just the rows scrolled into view.
-                // Always re-fetch rather than reusing the loaded set when it
-                // looks complete: "complete" was judged against samplesTotal,
-                // which falls back to the loaded count whenever X-Total-Count
-                // is unreadable (it is not CORS-exposed, so any cross-origin
-                // host sees null) — and the export then silently shrank to
-                // whatever had been scrolled into view.
+                // Fetch all samples for export. samplesTotal can fall back to the loaded count
+                // when X-Total-Count is unreadable, so it cannot establish completeness.
                 const all = samplesAccession
                   ? await fetchAllSamples(samplesAccession)
                   : samples;
                 if (!all || all.length === 0) return;
 
-                // Characteristic columns must cover the full export, so derive
-                // the tag set from every sample rather than the loaded ones.
+                // Derive characteristic columns from every exported sample.
                 const tagSet = new Set<string>();
                 for (const sample of all) {
                   for (const channel of sample.channels ?? []) {

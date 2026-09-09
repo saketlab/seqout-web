@@ -25,31 +25,19 @@ type ResultCardProps = {
   source?: string | null;
   /** Title scale. Defaults to the search/author-page size. */
   titleSize?: "3" | "4";
-  /**
-   * Show the submitting center on its own row under the summary, with a pin,
-   * instead of inline with the authors. For rows that carry no author line
-   * (the pmid page, where every row is the same paper) — the default keeps
-   * the search/author-page layout untouched.
-   */
+  /** Show the submitting center beneath the summary with a pin, for rows without an author line. */
   centerOnOwnRow?: boolean;
-  /**
-   * The row scored far below the query's best match — it matched on something
-   * incidental (usually an expanded ontology synonym sharing a stem or two with
-   * the text) rather than on what was asked. Search decides this; the card just
-   * shows it.
-   */
+  /** Marks a result scoring far below the best query match. Search computes this flag. */
   lowRelevance?: boolean;
 };
 
-// An ENA study keeps its NCBI PRJNA id, which dbForAccession reads as SRA — trust
-// the record's own source when there is one.
+// Prefer the record's source: an ENA study can retain a PRJNA ID that dbForAccession classifies as SRA.
 function dbFor(accession: string, source?: string | null): DbSource | null {
   if (source && source in DB_COLOR_MAP) return source as DbSource;
   return dbForAccession(accession);
 }
 
-// Some records name the archive itself as the submitting center. That's not an
-// institution, so it tells the reader nothing worth a row.
+// Suppress archive names in the submitting-institution row.
 const ARCHIVE_CENTERS = new Set(["geo", "ncbi", "ncbi geo", "geo (ncbi)"]);
 
 function isArchiveCenter(name: string | null | undefined): boolean {
@@ -105,7 +93,7 @@ function ResultCard({
   // Exactly one placement is live, so the center never renders twice.
   const authorRowCenter = centerOnOwnRow ? null : formattedCenter;
   const authorRowFlag = centerOnOwnRow ? null : country_code;
-  // No name worth showing means no row — a lone pin and flag say nothing.
+  // Render the institution row only when it has a name.
   const ownRowCenter =
     centerOnOwnRow && !isArchiveCenter(center_name) ? formattedCenter : null;
   const cleanedJournal = journal ? cleanJournalName(journal) : null;

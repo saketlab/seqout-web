@@ -6,11 +6,9 @@ import {
   getSubmissionUrl,
 } from "./shortUrl";
 
-// One accession-shape pattern, shared by the single-token classifier and the
-// whole-string extractor so the two can never drift. PRJ* is recognized for
-// extraction but routed via the async /prj resolver (see useSearchHistory).
-// SAM[A-Z]*\d+ covers BioSample IDs across archives: SAMN (NCBI), SAMEA (EBI/ENA
-// — an ENA sample's *primary* accession), SAMD (DDBJ), SAMC (GSA). All open /s.
+// Accession pattern shared by classification and extraction. PRJ* resolves through /prj.
+// SAM[A-Z]*\d+ covers BioSample IDs: SAMN (NCBI), SAMEA (EBI/ENA primary accession),
+// SAMD (DDBJ), and SAMC (GSA). All open /s.
 const ACC_BODY =
   "(?:GSE\\d+|GSM\\d+|[SED]RA\\d+|[SED]R[PXRS]\\d+|SAM[A-Z]*\\d+|PRJ[A-Z]+\\d+|E-[A-Z]{4}-\\d+|(?:CRA|CRX|HRA|HRX|HRS)\\d+)";
 // End boundary: any non-alphanumeric, underscore included. \b treats _ as a word
@@ -20,11 +18,9 @@ const ACC_END = "(?![0-9A-Za-z])";
 const ACC_GLOBAL = new RegExp(`\\b${ACC_BODY}${ACC_END}`, "gi");
 const ACC_ANCHORED = new RegExp(`^${ACC_BODY}${ACC_END}`, "i");
 
-// ArrayExpress/GEA accessions are often written without hyphens ("E MTAB 11850",
-// "E_MTAB_11850", "EMTAB11850") — copied out of a PDF, or just typed that way.
-// Only *known* four-letter prefixes are accepted in the loose form: a generic
-// `E \w{4} \d+` would swallow "E coli 12345", which is a real search. The
-// hyphenated form stays generic (see ACC_BODY) since it can't be mistaken for prose.
+// Normalize loose ArrayExpress/GEA spellings such as "E MTAB 11850",
+// "E_MTAB_11850", and "EMTAB11850". Restrict loose forms to known prefixes so
+// "E coli 12345" stays a search; hyphenated forms use the generic ACC_BODY.
 const AE_PREFIXES =
   "MTAB|GEOD|GEAD|MEXP|TABM|ERAD|CURD|MAXD|MTAD|NASC|SMDB|SNGR|CBIL|TOXM|MIMR|RZPD|TIGR|UMCU|WMIT|ATMX|AFMX|HGMP|UCON|SGRP|SYBR|GEUV|MMHS|MUGN|NCMF|RUBN|UHNC|LGCL|DKFZ|FLYC|GEHB|JJRD";
 const AE_LOOSE = new RegExp(
@@ -46,8 +42,7 @@ const URL_BY_KIND: Record<AccessionKind, (a: string) => string> = {
   sample: getSampleUrl,
 };
 
-// Internal page kind for one accession, or null if unrecognized. PRJ* returns
-// null here (it needs a server round-trip to resolve) — matching prior behavior.
+// Internal page kind, or null if unrecognized. PRJ* returns null because it requires server resolution.
 function accessionKind(accession: string): AccessionKind | null {
   const a = accession.toUpperCase();
   if (/^(GSE|[SED]RP)\d+$/.test(a) || /^E-[A-Z]{4}-\d+$/.test(a))
@@ -121,18 +116,12 @@ export function parseAccessions(query: string): ParsedAccession[] {
   return out;
 }
 
-// True when the query *begins* with an accession — the signal that the user
-// pasted "<accession> <title/notes>" (or a list) and wants to jump, not search.
-// Anchoring on start avoids hijacking searches that merely mention an accession.
+// Detect a leading accession for direct navigation. Anchoring preserves searches that mention an accession later.
 export function startsWithAccession(query: string): boolean {
   return ACC_ANCHORED.test(canonicalizeAccessions(query.trim()));
 }
 
-// A pasted archive URL — ".../acc.cgi?acc=GSE317357", ".../ena/browser/view/SRP12",
-// ".../arrayexpress/experiments/E-MTAB-1234" — is an accession the user wants to
-// open, not a phrase to full-text search. The accession sits mid-string, so
-// startsWithAccession can't see it. Any host counts: wherever the link came from,
-// the useful answer is the project page. Takes the first accession in the URL.
+// Extract the first accession from a pasted archive URL, including mid-string accessions. Accept URLs from any host.
 export function isAccessionUrl(query: string): boolean {
   const trimmed = query.trim();
   if (!/^(?:https?:\/\/|www\.)/i.test(trimmed)) return false;
@@ -164,8 +153,7 @@ export function getExternalArchiveUrl(
       archive: "ArrayExpress",
       label: "View on ArrayExpress",
     };
-  // GSA — CNCB-NGDC (China National Genomics Data Center). Checked before the
-  // generic PRJ*/SAM* cases so PRJCA/SAMC route to GSA, not NCBI.
+  // GSA (CNCB-NGDC). Check before generic PRJ*/SAM* patterns so PRJCA/SAMC route to GSA.
   if (/^CRA\d+$/.test(a))
     return {
       url: `https://ngdc.cncb.ac.cn/gsa/browse/${accession}`,
