@@ -133,6 +133,7 @@ type Project = {
   country_code?: string | null;
   publications?: StudyPublication[] | null;
   has_enriched?: boolean;
+  has_long_read?: boolean;
   single_cell?: unknown;
 };
 
@@ -2848,7 +2849,6 @@ export default function ProjectPage() {
             />
             {/* ENA/DDBJ study hierarchy: parent umbrella / child studies. */}
             <StudyHierarchy project={project} />
-            {/* Experiments (Original) + AI Enriched metadata, merged via tabs */}
             <MetadataTableTabs
               accession={accession}
               sectionId="experiments"
@@ -2861,6 +2861,7 @@ export default function ProjectPage() {
               }}
               hasEnriched={project?.has_enriched}
               hasPentimento={!!project?.single_cell}
+              hasLongRead={project?.has_long_read}
               titleBadge={
                 <Badge style={{ whiteSpace: "nowrap" }}>
                   {isExperimentsLoading

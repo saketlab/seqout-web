@@ -118,6 +118,7 @@ type Project = {
   country_code?: string | null;
   publications?: StudyPublication[] | null;
   has_enriched?: boolean;
+  has_long_read?: boolean;
   single_cell?: unknown;
 };
 
@@ -1585,13 +1586,13 @@ export default function GeoProjectPage() {
               defaultExpanded
             />
 
-            {/* Samples (Original) + AI Enriched metadata, merged via tabs */}
             <MetadataTableTabs
               accession={accession}
               sectionId="samples"
               sectionTitle="Samples"
               hasEnriched={project?.has_enriched}
               hasPentimento={!!project?.single_cell}
+              hasLongRead={project?.has_long_read}
               combinedExport={{
                 noun: "sample",
                 sraAccessions: linkedSraAliases,

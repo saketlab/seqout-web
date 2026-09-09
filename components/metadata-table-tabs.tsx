@@ -6,6 +6,7 @@ import {
   useEnrichedMetadata,
 } from "@/components/enriched-metadata-card";
 import { FirstVisitPing, useFirstVisit } from "@/components/first-visit-ping";
+import LongReadChemistryCard from "@/components/longread-chemistry-card";
 import SectionAnchor from "@/components/section-anchor";
 import SingleCellCard from "@/components/single-cell-card";
 import { useToast } from "@/components/toast-provider";
@@ -21,6 +22,7 @@ import {
   Link2Icon,
   LayersIcon,
   MagicWandIcon,
+  MixIcon,
 } from "@radix-ui/react-icons";
 import {
   AlertDialog,
@@ -33,7 +35,7 @@ import {
 } from "@radix-ui/themes";
 import { useEffect, useState, type ReactNode } from "react";
 
-type TabValue = "original" | "enriched" | "pentimento";
+type TabValue = "original" | "enriched" | "pentimento" | "longread";
 
 function TabShareIcon({
   sectionId,
@@ -101,6 +103,7 @@ export default function MetadataTableTabs({
   titleBadge,
   hasEnriched,
   hasPentimento,
+  hasLongRead,
   originalContent,
   onExportOriginalCsv,
   combinedExport,
@@ -111,6 +114,7 @@ export default function MetadataTableTabs({
   titleBadge?: ReactNode;
   hasEnriched?: boolean;
   hasPentimento?: boolean;
+  hasLongRead?: boolean;
   originalContent: ReactNode;
   onExportOriginalCsv: () => void;
   combinedExport?: {
@@ -123,12 +127,20 @@ export default function MetadataTableTabs({
   const [seenEnriched, markEnrichedSeen] = useFirstVisit(
     "seqout-enriched-tab-clicked",
   );
+  const tabExists: Record<TabValue, boolean> = {
+    original: true,
+    enriched: !!hasEnriched,
+    pentimento: !!hasPentimento,
+    longread: !!hasLongRead,
+  };
+  const hasExtraTab = Object.entries(tabExists).some(
+    ([key, exists]) => key !== "original" && exists,
+  );
   const [tab, setTab] = useState<TabValue>(() => {
     if (typeof window === "undefined") return "original";
     const { id, tab: hashTab } = parseSectionHash(window.location.hash);
-    return id === sectionId &&
-      (hashTab === "enriched" || hashTab === "pentimento")
-      ? hashTab
+    return id === sectionId && tabExists[hashTab as TabValue]
+      ? (hashTab as TabValue)
       : "original";
   });
   const showEnriched = !!hasEnriched && tab === "enriched";
@@ -147,11 +159,6 @@ export default function MetadataTableTabs({
     }
   }, [sectionId]);
 
-  const tabExists: Record<TabValue, boolean> = {
-    original: true,
-    enriched: !!hasEnriched,
-    pentimento: !!hasPentimento,
-  };
   const activeTab: TabValue = tabExists[tab] ? tab : "original";
 
   const [askCombined, setAskCombined] = useState(false);
@@ -203,7 +210,7 @@ export default function MetadataTableTabs({
           <SectionAnchor id={sectionId} />
         </Flex>
         <Flex align="center" gap="3">
-          {(hasEnriched || hasPentimento) && (
+          {hasExtraTab && (
             <Tabs.Root
               value={activeTab}
               onValueChange={(value) => {
@@ -258,6 +265,21 @@ export default function MetadataTableTabs({
                         sectionTitle={sectionTitle}
                         tab="pentimento"
                         label="Pentimento"
+                        onSelect={setTab}
+                      />
+                    </Flex>
+                  </Tabs.Trigger>
+                )}
+                {hasLongRead && (
+                  <Tabs.Trigger value="longread">
+                    <Flex gap={"2"} align={"center"}>
+                      <MixIcon />
+                      <span>Long-read chemistry</span>
+                      <TabShareIcon
+                        sectionId={sectionId}
+                        sectionTitle={sectionTitle}
+                        tab="longread"
+                        label="Long-read chemistry"
                         onSelect={setTab}
                       />
                     </Flex>
@@ -320,6 +342,9 @@ export default function MetadataTableTabs({
         </AlertDialog.Content>
       </AlertDialog.Root>
       {activeTab === "pentimento" && <SingleCellCard accession={accession} />}
+      {activeTab === "longread" && (
+        <LongReadChemistryCard accession={accession} />
+      )}
       {activeTab === "original" && originalContent}
       {activeTab === "enriched" && enriched && (
         <EnrichedMetadataGrid
