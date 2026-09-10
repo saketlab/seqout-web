@@ -2455,17 +2455,20 @@ export default function SearchPageBody() {
               )}
               {/* Explain restricted expansion settings and link to the control that widens the search. */}
               {noExpansion || excludeOntology.length ? (
-                <Text
-                  size="2"
-                  align="center"
-                  style={{ color: "var(--gray-11)", maxWidth: "32rem" }}
-                >
-                  {noExpansion
-                    ? "Term expansion is off, so only your exact words were searched."
-                    : `${excludeOntology.length} of ${ONTOLOGIES.length} ontologies are switched off, so some synonyms might have been left out.`}{" "}
-                  Adjust this with the term expansion button next to the search
-                  box above.
-                </Text>
+                <Card mt="1" style={{ maxWidth: "32rem" }}>
+                  <Text size="2" as="p" weight="medium" mb="1">
+                    {noExpansion
+                      ? "Term expansion is off"
+                      : `${excludeOntology.length} of ${ONTOLOGIES.length} ontologies are switched off`}
+                  </Text>
+                  <Text size="2" as="p" style={{ color: "var(--gray-11)" }}>
+                    {noExpansion
+                      ? "Only your exact words were searched."
+                      : "Some synonyms might have been left out."}{" "}
+                    Adjust this with the term expansion button next to the
+                    search box above.
+                  </Text>
+                </Card>
               ) : null}
               {/* Offer natural-language search alongside spelling suggestions. */}
               <Card mt="1" style={{ maxWidth: "32rem" }}>
