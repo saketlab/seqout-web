@@ -106,13 +106,9 @@ export default function ExpansionSection({ query }: { query: string }) {
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Tooltip content="Term expansions used for this search">
+      <Tooltip content="Term expansions">
         <Dialog.Trigger>
-          <IconButton
-            variant="surface"
-            size="3"
-            aria-label="Term expansions used for this search"
-          >
+          <IconButton variant="surface" size="3" aria-label="Term expansions">
             <WaypointsIcon />
           </IconButton>
         </Dialog.Trigger>
