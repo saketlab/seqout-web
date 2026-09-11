@@ -1,36 +1,28 @@
 "use client";
 
 import AccessionLink from "@/components/accession-link";
+import {
+  Availability,
+  CollectionTable,
+  FacetSelect,
+  Stat,
+  TagList,
+  orderedFacetKeys,
+  useSortFilterState,
+  type ColumnDef,
+} from "@/components/collection-card/shared";
 import { humanize } from "@/utils/format";
-import type {
-  DiseaseFacetValue,
-  DiseaseFilters,
-  DiseaseSort,
-  LongReadProject,
-} from "@/utils/useStats";
+import type { DiseaseFacetValue, LongReadProject } from "@/utils/useStats";
 import {
   useLongReadFacets,
   useLongReadProjects,
   useLongReadSummary,
 } from "@/utils/useStats";
-import {
-  Badge,
-  Box,
-  Card,
-  Flex,
-  Popover,
-  Select,
-  Table,
-  Text,
-} from "@radix-ui/themes";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import { Badge, Flex, Text } from "@radix-ui/themes";
+import { useMemo } from "react";
 
-const ALL = "__all__";
 const NO_ROWS: LongReadProject[] = [];
 const NO_FACETS: Record<string, DiseaseFacetValue[]> = {};
-const MAX_OPTIONS = 40;
-const TAG_PREVIEW = 2;
 
 // Facet order on the page; the API returns them alphabetically.
 const FACET_ORDER = [
@@ -61,100 +53,6 @@ const FACET_LABELS: Record<string, string> = {
   long_read_only: "long-read only",
 };
 
-function TagList({
-  values,
-  color,
-}: {
-  values: string[] | null;
-  color?: "gray";
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const list = values ?? [];
-  if (list.length === 0) {
-    return (
-      <Text size="1" color="gray">
-        —
-      </Text>
-    );
-  }
-  const hidden = list.length - TAG_PREVIEW;
-  return (
-    <Flex align="center" gap="1" wrap="wrap">
-      {(expanded ? list : list.slice(0, TAG_PREVIEW)).map((v) => (
-        <Badge key={v} size="1" variant="soft" color={color}>
-          {v}
-        </Badge>
-      ))}
-      {hidden > 0 ? (
-        <Badge
-          size="1"
-          color="gray"
-          role="button"
-          tabIndex={0}
-          title={expanded ? "Show fewer" : `Show all ${list.length}`}
-          onClick={() => setExpanded((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setExpanded((v) => !v);
-            }
-          }}
-          style={{ cursor: "pointer", userSelect: "none" }}
-        >
-          {expanded ? "show less" : `+${hidden}`}
-        </Badge>
-      ) : null}
-    </Flex>
-  );
-}
-
-function ColumnInfo({ text }: { text: string }) {
-  return (
-    <Popover.Root>
-      <Popover.Trigger>
-        <Text
-          size="1"
-          color="gray"
-          tabIndex={0}
-          role="button"
-          aria-label={text}
-          style={{ cursor: "help", marginLeft: 3 }}
-        >
-          ⓘ
-        </Text>
-      </Popover.Trigger>
-      <Popover.Content size="1" maxWidth="260px">
-        <Text size="1">{text}</Text>
-      </Popover.Content>
-    </Popover.Root>
-  );
-}
-
-function Availability({
-  have,
-  runs,
-}: {
-  have: boolean | null;
-  runs: number | null;
-}) {
-  if (have == null) {
-    return (
-      <Text size="1" color="gray">
-        —
-      </Text>
-    );
-  }
-  return have ? (
-    <Badge size="1" color="green" variant="soft">
-      yes{runs ? ` (${humanize(runs)})` : ""}
-    </Badge>
-  ) : (
-    <Badge size="1" color="gray" variant="soft">
-      no
-    </Badge>
-  );
-}
-
 function Technology({ values }: { values: string[] }) {
   return (
     <Flex gap="1" wrap="wrap">
@@ -172,13 +70,7 @@ function Technology({ values }: { values: string[] }) {
   );
 }
 
-const COLUMNS: {
-  label: string;
-  render: (r: LongReadProject) => ReactNode;
-  info: string;
-  sort?: string;
-  align?: "right";
-}[] = [
+const COLUMNS: ColumnDef<LongReadProject>[] = [
   {
     label: "Study",
     sort: "study_accession",
@@ -313,59 +205,8 @@ const COLUMNS: {
   },
 ];
 
-function FacetSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string | null;
-  onChange: (v: string | null) => void;
-  options: DiseaseFacetValue[];
-}) {
-  return (
-    <Flex align="center" gap="2">
-      <Text size="1" color="gray">
-        {label}
-      </Text>
-      <Select.Root
-        value={value ?? ALL}
-        onValueChange={(v) => onChange(v === ALL ? null : v)}
-        size="1"
-      >
-        <Select.Trigger />
-        <Select.Content>
-          <Select.Item value={ALL}>All</Select.Item>
-          {options.slice(0, MAX_OPTIONS).map((o) => (
-            <Select.Item key={o.value} value={o.value}>
-              {o.value} ({humanize(o.studies)})
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
-    </Flex>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <Card size="1">
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">
-          {label}
-        </Text>
-        <Text size="4" weight="bold">
-          {value}
-        </Text>
-      </Flex>
-    </Card>
-  );
-}
-
 export default function LongReadCollectionCard() {
-  const [filters, setFilters] = useState<DiseaseFilters>({});
-  const [sort, setSort] = useState<DiseaseSort>({
+  const { filters, sort, toggleSort, setFilter } = useSortFilterState({
     key: "n_experiments",
     order: "desc",
   });
@@ -377,25 +218,10 @@ export default function LongReadCollectionCard() {
   const rows = projects.data?.results ?? NO_ROWS;
   const total = projects.data?.total ?? 0;
   const facetData = facets.data ?? NO_FACETS;
-  const facetKeys = [
-    ...FACET_ORDER.filter((k) => k in facetData),
-    ...Object.keys(facetData).filter((k) => !FACET_ORDER.includes(k)),
-  ];
-
-  const toggleSort = (key: string) =>
-    setSort((s) =>
-      s.key === key
-        ? { key, order: s.order === "desc" ? "asc" : "desc" }
-        : { key, order: "desc" },
-    );
-
-  const setFilter = (facet: string, v: string | null) =>
-    setFilters((f) => {
-      const next = { ...f };
-      if (v) next[facet] = v;
-      else delete next[facet];
-      return next;
-    });
+  const facetKeys = useMemo(
+    () => orderedFacetKeys(facetData, FACET_ORDER),
+    [facetData],
+  );
 
   const s = summary.data;
 
@@ -432,53 +258,14 @@ export default function LongReadCollectionCard() {
         ))}
       </Flex>
 
-      <Box style={{ overflowX: "auto" }}>
-        <Table.Root size="1" variant="surface">
-          <Table.Header>
-            <Table.Row>
-              {COLUMNS.map(({ label, sort: col, align, info }) => (
-                <Table.ColumnHeaderCell key={label} align={align}>
-                  <Text
-                    size="1"
-                    style={
-                      col
-                        ? { cursor: "pointer", userSelect: "none" }
-                        : undefined
-                    }
-                    onClick={col ? () => toggleSort(col) : undefined}
-                  >
-                    {label}
-                    {sort.key === col
-                      ? sort.order === "desc"
-                        ? " ↓"
-                        : " ↑"
-                      : ""}
-                  </Text>
-                  <ColumnInfo text={info} />
-                </Table.ColumnHeaderCell>
-              ))}
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map((r) => (
-              <Table.Row key={r.study_accession}>
-                {COLUMNS.map((c) => (
-                  <Table.Cell key={c.label} align={c.align}>
-                    {c.render(r)}
-                  </Table.Cell>
-                ))}
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-      </Box>
-      <Text size="1" color="gray">
-        {projects.isFetching
-          ? "Loading…"
-          : total > rows.length
-            ? `Showing ${humanize(rows.length)} of ${humanize(total)} studies`
-            : null}
-      </Text>
+      <CollectionTable
+        columns={COLUMNS}
+        rows={rows}
+        total={total}
+        isFetching={projects.isFetching}
+        sort={sort}
+        toggleSort={toggleSort}
+      />
     </Flex>
   );
 }

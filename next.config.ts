@@ -20,8 +20,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    // Proxy to localhost:8000 during local development
-    // In production, /api routes are handled by the deployed backend
+    // production routes /api directly; only dev needs the localhost:8000 proxy
     if (process.env.NODE_ENV === "development") {
       return [
         {
