@@ -226,7 +226,9 @@ function RootBody({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <body suppressHydrationWarning>
       <ClickTracker />
-      <Suspense fallback={null}><ServerAnalytics /></Suspense>
+      <Suspense fallback={null}>
+        <ServerAnalytics />
+      </Suspense>
       <a href="#main-content" className="seqout-skip-link">
         Skip to content
       </a>
@@ -375,6 +377,13 @@ export default function RootLayout({
             font-family: var(--code-font-family);
             font-feature-settings: "ss01" 1, "ss03" 1, "tnum" 1;
             letter-spacing: -0.005em;
+          }
+
+          /* Merges a multi-channel sample's rows in the pinned accession
+             column. The border lives on .ag-row, and the pinned section has
+             its own row elements, so only that column loses the divider. */
+          .ag-pinned-left-cols-container .ag-row:has(.seqout-merge-down) {
+            border-bottom-color: transparent;
           }
 
           body {

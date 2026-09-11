@@ -80,6 +80,7 @@ import {
 } from "@radix-ui/themes";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type {
+  CellClassParams,
   ColDef,
   FilterChangedEvent,
   GridApi,
@@ -490,11 +491,20 @@ export default function GeoProjectPage() {
   // stay on the paged set so a lookup doesn't shrink them.
   const gridSamples = sampleFind.rows ?? samples;
 
+  // Which channel row is the "first" of its sample changes with the order.
+  const refreshSampleColumn = React.useCallback(
+    (e: { api: GridApi<GeoSampleGridRow> }) => {
+      e.api.refreshCells({ columns: ["sample"], force: true });
+    },
+    [],
+  );
+
   const onSampleFilterChanged = React.useCallback(
     (e: FilterChangedEvent<GeoSampleGridRow>) => {
+      refreshSampleColumn(e);
       sampleFind.search(toServerFilters(e.api.getFilterModel()));
     },
-    [sampleFind],
+    [refreshSampleColumn, sampleFind],
   );
 
   const projectOrganisms = React.useMemo<
@@ -887,11 +897,30 @@ export default function GeoProjectPage() {
         width: 160,
         pinned: "left",
         cellClass: "seqout-accession",
+        // Drops the divider under the cell, merging a sample's channel rows
+        // into one block. colDef.spanRows would do this natively but AG Grid
+        // rejects it alongside enableCellTextSelection.
+        cellClassRules: {
+          "seqout-merge-down": (params: CellClassParams<GeoSampleGridRow>) => {
+            const rowIndex = params.node.rowIndex;
+            if (rowIndex == null) return false;
+            const next = params.api.getDisplayedRowAtIndex(rowIndex + 1);
+            return next != null && next.data?.sample === params.data?.sample;
+          },
+        },
         // Server-side sample lookup covers the whole series.
         ...lookupColDef<GeoSampleGridRow>(),
         cellRenderer: (params: ICellRendererParams<GeoSampleGridRow>) => {
           const sampleAccession = toDisplayText(params.value);
           if (sampleAccession === "-") return "-";
+          // Two-channel samples get one row per channel; print the accession
+          // once so a 13-sample series doesn't read as 26. Display order, not
+          // row data, decides what a repeat is — hence the refresh on sort.
+          const rowIndex = params.node.rowIndex;
+          if (rowIndex != null && rowIndex > 0) {
+            const prev = params.api.getDisplayedRowAtIndex(rowIndex - 1);
+            if (prev?.data?.sample === params.data?.sample) return null;
+          }
           if (isArrayExpress) {
             return (
               <Link
@@ -1806,6 +1835,7 @@ export default function GeoProjectPage() {
                           theme="legacy"
                           getRowStyle={organismRowStyle}
                           postSortRows={organismPostSort}
+                          onSortChanged={refreshSampleColumn}
                           onFilterChanged={onSampleFilterChanged}
                           onBodyScroll={infiniteScrollOnBodyScroll({
                             loadedCount: sampleRows.length,
