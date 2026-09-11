@@ -26,30 +26,27 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Backward compatibility: redirect old URLs to new format
   // /project/geo/{accession} -> /p/{accession}
   if (pathname.startsWith("/project/geo/")) {
     const accession = pathname.slice(13); // Remove '/project/geo/'
     if (accession) {
       const url = request.nextUrl.clone();
       url.pathname = `/p/${accession}`;
-      return NextResponse.redirect(url, 301); // Permanent redirect
+      return NextResponse.redirect(url, 301);
     }
   }
 
-  // Backward compatibility: redirect old URLs to new format
   // /project/sra/{accession} -> /p/{accession}
   if (pathname.startsWith("/project/sra/")) {
     const accession = pathname.slice(13); // Remove '/project/sra/'
     if (accession) {
       const url = request.nextUrl.clone();
       url.pathname = `/p/${accession}`;
-      return NextResponse.redirect(url, 301); // Permanent redirect
+      return NextResponse.redirect(url, 301);
     }
   }
 
-  // Redirect the short GEO URL format.
-  // /project/g/{accession} -> /p/{accession}
+  // /project/g/{accession} -> /p/{accession} (short GEO format)
   if (pathname.startsWith("/project/g/")) {
     const accession = pathname.slice(11); // Remove '/project/g/'
     if (accession) {
@@ -79,6 +76,13 @@ export function proxy(request: NextRequest) {
     }
   }
 
+  // /technology/singlecell -> /technology/single-cell (renamed)
+  if (pathname === "/technology/singlecell") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/technology/single-cell";
+    return NextResponse.redirect(url, 301);
+  }
+
   return NextResponse.next();
 }
 
@@ -93,5 +97,6 @@ export const config = {
     "/project/g/:path*",
     "/project/s/:path*",
     "/project/gse/:path*",
+    "/technology/singlecell",
   ],
 };

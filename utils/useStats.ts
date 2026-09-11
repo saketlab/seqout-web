@@ -199,24 +199,27 @@ export interface LongReadProject {
   n_chemistry_exact: number | null;
 }
 
-export function useLongReadSummary() {
+// disease needs an extra collection segment and a scope filter, so it keeps separate hooks
+function useCollectionSummary<TSummary>(basePath: string, keyPrefix: string) {
   return useQuery({
-    queryKey: ["longread-summary"],
+    queryKey: [`${keyPrefix}-summary`],
+    queryFn: ({ signal }) => getJson<TSummary>(`${basePath}/summary`, signal),
+    staleTime: ONE_DAY,
+  });
+}
+
+function useCollectionFacets(basePath: string, keyPrefix: string) {
+  return useQuery({
+    queryKey: [`${keyPrefix}-facets`],
     queryFn: ({ signal }) =>
-      getJson<LongReadSummary>("/longread/summary", signal),
+      getJson<DiseaseFacets>(`${basePath}/facets`, signal),
     staleTime: ONE_DAY,
   });
 }
 
-export function useLongReadFacets() {
-  return useQuery({
-    queryKey: ["longread-facets"],
-    queryFn: ({ signal }) => getJson<DiseaseFacets>("/longread/facets", signal),
-    staleTime: ONE_DAY,
-  });
-}
-
-export function useLongReadProjects(
+function useCollectionProjects<TProject>(
+  basePath: string,
+  keyPrefix: string,
   filters: DiseaseFilters,
   sort: DiseaseSort,
 ) {
@@ -225,7 +228,7 @@ export function useLongReadProjects(
     [filters],
   );
   return useQuery({
-    queryKey: ["longread-projects", active, sort],
+    queryKey: [`${keyPrefix}-projects`, active, sort],
     queryFn: ({ signal }) => {
       const qs = new URLSearchParams([
         ["limit", "100"],
@@ -233,8 +236,8 @@ export function useLongReadProjects(
         ["order", sort.order],
         ...active,
       ]);
-      return getJson<{ total: number; results: LongReadProject[] }>(
-        `/longread/projects?${qs.toString()}`,
+      return getJson<{ total: number; results: TProject[] }>(
+        `${basePath}/projects?${qs.toString()}`,
         signal,
       );
     },
@@ -242,6 +245,70 @@ export function useLongReadProjects(
     staleTime: ONE_DAY,
   });
 }
+
+export const useLongReadSummary = () =>
+  useCollectionSummary<LongReadSummary>("/longread", "longread");
+export const useLongReadFacets = () =>
+  useCollectionFacets("/longread", "longread");
+export const useLongReadProjects = (
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) => useCollectionProjects<LongReadProject>("/longread", "longread", filters, sort);
+
+export interface SingleCellSummary {
+  studies: number;
+  samples: number | null;
+  cells: number | null;
+  studies_with_matrix: number;
+  studies_with_fastq: number;
+  studies_long_read: number;
+  studies_with_perturbation: number;
+  studies_human: number;
+  n_modalities: number;
+  first_year: number | null;
+  last_year: number | null;
+}
+
+export interface SingleCellProject {
+  study_accession: string;
+  title: string | null;
+  organism: string | null;
+  organisms: string[] | null;
+  tissues: string[] | null;
+  single_cell_modality: string | null;
+  chemistries: string[] | null;
+  cell_or_nucleus: string[] | null;
+  assay_l1: string | null;
+  n_samples: number | null;
+  has_matrix: boolean;
+  n_cells: number | null;
+  has_fastq: boolean | null;
+  n_fastq_runs: number | null;
+  has_sra: boolean | null;
+  n_runs: number | null;
+  is_long_read: boolean;
+  perturbation_method: string[] | null;
+  intervention_kind: string[] | null;
+  is_pooled: boolean | null;
+  country: string | null;
+  pmid: string | null;
+  year: number | null;
+}
+
+export const useSingleCellSummary = () =>
+  useCollectionSummary<SingleCellSummary>("/single-cell", "singlecell");
+export const useSingleCellFacets = () =>
+  useCollectionFacets("/single-cell", "singlecell");
+export const useSingleCellProjects = (
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) =>
+  useCollectionProjects<SingleCellProject>(
+    "/single-cell",
+    "singlecell",
+    filters,
+    sort,
+  );
 
 export function useDiseaseSummary(collection: string) {
   return useQuery({
