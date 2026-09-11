@@ -1,7 +1,6 @@
 "use client";
 import ExpansionSection from "@/components/expansion-section";
 import {
-  FirstVisitPing,
   HOW_SEARCH_WORKS_KEY,
   useFirstVisit,
 } from "@/components/first-visit-ping";
@@ -15,7 +14,6 @@ import { useSearchHistory } from "@/utils/useSearchHistory";
 import {
   GitHubLogoIcon,
   HamburgerMenuIcon,
-  InfoCircledIcon,
   MagnifyingGlassIcon,
 } from "@radix-ui/react-icons";
 import {
@@ -25,7 +23,6 @@ import {
   IconButton,
   Link,
   TextField,
-  Tooltip,
 } from "@radix-ui/themes";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -330,21 +327,6 @@ function SearchBarContent({
         mt={"2"}
         display={{ initial: "none", md: "flex" }}
       >
-        <Tooltip content="How search works">
-          <IconButton
-            variant="soft"
-            color="gray"
-            aria-label="How search works"
-            onClick={() => {
-              markHowSearchWorksSeen();
-              router.push("/howsearchworks");
-            }}
-            style={{ position: "relative" }}
-          >
-            <InfoCircledIcon />
-            {!howSearchWorksSeen && <FirstVisitPing />}
-          </IconButton>
-        </Tooltip>
         <GitHubButton />
         <ThemeToggle />
       </Flex>

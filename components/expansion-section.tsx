@@ -23,7 +23,6 @@ import {
   Card,
   Dialog,
   Flex,
-  IconButton,
   Link,
   Select,
   Separator,
@@ -106,11 +105,19 @@ export default function ExpansionSection({ query }: { query: string }) {
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Tooltip content="Term expansions">
+      <Tooltip
+        content={`Term expansions (${ranExpanded ? "on" : "off"})`}
+      >
         <Dialog.Trigger>
-          <IconButton variant="surface" size="3" aria-label="Term expansions">
+          <Button
+            color="gray"
+            variant="surface"
+            size="3"
+            aria-label={`Term expansions (${ranExpanded ? "on" : "off"})`}
+          >
             <WaypointsIcon />
-          </IconButton>
+            <FakeSwitch checked={ranExpanded} />
+          </Button>
         </Dialog.Trigger>
       </Tooltip>
       <Dialog.Content
@@ -205,5 +212,25 @@ export default function ExpansionSection({ query }: { query: string }) {
         )}
       </Dialog.Content>
     </Dialog.Root>
+  );
+}
+
+// A Switch is a button, so the real one cannot be nested inside the trigger
+// button. This borrows the Radix switch classes to render the same thing as a
+// span: it only reports whether expansion is on, and the click falls through to
+// the button.
+// ponytail: rides Radix internal class names; swap for the real Switch if the
+// trigger ever stops being a button.
+function FakeSwitch({ checked }: { checked: boolean }) {
+  const state = checked ? "checked" : "unchecked";
+  return (
+    <span
+      className="rt-SwitchRoot rt-r-size-2 rt-variant-surface"
+      data-state={state}
+      data-accent-color="indigo"
+      aria-hidden
+    >
+      <span className="rt-SwitchThumb" data-state={state} />
+    </span>
   );
 }
