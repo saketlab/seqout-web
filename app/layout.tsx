@@ -463,6 +463,44 @@ export default function RootLayout({
             }
           }
 
+          .seqout-filter-section > summary {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            list-style: none;
+            border-radius: var(--radius-2);
+          }
+
+          /* The Flex inside the summary takes the room; the marker sits after it. */
+          .seqout-filter-section > summary > * {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .seqout-filter-section > summary::-webkit-details-marker {
+            display: none;
+          }
+
+          .seqout-filter-section > summary::after {
+            content: "";
+            display: inline-block;
+            width: 0.4rem;
+            height: 0.4rem;
+            margin-left: 0.4rem;
+            flex: none;
+            border-right: 1.5px solid var(--gray-9);
+            border-bottom: 1.5px solid var(--gray-9);
+            transform: translateY(-2px) rotate(45deg);
+          }
+
+          .seqout-filter-section[open] > summary::after {
+            transform: translateY(1px) rotate(-135deg);
+          }
+
+          .seqout-filter-section > summary:hover {
+            background-color: var(--gray-a3);
+          }
+
           .seqout-sr-only {
             position: absolute;
             width: 1px;
