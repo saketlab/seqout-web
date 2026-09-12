@@ -4,6 +4,8 @@ import type { NextRequest } from "next/server";
 // Accessions use uppercase in every supported namespace; lowercase URLs duplicate their pages.
 const ACCESSION_ROUTE = /^\/([pser])\/([^/]+)$/;
 const ACCESSION_SHAPE = /^[A-Z0-9][A-Z0-9._-]*$/;
+// Strip stray leading/trailing junk (quotes, punctuation, etc.), e.g. /p/%22GSE52529%22
+const JUNK_RE = /^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g;
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,10 +19,10 @@ export function proxy(request: NextRequest) {
     } catch {
       return NextResponse.next();
     }
-    const upper = decoded.toUpperCase();
-    if (decoded !== upper && ACCESSION_SHAPE.test(upper)) {
+    const normalized = decoded.replace(JUNK_RE, "").toUpperCase();
+    if (normalized !== decoded && ACCESSION_SHAPE.test(normalized)) {
       const url = request.nextUrl.clone();
-      url.pathname = `/${kind}/${encodeURIComponent(upper)}`;
+      url.pathname = `/${kind}/${encodeURIComponent(normalized)}`;
       return NextResponse.redirect(url, 301);
     }
     return NextResponse.next();
