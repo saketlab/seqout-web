@@ -2,7 +2,11 @@
 
 import ChartFooter, { chartFooterEvents } from "@/components/chart-footer";
 import SectionAnchor from "@/components/section-anchor";
-import { CHART_SERIES_PALETTE, getApexChartTheme } from "@/utils/chart-theme";
+import {
+  CHART_SERIES_PALETTE,
+  getApexChartTheme,
+  getMutedSeriesColor,
+} from "@/utils/chart-theme";
 import exportExperimentsToCsv from "@/utils/exportCsv";
 import { humanize } from "@/utils/format";
 import { useEnrichedCrosstab } from "@/utils/useStats";
@@ -12,6 +16,7 @@ import {
   Heading,
   Select,
   Text,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -38,7 +43,6 @@ const COLUMNS: { value: string; label: string }[] = [
 const LABEL = Object.fromEntries(COLUMNS.map((c) => [c.value, c.label]));
 const TOP_GROUPS = 12;
 const TOP_BREAKDOWN = 7;
-const OTHER_COLOR = "#9ca3af";
 
 function ColumnSelect({
   value,
@@ -111,7 +115,10 @@ export default function StatsEnrichedCard() {
 
   const chartOptions = useMemo<ApexOptions>(() => {
     const theme = getApexChartTheme(isDark);
-    const colors = [...CHART_SERIES_PALETTE.slice(0, TOP_BREAKDOWN), OTHER_COLOR];
+    const colors = [
+      ...CHART_SERIES_PALETTE.slice(0, TOP_BREAKDOWN),
+      getMutedSeriesColor(isDark),
+    ];
     return {
       chart: {
         id: "seqout-enriched-crosstab",
@@ -212,6 +219,17 @@ export default function StatsEnrichedCard() {
         </Text>
       ) : (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`Stacked bar chart: ${LABEL[breakdown]} by ${LABEL[
+                group
+              ].toLowerCase()} for ${categories.length} ${LABEL[
+                group
+              ].toLowerCase()} groups, broken down by ${series
+                .map((s) => s.name)
+                .join(", ")}.`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type="bar"
             options={chartOptions}
@@ -220,13 +238,21 @@ export default function StatsEnrichedCard() {
             width="100%"
           />
           <Flex justify="end" mt="2">
-            <Text
-              size="1"
-              color="gray"
-              onClick={exportCsv}
-              style={{ cursor: "pointer" }}
-            >
-              Download CSV
+            <Text asChild size="1" color="gray">
+              <button
+                type="button"
+                onClick={exportCsv}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  font: "inherit",
+                  color: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                Download CSV
+              </button>
             </Text>
           </Flex>
         </>

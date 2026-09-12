@@ -5,7 +5,6 @@ import {
   InfoCircledIcon,
   KeyboardIcon,
   MagicWandIcon,
-  ReaderIcon,
   SewingPinIcon,
 } from "@radix-ui/react-icons";
 import type { ReactNode } from "react";
@@ -50,11 +49,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Map",
     href: "/map",
     icon: createElement(SewingPinIcon),
-  },
-  {
-    label: "Long reads",
-    href: "/technology/longread",
-    icon: createElement(ReaderIcon),
   },
   {
     label: "Use with LLMs",

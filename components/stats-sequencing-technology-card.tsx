@@ -19,6 +19,7 @@ import {
   Skeleton,
   Text,
   TextField,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import type { ApexOptions } from "apexcharts";
@@ -618,6 +619,16 @@ export default function StatsSequencingTechnologyCard() {
         </Flex>
       ) : chartSeries.length > 0 ? (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`${view === "cumulative" ? "Cumulative" : "Monthly"} ${
+                mode === "experiments" ? "experiments" : "projects"
+              } over time for ${chartSeries
+                .filter((s) => !s.name.endsWith(" trend"))
+                .map((s) => s.name)
+                .join(", ")}.`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type={view === "cumulative" ? "area" : "line"}
             options={chartOptions}

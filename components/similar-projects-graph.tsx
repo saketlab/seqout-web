@@ -4,6 +4,7 @@ import type { ForceGraph3DInstance } from "3d-force-graph";
 import ProjectSummary from "@/components/project-summary";
 import { SIMILARITY_GRAPH_COLORS } from "@/utils/chart-theme";
 import { SERVER_URL } from "@/utils/constants";
+import { getProjectShortUrl } from "@/utils/shortUrl";
 import { useReducedMotion } from "@/utils/useReducedMotion";
 import {
   Button,
@@ -218,7 +219,7 @@ function nodeLabel(node: GraphNode) {
     : "Description unavailable.";
 
   return `
-    <div style="max-width: 420px; white-space: normal; line-height: 1.35; font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: var(--gray-2); color: var(--gray-12); border: 1px solid var(--gray-a6); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 22px rgba(0,0,0,0.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+    <div style="max-width: 420px; white-space: normal; line-height: 1.35; font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: var(--gray-2); color: var(--gray-12); border: 1px solid var(--gray-a6); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 22px rgba(0,0,0,0.18);">
       <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em;">${title}</div>
       <div style="font-size: 12px; margin-bottom: 6px; font-family: var(--font-geist-mono), ui-monospace, monospace; color: var(--gray-11);">${accession}</div>
       <div style="font-size: 12px;">${description}</div>
@@ -581,7 +582,7 @@ export default function SimilarProjectsGraph({
           const graphNode = node as GraphNode;
           if (graphNode.id === accession) return;
           window.open(
-            `/project/${graphNode.source}/${graphNode.id}`,
+            getProjectShortUrl(graphNode.id),
             "_blank",
             "noopener,noreferrer",
           );
@@ -645,12 +646,19 @@ export default function SimilarProjectsGraph({
 
   useEffect(() => {
     if (!isFullscreen) return;
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const onWindowResize = () => {
-      updateGraphSize();
-      fitView();
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        updateGraphSize();
+        fitView();
+      }, 150);
     };
     window.addEventListener("resize", onWindowResize);
-    return () => window.removeEventListener("resize", onWindowResize);
+    return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      window.removeEventListener("resize", onWindowResize);
+    };
   }, [isFullscreen, updateGraphSize, fitView]);
 
   useEffect(() => {
@@ -659,6 +667,17 @@ export default function SimilarProjectsGraph({
       void document.exitFullscreen();
     }
   }, [viewMode]);
+
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    if (viewMode === "graph") {
+      graph.resumeAnimation();
+      fitView();
+    } else {
+      graph.pauseAnimation();
+    }
+  }, [viewMode, fitView]);
 
   const toggleFullscreen = async () => {
     const container = graphContainerRef.current;
@@ -732,7 +751,7 @@ export default function SimilarProjectsGraph({
             value={organismFilter}
             onValueChange={(value) => setOrganismFilter(value)}
           >
-            <Select.Trigger style={{ minWidth: "220px" }} />
+            <Select.Trigger style={{ minWidth: "min(220px, 55vw)" }} />
             <Select.Content position="popper">
               <Select.Item value={ALL_ORGANISMS}>All organisms</Select.Item>
               {organismOptions.map((item) => (
@@ -756,6 +775,8 @@ export default function SimilarProjectsGraph({
       >
         <div
           ref={mountRef}
+          role="img"
+          aria-label="Similar projects network graph. Switch to the Table view tab for a text alternative."
           style={{
             display: viewMode === "graph" ? "block" : "none",
             width: "100%",

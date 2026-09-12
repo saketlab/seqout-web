@@ -5,8 +5,6 @@ import FooterGate from "@/components/footer-gate";
 import Wrapper from "@/components/wrapper";
 import { BRAND_BG } from "@/utils/constants";
 import { escapeHtmlJson } from "@/utils/json";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
 import "@radix-ui/themes/styles.css";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
@@ -29,7 +27,7 @@ export const metadata: Metadata = {
     template: "%s | seqout",
   },
   description:
-    "Fast exploration of GEO, SRA, ENA, DRA, GEA, GSA & ArrayExpress datasets. Search millions of experiments with unified metadata, relevance-ranked results, and consolidated sample tables. Developed at Saket Lab, IIT Bombay.",
+    "Search millions of GEO, SRA, ENA, DRA, GEA, GSA & ArrayExpress datasets with unified metadata, relevance-ranked results, and consolidated sample tables.",
   applicationName: "seqout",
   keywords: [
     "seqout",
@@ -205,7 +203,7 @@ const ORGANIZATION_JSON_LD = {
   "@id": "https://seqout.org/#organization",
   name: "Saket Lab, IIT Bombay",
   url: "https://seqout.org",
-  logo: "https://seqout.org/logo-dark.svg",
+  logo: "https://seqout.org/logo-dark.webp",
   sameAs: ["https://saketlab.org", "https://github.com/saketlab/seqout"],
 };
 
@@ -233,7 +231,7 @@ function RootBody({ children }: Readonly<{ children: React.ReactNode }>) {
         Skip to content
       </a>
       <Wrapper>
-        <div id="main-content" tabIndex={-1} style={{ outline: "none" }}>
+        <div id="main-content" tabIndex={-1}>
           {children}
         </div>
         <FooterGate />
@@ -276,11 +274,19 @@ export default function RootLayout({
       data-enable-grammarly="false"
     >
       <head>
-        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <LayoutStructuredData />
         <style
           dangerouslySetInnerHTML={{
             __html: `
+          html, body {
+            background-color: ${BRAND_BG};
+            color-scheme: dark;
+          }
+          html.light, html.light body {
+            background-color: #ffffff;
+            color-scheme: light;
+          }
+
           .db-badge {
             background-color: color-mix(in srgb, var(--db) 15%, transparent);
             color: var(--db-fg);
@@ -294,6 +300,14 @@ export default function RootLayout({
           .logo-dark { display: block; }
           .light .logo-light { display: block; }
           .light .logo-dark { display: none; }
+
+          #main-content:focus {
+            outline: none;
+          }
+          #main-content:focus-visible {
+            outline: 2px solid var(--accent-8);
+            outline-offset: -2px;
+          }
 
           :root,
           .radix-themes {

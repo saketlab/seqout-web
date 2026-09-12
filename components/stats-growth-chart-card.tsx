@@ -13,6 +13,7 @@ import {
   SegmentedControl,
   Skeleton,
   Text,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -295,6 +296,14 @@ export default function StatsGrowthChartCard() {
         </Flex>
       ) : (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`${view === "cumulative" ? "Area" : "Line"} chart: ${chartOptions.title
+                ?.text} over time, for ${chartSeries
+                .map((s) => s.name)
+                .join(", ")}.`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type={view === "cumulative" ? "area" : "line"}
             options={chartOptions}

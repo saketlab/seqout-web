@@ -17,6 +17,7 @@ import {
   getMapCanvasTheme,
   getMapMutedTextColor,
   getMapPanelBackground,
+  getMapPointColor,
   MAP_ATTRIBUTION_SOURCES,
   MAP_ATTRIBUTION_TEXT,
 } from "@/utils/chart-theme";
@@ -44,7 +45,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ColDef } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useTheme } from "next-themes";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 ensureAgGridModules();
@@ -149,13 +150,28 @@ function SearchableSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   const filtered = useMemo(() => {
     if (!query) return options;
     const q = query.toLowerCase();
     return options.filter((o) => o.searchLabel.toLowerCase().includes(q));
   }, [options, query]);
+
+  // Combined list backing keyboard navigation: the "all"/placeholder entry, then the filtered options.
+  const navOptions = useMemo(
+    () => [{ value: ALL, label: placeholder }, ...filtered],
+    [filtered, placeholder],
+  );
+
+  const selectOption = (optionValue: string) => {
+    onValueChange(optionValue);
+    setOpen(false);
+    setQuery("");
+  };
 
   const displayLabel =
     value === ALL ? placeholder : options.find((o) => o.value === value)?.label ?? value;
@@ -165,12 +181,15 @@ function SearchableSelect({
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (!o) setQuery("");
+        setQuery("");
+        setActiveIndex(-1);
       }}
     >
       <Popover.Trigger>
         <button
           type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
           style={{
             minWidth,
             maxWidth: 280,
@@ -204,28 +223,56 @@ function SearchableSelect({
           <TextField.Root
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(-1);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActiveIndex((i) => Math.min(i + 1, navOptions.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActiveIndex((i) => Math.max(i - 1, 0));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                if (activeIndex >= 0 && navOptions[activeIndex]) {
+                  selectOption(navOptions[activeIndex].value);
+                }
+              }
+            }}
             placeholder="Search..."
             size="2"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={
+              activeIndex >= 0 ? optionId(activeIndex) : undefined
+            }
           >
             <TextField.Slot>
               <MagnifyingGlassIcon height="16" width="16" />
             </TextField.Slot>
           </TextField.Root>
           <ScrollArea style={{ maxHeight: 240 }} scrollbars="vertical">
-            <Flex direction="column">
+            <Flex direction="column" role="listbox" id={listboxId}>
               <button
                 type="button"
-                onClick={() => {
-                  onValueChange(ALL);
-                  setOpen(false);
-                  setQuery("");
-                }}
+                id={optionId(0)}
+                role="option"
+                aria-selected={value === ALL}
+                onClick={() => selectOption(ALL)}
                 style={{
                   padding: "6px 8px",
                   borderRadius: "var(--radius-1)",
                   border: "none",
-                  background: value === ALL ? "var(--accent-a4)" : "transparent",
+                  background:
+                    activeIndex === 0
+                      ? "var(--accent-a5)"
+                      : value === ALL
+                        ? "var(--accent-a4)"
+                        : "transparent",
                   color: "var(--gray-12)",
                   fontSize: "var(--font-size-1)",
                   cursor: "pointer",
@@ -235,20 +282,24 @@ function SearchableSelect({
               >
                 {placeholder}
               </button>
-              {filtered.map((o) => (
+              {filtered.map((o, i) => (
                 <button
                   type="button"
                   key={o.value}
-                  onClick={() => {
-                    onValueChange(o.value);
-                    setOpen(false);
-                    setQuery("");
-                  }}
+                  id={optionId(i + 1)}
+                  role="option"
+                  aria-selected={o.value === value}
+                  onClick={() => selectOption(o.value)}
                   style={{
                     padding: "6px 8px",
                     borderRadius: "var(--radius-1)",
                     border: "none",
-                    background: o.value === value ? "var(--accent-a4)" : "transparent",
+                    background:
+                      activeIndex === i + 1
+                        ? "var(--accent-a5)"
+                        : o.value === value
+                          ? "var(--accent-a4)"
+                          : "transparent",
                     color: "var(--gray-12)",
                     fontSize: "var(--font-size-1)",
                     cursor: "pointer",
@@ -702,56 +753,58 @@ export default function StatsGlobalContributionsCard() {
 
   const [containerWidth, setContainerWidth] = useState(600);
 
-  const fillColor: [number, number, number] = isDark
-    ? [56, 189, 248]
-    : [37, 99, 235];
+  const fillColor = useMemo(() => getMapPointColor(isDark), [isDark]);
 
-  const scatterLayer = !data?.locations
-    ? null
-    : new ScatterplotLayer<LocationPoint>({
-      id: "contributions",
-      data: data.locations,
-      pickable: true,
-      getPosition: (d) => [d.lng, d.lat],
-      getRadius: (d) => {
-        const val =
-          scaleBy === "projects" ? d.n_projects : d.n_experiments;
-        return scaleRadius(val, sizeFactor);
-      },
-      getFillColor: (d) => {
-        const val =
-          scaleBy === "projects" ? d.n_projects : d.n_experiments;
-        return [...fillColor, scaleAlpha(val)] as [
-          number,
-          number,
-          number,
-          number,
-        ];
-      },
-      radiusUnits: "common",
-      radiusMinPixels: 0.5,
-      radiusMaxPixels: 40,
-      stroked: false,
-      antialiasing: true,
-      onClick: (info: PickingInfo<LocationPoint>) => {
-        if (info.object) {
-          setSelectedLocation({
-            point: info.object,
-            x: info.x,
-            y: info.y,
-            containerWidth,
-          });
-        }
-      },
-      updateTriggers: {
-        getRadius: [scaleBy, sizeFactor],
-        getFillColor: [scaleBy, isDark],
-      },
-      transitions: {
-        getRadius: reduced ? 0 : 300,
-        getFillColor: reduced ? 0 : 300,
-      },
-    });
+  const scatterLayer = useMemo(
+    () =>
+      !data?.locations
+        ? null
+        : new ScatterplotLayer<LocationPoint>({
+          id: "contributions",
+          data: data.locations,
+          pickable: true,
+          getPosition: (d) => [d.lng, d.lat],
+          getRadius: (d) => {
+            const val =
+              scaleBy === "projects" ? d.n_projects : d.n_experiments;
+            return scaleRadius(val, sizeFactor);
+          },
+          getFillColor: (d) => {
+            const val =
+              scaleBy === "projects" ? d.n_projects : d.n_experiments;
+            return [...fillColor, scaleAlpha(val)] as [
+              number,
+              number,
+              number,
+              number,
+            ];
+          },
+          radiusUnits: "common",
+          radiusMinPixels: 0.5,
+          radiusMaxPixels: 40,
+          stroked: false,
+          antialiasing: true,
+          onClick: (info: PickingInfo<LocationPoint>) => {
+            if (info.object) {
+              setSelectedLocation({
+                point: info.object,
+                x: info.x,
+                y: info.y,
+                containerWidth,
+              });
+            }
+          },
+          updateTriggers: {
+            getRadius: [scaleBy, sizeFactor],
+            getFillColor: [scaleBy, isDark],
+          },
+          transitions: {
+            getRadius: reduced ? 0 : 300,
+            getFillColor: reduced ? 0 : 300,
+          },
+        }),
+    [data, scaleBy, sizeFactor, fillColor, isDark, reduced, containerWidth],
+  );
 
   const indiaBorderLayer = useMemo(
     () =>
@@ -1152,7 +1205,7 @@ export default function StatsGlobalContributionsCard() {
                       size="1"
                       aria-label="Close"
                       onClick={() => setSelectedLocation(null)}
-                      style={{ flexShrink: 0 }}
+                      style={{ flexShrink: 0, width: 44, height: 44 }}
                     >
                       <Cross1Icon />
                     </IconButton>
@@ -1315,6 +1368,7 @@ export default function StatsGlobalContributionsCard() {
                 title="Copy all accessions to clipboard"
                 onClick={handleCopyAccessions}
                 disabled={copyState === "loading"}
+                style={{ width: 44, height: 44 }}
               >
                 {copyState === "done" ? <CheckIcon /> : <CopyIcon />}
               </IconButton>

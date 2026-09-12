@@ -3,7 +3,7 @@ import { getExternalArchiveUrl, getInternalUrl } from "@/utils/accessionLinks";
 import { ExternalLinkIcon } from "@radix-ui/react-icons";
 import { Flex, Link, Tooltip } from "@radix-ui/themes";
 
-const ICON_STYLE = { display: "inline-flex", color: "var(--gray-9)" };
+const ICON_STYLE = { display: "inline-flex", color: "var(--gray-11)" };
 
 export default function AccessionLink({
   accession,

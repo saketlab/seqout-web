@@ -4,7 +4,7 @@ import ChartFooter, { chartFooterEvents } from "@/components/chart-footer";
 import SectionAnchor from "@/components/section-anchor";
 import { getApexChartTheme } from "@/utils/chart-theme";
 import { SERVER_URL } from "@/utils/constants";
-import { DB_COLORS, DB_LABELS, DB_ORDER } from "@/utils/db-colors";
+import { DB_COLORS, DB_DASH, DB_LABELS, DB_ORDER } from "@/utils/db-colors";
 import { humanize } from "@/utils/format";
 import { fetchJsonWithIndexedDbCache } from "@/utils/indexeddb-cache";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
@@ -17,6 +17,7 @@ import {
   Skeleton,
   Text,
   TextField,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import type { ApexOptions } from "apexcharts";
@@ -155,6 +156,13 @@ export default function StatsOrganismGrowthCard() {
     });
   }, [growthData, view]);
 
+  const dashArray = useMemo(() => {
+    if (!growthData?.series) return [];
+    return DB_ORDER.filter((db) => db in growthData.series).map(
+      (db) => DB_DASH[db] ?? 0,
+    );
+  }, [growthData]);
+
   const xaxisTicks = useMemo(() => {
     if (!growthData?.series) return undefined;
     let minYear = 9999;
@@ -230,6 +238,7 @@ export default function StatsOrganismGrowthCard() {
       stroke: {
         curve: "smooth",
         width: view === "cumulative" ? 2 : 1.5,
+        dashArray,
       },
       fill: {
         type: view === "cumulative" ? "gradient" : "solid",
@@ -300,6 +309,7 @@ export default function StatsOrganismGrowthCard() {
       selectedOrganism,
       selectedCommonName,
       reduced,
+      dashArray,
     ],
   );
 
@@ -511,6 +521,14 @@ export default function StatsOrganismGrowthCard() {
         </Flex>
       ) : chartSeries.length > 0 ? (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`${view === "cumulative" ? "Area" : "Line"} chart: ${chartOptions.title
+                ?.text} over time, for ${chartSeries
+                .map((s) => s.name)
+                .join(", ")}.`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type={view === "cumulative" ? "area" : "line"}
             options={chartOptions}

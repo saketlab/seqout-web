@@ -4,6 +4,7 @@ import { cachedJson, getMapRev, purgeMapCache } from "@/lib/map-cache";
 import { SERVER_URL } from "@/utils/constants";
 import { normalizeAliases } from "@/utils/project";
 import { DB_COLOR_MAP, DB_LABELS, DB_ORDER } from "@/utils/db-colors";
+import { clusterLegendColor } from "./seqout-map/utils.js";
 import {
   BarChartIcon,
   ChevronDownIcon,
@@ -47,6 +48,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -260,11 +262,13 @@ function BarChart({
             >
               <Box
                 style={{
-                  width: `${width}%`,
+                  width: "100%",
                   height: "100%",
                   borderRadius: 4,
                   background: "var(--accent-9)",
-                  transition: "width 0.4s ease",
+                  transform: `scaleX(${width / 100})`,
+                  transformOrigin: "left",
+                  transition: "transform 0.4s ease",
                 }}
               />
             </Box>
@@ -316,6 +320,16 @@ export default function MapGraph() {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
+
+  // lets keyboard-only mobile users (Bluetooth keyboard, switch access) close the drawer with Escape
+  useEffect(() => {
+    if (!isMobile || !drawerOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isMobile, drawerOpen]);
 
   useEffect(() => {
     if (!layoutReady) return;
@@ -381,6 +395,7 @@ export default function MapGraph() {
   // layer points are colored/labeled by); selecting some filters out every other point.
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [clusterLevel, setClusterLevel] = useState<string | null>(null);
+  const [clusterMax, setClusterMax] = useState<Record<string, number>>({});
   const [clusterQuery, setClusterQuery] = useState("");
   const [selectedClusters, setSelectedClusters] = useState<string[]>([]);
   const [clusterCardExpanded, setClusterCardExpanded] = useState(true);
@@ -546,6 +561,7 @@ export default function MapGraph() {
           r.json(),
         );
         if (destroyed) return;
+        setClusterMax(meta.cluster_max ?? {});
         const base = `${SERVER_URL}/map/${meta.version}/${getMapRev()}`;
         const countries = await cachedJson<string[]>(`${base}/countries.json`);
         if (destroyed) return;
@@ -936,12 +952,20 @@ export default function MapGraph() {
     }
   })();
 
-  const visibleCountries = countries.filter((c) =>
-    c.toLowerCase().includes(countryFilter.toLowerCase()),
+  const visibleCountries = useMemo(
+    () =>
+      countries.filter((c) =>
+        c.toLowerCase().includes(countryFilter.toLowerCase()),
+      ),
+    [countries, countryFilter],
   );
 
-  const visibleClusters = clusters.filter((c) =>
-    c.label.toLowerCase().includes(clusterQuery.toLowerCase()),
+  const visibleClusters = useMemo(
+    () =>
+      clusters.filter((c) =>
+        c.label.toLowerCase().includes(clusterQuery.toLowerCase()),
+      ),
+    [clusters, clusterQuery],
   );
 
   return (
@@ -1194,12 +1218,13 @@ export default function MapGraph() {
               content={countriesExpanded ? "Collapse countries" : "Expand countries"}
             >
               <IconButton
-                size="1"
+                size={isMobile ? "3" : "1"}
                 variant="ghost"
                 color="gray"
                 aria-label={countriesExpanded ? "Collapse" : "Expand"}
                 aria-expanded={countriesExpanded}
                 onClick={() => setCountriesExpanded((open) => !open)}
+                style={isMobile ? { width: 44, height: 44 } : undefined}
               >
                 {countriesExpanded ? <ChevronDownIcon /> : <ChevronUpIcon />}
               </IconButton>
@@ -1253,6 +1278,117 @@ export default function MapGraph() {
           )}
         </Box>
 
+        {isMobile && !loading && !error && clusters.length > 0 && (
+          <Box
+            p="4"
+            style={{ display: "flex", flexDirection: "column" }}
+          >
+            <Flex align="center" justify="between" mb="2">
+              <Flex align="center" gap="2">
+                <TokensIcon />
+                <Text size="2">Clusters</Text>
+                {clusterLevel && (
+                  <Badge size="1" variant="soft" color="gray">
+                    {clusterLevel.replace("cluster_l", "L")}
+                  </Badge>
+                )}
+              </Flex>
+              <Flex align="center" gap="1">
+                {selectedClusters.length > 0 && (
+                  <Button
+                    size="2"
+                    variant="ghost"
+                    color="gray"
+                    onClick={clearClusters}
+                  >
+                    Clear ({selectedClusters.length})
+                  </Button>
+                )}
+                <Tooltip
+                  content={
+                    clusterCardExpanded ? "Collapse clusters" : "Expand clusters"
+                  }
+                >
+                  <IconButton
+                    size="3"
+                    variant="ghost"
+                    color="gray"
+                    aria-label={clusterCardExpanded ? "Collapse" : "Expand"}
+                    aria-expanded={clusterCardExpanded}
+                    onClick={() => setClusterCardExpanded((open) => !open)}
+                    style={{ width: 44, height: 44 }}
+                  >
+                    {clusterCardExpanded ? (
+                      <ChevronDownIcon />
+                    ) : (
+                      <ChevronUpIcon />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              </Flex>
+            </Flex>
+            {clusterCardExpanded && (
+              <TextField.Root
+                size="2"
+                value={clusterQuery}
+                placeholder="Search clusters"
+                onChange={(e) => setClusterQuery(e.target.value)}
+                mb="2"
+              >
+                <TextField.Slot>
+                  <MagnifyingGlassIcon height="12" width="12" />
+                </TextField.Slot>
+              </TextField.Root>
+            )}
+            {clusterCardExpanded && (
+              <ScrollArea
+                type="auto"
+                scrollbars="vertical"
+                style={{ maxHeight: "min(42dvh, 320px)" }}
+              >
+                <Flex direction="column" gap="1" pr="2">
+                  {visibleClusters.map((cluster) => (
+                    <Text
+                      as="label"
+                      size="2"
+                      key={cluster.id}
+                      style={{ cursor: "pointer", display: "block" }}
+                    >
+                      <Flex align="center" gap="2" style={{ minHeight: 44 }}>
+                        <Checkbox
+                          size="2"
+                          checked={selectedClusters.includes(cluster.id)}
+                          onCheckedChange={(checked) =>
+                            onToggleCluster(cluster.id, checked === true)
+                          }
+                        />
+                        <Box
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 2,
+                            backgroundColor: clusterLegendColor(
+                              cluster.id,
+                              clusterMax[clusterLevel ?? ""] ?? 0,
+                            ),
+                            flex: "0 0 auto",
+                          }}
+                        />
+                        <Text size="2">{cluster.label}</Text>
+                      </Flex>
+                    </Text>
+                  ))}
+                  {visibleClusters.length === 0 && (
+                    <Text size="2" color="gray">
+                      No clusters match.
+                    </Text>
+                  )}
+                </Flex>
+              </ScrollArea>
+            )}
+          </Box>
+        )}
+
         {!isMobile && (
           <>
             {/* Lasso */}
@@ -1263,7 +1399,7 @@ export default function MapGraph() {
                   <Text size="2">Lasso select</Text>
                 </Flex>
                 <Tooltip content="Select a subset of the map">
-                  <InfoCircledIcon color="var(--gray-9)" />
+                  <InfoCircledIcon color="var(--gray-10)" />
                 </Tooltip>
               </Flex>
               {!hasSelection && (
@@ -1515,12 +1651,13 @@ export default function MapGraph() {
                     }
                   >
                     <IconButton
-                      size="1"
+                      size={isMobile ? "3" : "1"}
                       variant="ghost"
                       color="gray"
                       aria-label={clusterCardExpanded ? "Collapse" : "Expand"}
                       aria-expanded={clusterCardExpanded}
                       onClick={() => setClusterCardExpanded((open) => !open)}
+                      style={isMobile ? { width: 44, height: 44 } : undefined}
                     >
                       {clusterCardExpanded ? (
                         <ChevronDownIcon />
@@ -1564,6 +1701,18 @@ export default function MapGraph() {
                             onCheckedChange={(checked) =>
                               onToggleCluster(cluster.id, checked === true)
                             }
+                          />
+                          <Box
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: 2,
+                              backgroundColor: clusterLegendColor(
+                                cluster.id,
+                                clusterMax[clusterLevel ?? ""] ?? 0,
+                              ),
+                              flex: "0 0 auto",
+                            }}
                           />
                           <Text size="1">{cluster.label}</Text>
                         </Flex>
@@ -1617,11 +1766,12 @@ export default function MapGraph() {
                   Accessions
                 </Button>
                 <IconButton
-                  size="2"
+                  size={isMobile ? "3" : "2"}
                   variant="outline"
                   color="red"
                   aria-label="Close lasso stats"
                   onClick={() => setStatsOpen(false)}
+                  style={isMobile ? { width: 44, height: 44 } : undefined}
                 >
                   <Cross1Icon />
                 </IconButton>
@@ -1675,7 +1825,7 @@ export default function MapGraph() {
                             </Text>
                             {f.key !== "organism" && (
                               <Tooltip content="Generated with an LLM-powered pipeline — may not be fully accurate.">
-                                <InfoCircledIcon color="var(--gray-9)" />
+                                <InfoCircledIcon color="var(--gray-10)" />
                               </Tooltip>
                             )}
                           </Flex>

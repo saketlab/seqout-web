@@ -17,6 +17,7 @@ import { resetState, state } from "./state.js";
 import {
   applyColorEncoding,
   applyTransformation,
+  hashClusterValue,
   pointInPolygon,
   restoreForeground,
 } from "./utils.js";
@@ -207,15 +208,7 @@ export async function createMap({
     const maxClusterId = Math.max(1, clusterMax[level] ?? 1);
     sp.deeptable.register_transformation(
       colorValueFieldFor(level),
-      (row) => {
-        const id = Number(row[level]);
-        if (!Number.isFinite(id) || id < 0) return 0;
-        // Leiden ids are assigned sequentially, so using their raw value puts
-        // similarly numbered clusters into nearly identical shades. A stable
-        // multiplicative hash distributes ids across the whole palette while
-        // preserving the same color for a cluster across tiles and sessions.
-        return 1 + ((Math.imul(id, 2654435761) >>> 0) / 0x100000000) * maxClusterId;
-      },
+      (row) => hashClusterValue(Number(row[level]), maxClusterId),
       [level],
     );
   }
@@ -726,12 +719,17 @@ export function setBackgroundColor(sp, backgroundColor) {
 // Zoom controls (button trio in the UI). deepscatter has no relative-zoom API,
 // so we read the current visible data bbox off the live scales, scale it around
 // its center, and re-fit. factor < 1 zooms in, > 1 zooms out.
-const ZOOM_DURATION = 300;
+function zoomDuration() {
+  const reduced =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  return reduced ? 0 : 300;
+}
 
 // plotAPI zooms bypass the d3-zoom listener. Resync labels and the color/picker
 // layer after the animation settles.
 function resyncAfterZoom() {
-  setTimeout(() => activeLabels?.refresh?.(), ZOOM_DURATION + 50);
+  setTimeout(() => activeLabels?.refresh?.(), zoomDuration() + 50);
 }
 
 export function zoomBy(sp, factor) {
@@ -750,7 +748,7 @@ export function zoomBy(sp, factor) {
     const hh = (Math.abs(dy1 - dy0) / 2) * factor;
     sp.plotAPI({
       zoom: { bbox: { x: [cx - hw, cx + hw], y: [cy - hh, cy + hh] } },
-      duration: ZOOM_DURATION,
+      duration: zoomDuration(),
     });
     resyncAfterZoom();
   } catch (err) {
@@ -772,7 +770,7 @@ export function zoomToPoints(sp, points) {
         y: [Math.min(...ys) - pad, Math.max(...ys) + pad],
       },
     },
-    duration: ZOOM_DURATION,
+    duration: zoomDuration(),
   });
   resyncAfterZoom();
 }
@@ -787,7 +785,7 @@ export function resetView(sp) {
   const hh = ((extent.maxy - extent.miny) / 2) * DEFAULT_VIEW_FRACTION || 1;
   sp.plotAPI({
     zoom: { bbox: { x: [cx - hw, cx + hw], y: [cy - hh, cy + hh] } },
-    duration: ZOOM_DURATION,
+    duration: zoomDuration(),
   });
   resyncAfterZoom();
 }
@@ -838,7 +836,7 @@ export async function runSearch(sp, accessionId) {
 
   if (found) {
     await sp.plotAPI({
-      duration: 300,
+      duration: zoomDuration(),
       encoding: { foreground: { field: name, op: "eq", a: 1 } },
       background_options: {
         color: DEFAULT_BG_COLOR,
@@ -867,7 +865,7 @@ export async function runSearch(sp, accessionId) {
         x: [found.x - halfWidth, found.x + halfWidth],
         y: [found.y - halfHeight, found.y + halfHeight],
       },
-      500,
+      zoomDuration() ? 500 : 0,
       1,
     );
   }

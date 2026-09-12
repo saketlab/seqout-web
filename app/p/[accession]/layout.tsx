@@ -1,4 +1,8 @@
-import { fetchProjectTitleLookup } from "@/lib/project-og";
+import {
+  fetchProjectDatasetInfo,
+  fetchProjectTitleLookup,
+} from "@/lib/project-og";
+import { buildBreadcrumbJsonLd, buildDatasetJsonLd } from "@/lib/dataset-jsonld";
 import { escapeHtmlJson } from "@/utils/json";
 import {
   type Archive,
@@ -11,6 +15,7 @@ import {
   dbForAccession,
   type DbSource,
 } from "@/utils/db-colors";
+import { doiHref } from "@/utils/project";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -91,15 +96,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProjectLayout({ children, params }: Props) {
   const accession = (await params).accession.toUpperCase();
-  const title = await requireProjectTitle(accession);
+  const lookup = await fetchProjectDatasetInfo(accession);
+  if (lookup.status === "missing") notFound();
+  if (lookup.status === "error") {
+    throw new Error(`Project lookup failed for ${accession}`);
+  }
+  const {
+    title,
+    authors,
+    organisms,
+    libraryStrategies,
+    publications,
+    publishedAt,
+    updatedAt,
+  } = lookup.data;
   const { type: projectType, database } = detectProjectType(accession);
   const description = `Explore ${projectType} ${accession}: ${title}. View unified metadata, samples, experiments, and similar projects on seqout.`;
 
   const canonicalUrl = `${SITE_URL}/p/${encodeURIComponent(accession)}`;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
+  const { jsonLd, citationDoi } = buildDatasetJsonLd({
     name: `${accession} - ${title}`,
     description,
     url: canonicalUrl,
@@ -113,16 +129,14 @@ export default async function ProjectLayout({ children, params }: Props) {
       accession,
     ],
     license: LICENSE_URLS[database],
-    includedInDataCatalog: {
-      "@type": "DataCatalog",
-      name: database,
-      url: CATALOG_URLS[database],
-    },
-    creator: {
-      "@type": "Organization",
-      name: "Saket Lab",
-      url: "https://saketlab.org",
-    },
+    catalogName: database,
+    catalogUrl: CATALOG_URLS[database],
+    authors,
+    organisms,
+    libraryStrategies,
+    publications,
+    publishedAt,
+    updatedAt,
     distribution: [
       {
         "@type": "DataDownload",
@@ -131,31 +145,20 @@ export default async function ProjectLayout({ children, params }: Props) {
           accession,
         )}/metadata/download`,
       },
-    ],
-  };
-
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "seqout", item: SITE_URL },
       {
-        "@type": "ListItem",
-        position: 2,
-        name: "Search",
-        item: `${SITE_URL}/search`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: accession,
-        item: canonicalUrl,
+        "@type": "DataDownload",
+        encodingFormat: "text/tab-separated-values",
+        contentUrl: `${SITE_URL}/api/project/${encodeURIComponent(
+          accession,
+        )}/runs/download`,
       },
     ],
-  };
+  });
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(accession, canonicalUrl, SITE_URL);
 
   return (
     <>
+      {citationDoi && <link rel="cite-as" href={doiHref(citationDoi)} />}
       <script type="application/ld+json">{escapeHtmlJson(jsonLd)}</script>
       <script type="application/ld+json">
         {escapeHtmlJson(breadcrumbJsonLd)}

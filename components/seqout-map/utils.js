@@ -1,6 +1,22 @@
 // Map color and filter encodings.
+import { rgb } from "d3-color";
+import { interpolateTurbo } from "d3-scale-chromatic";
 import { state } from "./state.js";
 import { DEFAULT_BG_OPACITY, DEFAULT_BG_SIZE, DEFAULT_BG_COLOR } from "./constants.js";
+
+// raw sequential Leiden ids would put similarly numbered clusters into nearly identical shades; this hash spreads them across the palette while staying stable per id
+export function hashClusterValue(id, maxClusterId) {
+  if (!Number.isFinite(id) || id < 0) return 0;
+  return 1 + ((Math.imul(id, 2654435761) >>> 0) / 0x100000000) * maxClusterId;
+}
+
+// exact color a cluster renders on the map: same hash, domain, and Turbo interpolator deepscatter uses for the GPU texture
+export function clusterLegendColor(id, maxClusterId) {
+  const numericId = Number(id);
+  const domainMax = Math.max(1, maxClusterId + 1);
+  const value = hashClusterValue(numericId, maxClusterId);
+  return rgb(interpolateTurbo(value / domainMax)).formatHex();
+}
 
 // Cluster columns arrive dictionary-encoded. deepscatter's categorical color
 // texture holds only 4,096 entries, but the finer Leiden levels contain far more

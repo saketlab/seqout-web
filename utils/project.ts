@@ -1,3 +1,5 @@
+import type { StudyPublication } from "@/utils/types";
+
 type AuthorsInput = string | string[] | null | undefined;
 
 export const normalizeAuthors = (value: AuthorsInput): string[] => {
@@ -37,6 +39,15 @@ export const pubmedHref = (pmid: string | number): string =>
   `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(String(pmid).trim())}`;
 
 export const doiHref = (doi: string): string => `https://doi.org/${doi.trim()}`;
+
+/** The publication a page should lead with; study_publications is already sorted by citation_count DESC, so this is just the first entry. */
+export const primaryPublication = (
+  publications: StudyPublication[] | null | undefined,
+): StudyPublication | null => publications?.[0] ?? null;
+
+export const primaryPublicationDoi = (
+  publications: StudyPublication[] | null | undefined,
+): string | null => primaryPublication(publications)?.doi?.trim() || null;
 
 export const toDisplayText = (value: unknown): string => {
   if (value === null || value === undefined || value === "") return "-";

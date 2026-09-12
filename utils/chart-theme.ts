@@ -30,6 +30,19 @@ export function getApexChartTheme(isDark: boolean): ApexChartTheme {
       };
 }
 
+/** Neutral "other"/"unenriched" series color for ApexCharts, matching foreColor's zinc tone so it stays legible in both themes. */
+export function getMutedSeriesColor(isDark: boolean): string {
+  return isDark ? "#a1a1aa" : "#71717a";
+}
+
+/** Muted fill/line pair for a neutral IQR-style band; line reuses getMutedSeriesColor. */
+export function getMutedBandColors(isDark: boolean): { fill: string; line: string } {
+  return {
+    fill: isDark ? "#71717a" : "#94a3b8",
+    line: getMutedSeriesColor(isDark),
+  };
+}
+
 export const CHART_SERIES_PALETTE: readonly string[] = [
   "#e20000",
   "#c8b712",
@@ -95,6 +108,11 @@ export function getMapPanelBackground(isDark: boolean): string {
 
 export function getMapMutedTextColor(isDark: boolean): string {
   return isDark ? "#6b7280" : "#9ca3af";
+}
+
+/** Scatterplot point color for the global contributions map, tinted toward the indigo accent. */
+export function getMapPointColor(isDark: boolean): [number, number, number] {
+  return isDark ? [99, 102, 241] : [79, 70, 229];
 }
 
 export type LeafletPopupTheme = {

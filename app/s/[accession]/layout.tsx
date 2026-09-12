@@ -1,4 +1,9 @@
 import {
+  buildBreadcrumbJsonLd,
+  buildDatasetJsonLd,
+  type DatasetSourceInfo,
+} from "@/lib/dataset-jsonld";
+import {
   type Archive,
   ARCHIVE_CATALOG_URLS as CATALOG_URLS,
   ARCHIVE_LICENSE_URLS as LICENSE_URLS,
@@ -6,6 +11,8 @@ import {
 } from "@/utils/constants";
 import { escapeHtmlJson } from "@/utils/json";
 import { ARCHIVE_BY_DB, dbForAccession } from "@/utils/db-colors";
+import { doiHref, normalizeAliases, normalizeAuthors } from "@/utils/project";
+import type { StudyPublication } from "@/utils/types";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -53,6 +60,53 @@ async function requireSampleTitle(accession: string): Promise<string> {
   return sample.title?.trim() || accession;
 }
 
+// samples reuse the parent project's authors/citation, same as the Parent project section
+type SampleDatasetInfo = DatasetSourceInfo;
+
+/** Same /sample-detail/{accession} payload as requireSampleTitle, plus the nested project fields Dataset JSON-LD needs. */
+async function fetchSampleDatasetInfo(
+  accession: string,
+): Promise<SampleDatasetInfo> {
+  let res: Response;
+  try {
+    res = await fetch(
+      `${API_BASE_URL}/sample-detail/${encodeURIComponent(accession)}`,
+      { next: { revalidate: 3600 } },
+    );
+  } catch {
+    throw new Error(`Sample lookup failed for ${accession}`);
+  }
+
+  if (res.status === 404 || res.status === 422) notFound();
+  if (!res.ok) throw new Error(`Sample lookup failed for ${accession}`);
+
+  const data = await res.json();
+  const sample = data?.sample;
+  if (!sample) notFound();
+
+  const project = data?.project as
+    | {
+        authors?: string | string[] | null;
+        organisms?: string | string[] | null;
+        library_strategies?: string[] | null;
+        publications?: StudyPublication[] | null;
+        published_at?: string | null;
+        updated_at?: string | null;
+      }
+    | null
+    | undefined;
+
+  return {
+    title: sample.title?.trim() || accession,
+    authors: normalizeAuthors(project?.authors ?? null),
+    organisms: normalizeAliases(project?.organisms ?? null),
+    libraryStrategies: (project?.library_strategies ?? []).filter(Boolean),
+    publications: project?.publications ?? [],
+    publishedAt: project?.published_at ?? null,
+    updatedAt: project?.updated_at ?? null,
+  };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const accession = (await params).accession.toUpperCase();
   const title = await requireSampleTitle(accession);
@@ -84,15 +138,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SampleLayout({ children, params }: Props) {
   const accession = (await params).accession.toUpperCase();
-  const title = await requireSampleTitle(accession);
+  const {
+    title,
+    authors,
+    organisms,
+    libraryStrategies,
+    publications,
+    publishedAt,
+    updatedAt,
+  } = await fetchSampleDatasetInfo(accession);
   const { type: sampleType, database } = detectSampleType(accession);
   const description = `Explore ${sampleType} ${accession}: ${title}. View metadata, experiment info, and download links on seqout.`;
 
   const canonicalUrl = `${SITE_URL}/s/${encodeURIComponent(accession)}`;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
+  const { jsonLd, citationDoi } = buildDatasetJsonLd({
     name: `${accession} - ${title}`,
     description,
     url: canonicalUrl,
@@ -105,40 +165,20 @@ export default async function SampleLayout({ children, params }: Props) {
       accession,
     ],
     license: LICENSE_URLS[database],
-    includedInDataCatalog: {
-      "@type": "DataCatalog",
-      name: database,
-      url: CATALOG_URLS[database],
-    },
-    creator: {
-      "@type": "Organization",
-      name: "Saket Lab",
-      url: "https://saketlab.org",
-    },
-  };
-
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "seqout", item: SITE_URL },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Search",
-        item: `${SITE_URL}/search`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: accession,
-        item: canonicalUrl,
-      },
-    ],
-  };
+    catalogName: database,
+    catalogUrl: CATALOG_URLS[database],
+    authors,
+    organisms,
+    libraryStrategies,
+    publications,
+    publishedAt,
+    updatedAt,
+  });
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(accession, canonicalUrl, SITE_URL);
 
   return (
     <>
+      {citationDoi && <link rel="cite-as" href={doiHref(citationDoi)} />}
       <script type="application/ld+json">{escapeHtmlJson(jsonLd)}</script>
       <script type="application/ld+json">
         {escapeHtmlJson(breadcrumbJsonLd)}

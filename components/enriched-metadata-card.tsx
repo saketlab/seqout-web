@@ -17,6 +17,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useTheme } from "next-themes";
+import { useMemo } from "react";
 
 ensureAgGridModules();
 
@@ -393,51 +394,63 @@ export function EnrichedMetadataGrid({
     resolvedTheme === "dark" ? "ag-theme-quartz-dark" : "ag-theme-quartz";
 
   const isV4 = data.version === "v4";
-  const visibleFields = getVisibleFields(data);
 
-  const columnDefs: ColDef<OntologySample>[] = visibleFields.map((f) => {
-    const onto = isV4 ? ONTOLOGY_MAPPED_FIELDS[f.field] : undefined;
-    const base = {
-      field: f.field,
-      headerName: f.header,
-      minWidth: f.minWidth ?? 100,
-      flex: 1,
-      pinned: f.pinned,
-    };
+  const columnDefs = useMemo<ColDef<OntologySample>[]>(() => {
+    const visibleFields = getVisibleFields(data);
+    return visibleFields.map((f) => {
+      const onto = isV4 ? ONTOLOGY_MAPPED_FIELDS[f.field] : undefined;
+      const base = {
+        field: f.field,
+        headerName: f.header,
+        minWidth: f.minWidth ?? 100,
+        flex: 1,
+        pinned: f.pinned,
+      };
 
-    if (f.field === "cell_count") {
+      if (f.field === "cell_count") {
+        return {
+          ...base,
+          comparator: numericComparator,
+          cellRenderer: CellCountCellRenderer,
+        };
+      }
+
+      if (f.field === "gene_count") {
+        return {
+          ...base,
+          comparator: numericComparator,
+          cellRenderer: PlainCellRenderer,
+          valueFormatter: (params: { value?: number | null }) => {
+            if (params.value == null) return "";
+            return params.value.toLocaleString();
+          },
+        };
+      }
+
       return {
         ...base,
-        comparator: numericComparator,
-        cellRenderer: CellCountCellRenderer,
+        ...(onto
+          ? {
+              cellRenderer: ONTOLOGY_RENDERERS[f.field],
+              valueGetter: (params: { data?: OntologySample }) => {
+                if (!params.data) return null;
+                return params.data[onto.name] ?? params.data[f.field] ?? null;
+              },
+            }
+          : { cellRenderer: PlainCellRenderer }),
       };
-    }
+    });
+  }, [data, isV4]);
 
-    if (f.field === "gene_count") {
-      return {
-        ...base,
-        comparator: numericComparator,
-        cellRenderer: PlainCellRenderer,
-        valueFormatter: (params: { value?: number | null }) => {
-          if (params.value == null) return "";
-          return params.value.toLocaleString();
-        },
-      };
-    }
-
-    return {
-      ...base,
-      ...(onto
-        ? {
-            cellRenderer: ONTOLOGY_RENDERERS[f.field],
-            valueGetter: (params: { data?: OntologySample }) => {
-              if (!params.data) return null;
-              return params.data[onto.name] ?? params.data[f.field] ?? null;
-            },
-          }
-        : { cellRenderer: PlainCellRenderer }),
-    };
-  });
+  const defaultColDef = useMemo(
+    () => ({
+      filter: true,
+      sortable: true,
+      resizable: true,
+      ...wrapColDef<OntologySample>(wrap),
+    }),
+    [wrap],
+  );
 
   const gridHeight = Math.min(400, 42 + data.samples.length * 42);
 
@@ -445,16 +458,13 @@ export function EnrichedMetadataGrid({
     <>
       <div
         className={agGridThemeClassName}
+        role="region"
+        aria-label="Enriched sample metadata"
         style={{ width: "100%", height: `${gridHeight}px` }}
       >
         <AgGridReact<OntologySample>
           columnDefs={columnDefs}
-          defaultColDef={{
-            filter: true,
-            sortable: true,
-            resizable: true,
-            ...wrapColDef<OntologySample>(wrap),
-          }}
+          defaultColDef={defaultColDef}
           enableCellTextSelection
           ensureDomOrder
           getRowId={(params) => params.data.sample}

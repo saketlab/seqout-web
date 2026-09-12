@@ -1,6 +1,6 @@
 "use client";
 import { getJson } from "@/utils/api";
-import { Badge, Flex, Spinner, Table, Text } from "@radix-ui/themes";
+import { Badge, Box, Flex, Spinner, Table, Text } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 
 export interface LongReadChemistryRun {
@@ -65,34 +65,36 @@ export default function LongReadChemistryCard({
         {data.runs.length} PacBio/Oxford Nanopore run
         {data.runs.length === 1 ? "" : "s"} in this study.
       </Text>
-      <Table.Root variant="surface" size="1">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Run</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Instrument</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Chemistry</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Confidence</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {data.runs.map((r) => (
-            <Table.Row key={r.run_accession}>
-              <Table.Cell>{r.run_accession}</Table.Cell>
-              <Table.Cell>{r.instrument_model ?? "—"}</Table.Cell>
-              <Table.Cell>{r.chemistry ?? "unresolved"}</Table.Cell>
-              <Table.Cell>
-                <Badge
-                  color={CONFIDENCE_COLOR[r.chemistry_confidence ?? "unknown"] ?? "gray"}
-                  size="1"
-                  variant="soft"
-                >
-                  {r.chemistry_confidence ?? "unknown"}
-                </Badge>
-              </Table.Cell>
+      <Box style={{ overflowX: "auto" }}>
+        <Table.Root variant="surface" size="1">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeaderCell>Run</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Instrument</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Chemistry</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>Confidence</Table.ColumnHeaderCell>
             </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+          </Table.Header>
+          <Table.Body>
+            {data.runs.map((r) => (
+              <Table.Row key={r.run_accession}>
+                <Table.Cell>{r.run_accession}</Table.Cell>
+                <Table.Cell>{r.instrument_model ?? "—"}</Table.Cell>
+                <Table.Cell>{r.chemistry ?? "unresolved"}</Table.Cell>
+                <Table.Cell>
+                  <Badge
+                    color={CONFIDENCE_COLOR[r.chemistry_confidence ?? "unknown"] ?? "gray"}
+                    size="1"
+                    variant="soft"
+                  >
+                    {r.chemistry_confidence ?? "unknown"}
+                  </Badge>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </Box>
     </Flex>
   );
 }

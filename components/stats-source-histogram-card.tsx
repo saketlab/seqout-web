@@ -11,6 +11,7 @@ import {
   Heading,
   SegmentedControl,
   Skeleton,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -172,6 +173,13 @@ export default function StatsSourceHistogramCard() {
         </Flex>
       ) : (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`Bar chart: ${metric.toLowerCase()} by source, for ${SOURCE_KEYS.map(
+                (k) => DB_LABELS[k],
+              ).join(", ")}.`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type="bar"
             options={chartOptions}

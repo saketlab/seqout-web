@@ -84,7 +84,7 @@ export default function EditableHeading({
                 autoFocus
                 aria-label={placeholder}
               />
-              <IconButton type="submit">
+              <IconButton type="submit" aria-label="Search">
                 <MagnifyingGlassIcon />
               </IconButton>
             </Flex>

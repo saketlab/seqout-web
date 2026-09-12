@@ -56,7 +56,7 @@ export function FirstVisitPing({ style }: { style?: CSSProperties }) {
           height: "100%",
           width: "100%",
           borderRadius: "9999px",
-          backgroundColor: "var(--red-9)",
+          backgroundColor: "var(--accent-9)",
           opacity: 0.75,
         }}
       />
@@ -67,7 +67,7 @@ export function FirstVisitPing({ style }: { style?: CSSProperties }) {
           borderRadius: "9999px",
           height: "8px",
           width: "8px",
-          backgroundColor: "var(--red-9)",
+          backgroundColor: "var(--accent-9)",
         }}
       />
     </span>

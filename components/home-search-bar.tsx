@@ -144,8 +144,10 @@ export default function HomeSearchBar() {
         </Flex>
         <Flex gap="2" align="center" justify="center" wrap="wrap">
           <Text size={"1"} color="gray">
-            Or browse — <Link href={"/technology/single-cell"}>Single cell</Link>{" "}
-            or <Link href={"/disease/rare"}>Rare diseases</Link>
+            Or browse —{" "}
+            <Link href={"/technology/single-cell"}>single cell datasets</Link>,{" "}
+            <Link href={"/technology/longread"}>long read datasets</Link>, or{" "}
+            <Link href={"/disease/rare"}>rare disease datasets</Link>
           </Text>
         </Flex>
       </Flex>

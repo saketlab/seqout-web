@@ -1,6 +1,6 @@
 import SectionAnchor from "@/components/section-anchor";
 import TextWithLineBreaks from "@/components/text-with-line-breaks";
-import { Flex, Heading, Table } from "@radix-ui/themes";
+import { Box, Flex, Heading, Table } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 
 // Section heading shared across the project/sample/experiment/run detail pages:
@@ -36,26 +36,28 @@ export function MetadataTable({ rows }: { rows: [string, ReactNode][] }) {
   const shown = rows.filter((r) => Boolean(r[1]));
   if (shown.length === 0) return null;
   return (
-    <Table.Root size="1" variant="surface">
-      <Table.Body>
-        {shown.map(([label, value], i) => (
-          // Index key: GEO characteristics can repeat a label.
-          <Table.Row key={`${label}-${i}`}>
-            <Table.RowHeaderCell
-              style={{ width: "200px", color: "var(--gray-11)" }}
-            >
-              {label}
-            </Table.RowHeaderCell>
-            <Table.Cell>
-              {typeof value === "string" ? (
-                <TextWithLineBreaks text={value} />
-              ) : (
-                value
-              )}
-            </Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table.Root>
+    <Box style={{ overflowX: "auto" }}>
+      <Table.Root size="1" variant="surface">
+        <Table.Body>
+          {shown.map(([label, value], i) => (
+            // Index key: GEO characteristics can repeat a label.
+            <Table.Row key={`${label}-${i}`}>
+              <Table.RowHeaderCell
+                style={{ width: "min(200px, 40vw)", color: "var(--gray-11)" }}
+              >
+                {label}
+              </Table.RowHeaderCell>
+              <Table.Cell>
+                {typeof value === "string" ? (
+                  <TextWithLineBreaks text={value} />
+                ) : (
+                  value
+                )}
+              </Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </Box>
   );
 }

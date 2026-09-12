@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Single-cell sequencing datasets: technology, tissue & organism",
   description:
-    "Every study with single-cell matrix or read evidence across GEO, SRA, ENA, DDBJ and GSA, with modality, cell/nucleus call, chemistry, tissue, organism and FASTQ/matrix availability per study.",
+    "Browse single-cell studies across GEO, SRA, ENA, DDBJ and GSA with modality, cell/nucleus calls, chemistry, tissue, organism, and FASTQ/matrix availability.",
   alternates: { canonical: "https://seqout.org/technology/single-cell" },
 };
 

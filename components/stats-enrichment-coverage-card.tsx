@@ -2,7 +2,11 @@
 
 import ChartFooter, { chartFooterEvents } from "@/components/chart-footer";
 import SectionAnchor from "@/components/section-anchor";
-import { CHART_SERIES_PALETTE, getApexChartTheme } from "@/utils/chart-theme";
+import {
+  CHART_SERIES_PALETTE,
+  getApexChartTheme,
+  getMutedSeriesColor,
+} from "@/utils/chart-theme";
 import { DB_COLORS, DB_LABELS } from "@/utils/db-colors";
 import exportExperimentsToCsv from "@/utils/exportCsv";
 import { humanize } from "@/utils/format";
@@ -12,7 +16,14 @@ import type {
 } from "@/utils/types";
 import { useEnrichedCoverage } from "@/utils/useStats";
 import { useReducedMotion } from "@/utils/useReducedMotion";
-import { Flex, Heading, SegmentedControl, Skeleton, Text } from "@radix-ui/themes";
+import {
+  Flex,
+  Heading,
+  SegmentedControl,
+  Skeleton,
+  Text,
+  VisuallyHidden,
+} from "@radix-ui/themes";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
@@ -31,7 +42,6 @@ const DIMENSIONS: { value: Dimension; label: string }[] = [
 ];
 
 const TOP_N = 15;
-const UNENRICHED_COLOR = "#9ca3af";
 // the API ranks by samples, so ranking by projects needs more than TOP_N rows
 const FETCH_ROWS = 200;
 
@@ -91,7 +101,7 @@ export default function StatsEnrichmentCoverageCard() {
         categories: coverageRows(data, "source").map((r) => r.label),
         colors: [
           rows.length === 1 ? DB_COLORS[rows[0].source] : CHART_SERIES_PALETTE[2],
-          UNENRICHED_COLOR,
+          getMutedSeriesColor(isDark),
         ],
         stacked: true,
       };
@@ -106,7 +116,7 @@ export default function StatsEnrichmentCoverageCard() {
       colors: [CHART_SERIES_PALETTE[2]],
       stacked: false,
     };
-  }, [data, dimension, key, metric]);
+  }, [data, dimension, key, metric, isDark]);
 
   const chartOptions = useMemo<ApexOptions>(() => {
     const theme = getApexChartTheme(isDark);
@@ -251,6 +261,14 @@ export default function StatsEnrichmentCoverageCard() {
         </Text>
       ) : (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`${stacked ? "Stacked bar" : "Bar"} chart: ${chartOptions.title
+                ?.text}, covering ${categories.length} categories (${series
+                .map((s) => s.name)
+                .join(", ")}).`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type="bar"
             options={chartOptions}
@@ -263,13 +281,21 @@ export default function StatsEnrichmentCoverageCard() {
             width="100%"
           />
           <Flex justify="end" mt="2">
-            <Text
-              size="1"
-              color="gray"
-              onClick={exportCsv}
-              style={{ cursor: "pointer" }}
-            >
-              Download CSV
+            <Text asChild size="1" color="gray">
+              <button
+                type="button"
+                onClick={exportCsv}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  font: "inherit",
+                  color: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                Download CSV
+              </button>
             </Text>
           </Flex>
         </>

@@ -4,7 +4,15 @@ import { formatOrganismName } from "@/utils/format";
 import SectionAnchor from "@/components/section-anchor";
 import { useTissueMicrobes } from "@/utils/useStats";
 import type { TissueMicrobeCell } from "@/utils/types";
-import { Box, Checkbox, Flex, Heading, Skeleton, Text } from "@radix-ui/themes";
+import {
+  Box,
+  Checkbox,
+  Flex,
+  Heading,
+  Skeleton,
+  Text,
+  VisuallyHidden,
+} from "@radix-ui/themes";
 import { useMemo, useState } from "react";
 
 const MAX_TISSUES = 20;
@@ -262,7 +270,13 @@ export default function StatsTissueMicrobeCard() {
                             ? `color-mix(in srgb, var(--${tint}-9) ${Math.round(a * 100)}%, transparent)`
                             : "transparent",
                         }}
-                      />
+                      >
+                        <VisuallyHidden>
+                          {c
+                            ? tooltip(c)
+                            : `${t} / ${formatOrganismName(o)}: nothing above the gates`}
+                        </VisuallyHidden>
+                      </td>
                     );
                   })}
                 </tr>

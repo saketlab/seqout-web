@@ -23,6 +23,14 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "serpstatbot", disallow: "/" },
       { userAgent: "MegaIndex", disallow: "/" },
       { userAgent: "PetalBot", disallow: "/" },
+
+      // AI crawlers
+      { userAgent: "GPTBot", disallow: "/" },
+      { userAgent: "ChatGPT-User", disallow: "/" },
+      { userAgent: "ClaudeBot", disallow: "/" },
+      { userAgent: "Claude-Web", disallow: "/" },
+      { userAgent: "PerplexityBot", disallow: "/" },
+      { userAgent: "Google-Extended", disallow: "/" },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

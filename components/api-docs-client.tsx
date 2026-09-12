@@ -177,30 +177,38 @@ export function EndpointCard({ ep }: { ep: EndpointData }) {
         borderRadius: "var(--radius-3)",
       }}
     >
-      <Flex
-        align="center"
-        gap="3"
-        p="3"
-        style={{ cursor: "pointer" }}
-        onClick={() => setOpen(!open)}
-      >
-        <Text style={{ color: "var(--gray-11)" }}>
-          {open ? <ChevronDownIcon /> : <ChevronRightIcon />}
-        </Text>
-        <Badge
-          size="2"
-          color={ep.method === "GET" ? "green" : "orange"}
-          variant="solid"
-          style={{ fontFamily: "monospace", minWidth: 44, textAlign: "center" }}
+      <Flex asChild align="center" gap="3" p="3">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          style={{
+            cursor: "pointer",
+            width: "100%",
+            border: "none",
+            background: "none",
+            textAlign: "left",
+            font: "inherit",
+          }}
         >
-          {ep.method}
-        </Badge>
-        <Code size="2" variant="ghost" style={{ color: "var(--gray-12)" }}>
-          {ep.path}
-        </Code>
-        <Text size="2" style={{ color: "var(--gray-11)" }}>
-          {ep.summary}
-        </Text>
+          <Text style={{ color: "var(--gray-11)" }}>
+            {open ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </Text>
+          <Badge
+            size="2"
+            color={ep.method === "GET" ? "green" : "orange"}
+            variant="solid"
+            style={{ fontFamily: "monospace", minWidth: 44, textAlign: "center" }}
+          >
+            {ep.method}
+          </Badge>
+          <Code size="2" variant="ghost" style={{ color: "var(--gray-12)" }}>
+            {ep.path}
+          </Code>
+          <Text size="2" style={{ color: "var(--gray-11)" }}>
+            {ep.summary}
+          </Text>
+        </button>
       </Flex>
 
       {open && (

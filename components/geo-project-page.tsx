@@ -1352,6 +1352,7 @@ export default function GeoProjectPage() {
           >
             <Flex justify="between" style={{ width: "100%" }} align="center">
               <Heading as="h1" size={{ initial: "6", md: "8" }} weight="bold">
+                <span className="seqout-sr-only">{accession} — </span>
                 {project.title}
               </Heading>
             </Flex>
@@ -1373,10 +1374,13 @@ export default function GeoProjectPage() {
                         border: "none",
                         background: "transparent",
                         color: "inherit",
-                        padding: 0,
-                        margin: 0,
+                        padding: "8px",
+                        margin: "-8px",
                         display: "inline-flex",
                         alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "32px",
+                        minHeight: "32px",
                         cursor: "pointer",
                       }}
                     >

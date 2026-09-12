@@ -38,10 +38,15 @@ export default function BulkMetaDialog() {
     return res.blob();
   };
 
+  // whether the last error message is still relevant to the current input
+  const [errorDismissed, setErrorDismissed] = useState(false);
+
   // react-query (disabled until submit)
   const {
     data: zipBlob,
     isFetching,
+    isError,
+    refetch,
   } = useQuery({
     queryKey: ["bulk-metadata", submitted],
     queryFn: () => fetchBulkMetadata(submitted!),
@@ -78,6 +83,14 @@ export default function BulkMetaDialog() {
 
     if (accs.length === 0) return;
 
+    setErrorDismissed(false);
+
+    // same accessions as last attempt: query key won't change, so refetch explicitly; setSubmitted wouldn't retrigger the fetch
+    if (submitted && submitted.length === accs.length && submitted.every((s, i) => s === accs[i])) {
+      void refetch();
+      return;
+    }
+
     setSubmitted(accs);
   };
 
@@ -103,16 +116,23 @@ export default function BulkMetaDialog() {
       <Dialog.Content size="4">
         <Dialog.Title>Get bulk metadata</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Paste GEO, SRA, ENA, DRA, GEA or ArrayExpress accessions (one
-          accession per line)
+          <span id="bulk-meta-description">
+            Paste GEO, SRA, ENA, DRA, GEA or ArrayExpress accessions (one
+            accession per line)
+          </span>
         </Dialog.Description>
 
         <Flex direction="column" gap="3">
           <TextArea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setErrorDismissed(true);
+            }}
             placeholder={`GSE12345\nSRP67890\nGSE111111\nSRP222222`}
             rows={6}
+            aria-label="Accessions, one per line"
+            aria-describedby="bulk-meta-description"
             style={{
               minHeight: 120,
               maxHeight: 300,
@@ -123,8 +143,12 @@ export default function BulkMetaDialog() {
         </Flex>
         <Flex mt="4" justify={"between"} align={"center"}>
           {hasInvalidAccessions ? (
-            <Text size={"2"} color="red">
+            <Text size={"2"} color="red" role="alert">
               Invalid study or series accessions!
+            </Text>
+          ) : isError && !errorDismissed ? (
+            <Text size={"2"} color="red" role="alert">
+              Failed to prepare metadata ZIP. Try again.
             </Text>
           ) : (
             <div />
@@ -146,12 +170,6 @@ export default function BulkMetaDialog() {
             </Button>
           </Flex>
         </Flex>
-
-        {/* {isError && ( */}
-        {/* <Flex> */}
-        {/* <span style={{ color: "red" }}>Failed to prepare metadata ZIP</span> */}
-        {/* </Flex> */}
-        {/* )} */}
       </Dialog.Content>
     </Dialog.Root>
   );

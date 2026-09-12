@@ -85,6 +85,7 @@ export default function DeepDiveGraph({
         depth: 0,
       },
       style: nodeStyle(true, false),
+      ariaLabel: `${rootTerm}, has children`,
     },
   ]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -138,6 +139,7 @@ export default function DeepDiveGraph({
               depth,
             },
             style: nodeStyle(false, false),
+            ariaLabel: c.has_children ? `${c.name}, has children` : c.name,
           });
         }
         return [...prev, ...toAdd];
@@ -193,6 +195,22 @@ export default function DeepDiveGraph({
     [expand],
   );
 
+  // React Flow's nodes handle Enter/Space only to toggle selection, not to call onNodeClick; wire that up ourselves
+  const onGraphKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const nodeEl = (e.target as HTMLElement).closest<HTMLElement>(
+        "[data-id]",
+      );
+      if (!nodeEl) return;
+      const node = nodes.find((n) => n.id === nodeEl.dataset.id);
+      if (!node) return;
+      e.preventDefault();
+      onNodeClick(e as unknown as React.MouseEvent, node);
+    },
+    [nodes, onNodeClick],
+  );
+
   // Query the Search button will run: root term swapped for the selected node's name.
   const newQuery = selected
     ? query.replace(new RegExp(escapeRegExp(rootTerm), "i"), selected.name)
@@ -221,6 +239,7 @@ export default function DeepDiveGraph({
           borderRadius: 8,
           overflow: "hidden",
         }}
+        onKeyDown={onGraphKeyDown}
       >
         <ReactFlow
           nodes={displayNodes}

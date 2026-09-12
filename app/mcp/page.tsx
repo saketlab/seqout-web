@@ -214,7 +214,9 @@ export default async function MCP() {
         <Card>
           <Flex direction={"column"} gap={"2"} id="quick-setup">
             <Flex align="center" gap="2">
-              <Heading size={"4"}>Quick setup</Heading>
+              <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
+                Quick setup
+              </Heading>
               <SectionAnchor id="quick-setup" />
             </Flex>
             <Flex direction={"column"} gap={"2"}>
@@ -234,7 +236,9 @@ export default async function MCP() {
         </Card>
 
         <Flex align="center" gap="2" id="claude-desktop">
-          <Heading>Claude</Heading>
+          <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
+            Claude
+          </Heading>
           <SectionAnchor id="claude-desktop" />
         </Flex>
 
@@ -269,7 +273,9 @@ export default async function MCP() {
         {CLIENTS.map((client) => (
           <Flex key={client.id} direction="column" gap="4" id={client.id}>
             <Flex align="center" gap="2">
-              <Heading>{client.name}</Heading>
+              <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
+                {client.name}
+              </Heading>
               <SectionAnchor id={client.id} />
             </Flex>
 
@@ -302,7 +308,9 @@ export default async function MCP() {
         ))}
         <Flex direction="column" gap="4" id="video-demo">
           <Flex align="center" gap="2">
-            <Heading>Video demo with Claude Code</Heading>
+            <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
+              Video demo with Claude Code
+            </Heading>
             <SectionAnchor id="video-demo" />
           </Flex>
           <iframe
@@ -318,7 +326,9 @@ export default async function MCP() {
         {tools.length > 0 && (
           <Flex direction="column" gap="4" id="tools">
             <Flex align="center" gap="2">
-              <Heading>What the server exposes</Heading>
+              <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
+                What the server exposes
+              </Heading>
               <SectionAnchor id="tools" />
             </Flex>
             <Text size={{ initial: "2", md: "3" }}>

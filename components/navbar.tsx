@@ -80,6 +80,14 @@ export default function Navabar() {
                 {item.icon} {item.label}
               </DropdownMenu.Item>
             ))}
+            <DropdownMenu.Item
+              onSelect={() => {
+                markHowSearchWorksSeen();
+                router.push("/howsearchworks");
+              }}
+            >
+              <InfoCircledIcon /> How search works
+            </DropdownMenu.Item>
             <DropdownMenu.Separator />
             <DropdownMenu.Item
               onSelect={() =>

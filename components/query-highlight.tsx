@@ -212,7 +212,7 @@ export default function QueryHighlight() {
     // Use a distinct hue for expanded matches while preserving the weight of literal matches.
     <style>{`
       ::highlight(${HIGHLIGHT_NAME}) { background-color: var(--amber-a6); color: var(--gray-12); }
-      ::highlight(${DERIVED_HIGHLIGHT_NAME}) { background-color: var(--cyan-a6); color: var(--gray-12); }
+      ::highlight(${DERIVED_HIGHLIGHT_NAME}) { background-color: var(--cyan-a6); color: var(--gray-12); text-decoration: underline dotted; text-underline-offset: 2px; }
     `}</style>
   );
 }

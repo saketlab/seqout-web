@@ -214,6 +214,9 @@ export default function OntologyGraphFigure() {
       <style>{`
         .og-flow .react-flow__node { transition: transform 360ms cubic-bezier(.34,1.4,.64,1); }
         .og-flow .react-flow__node.dragging { transition: none; }
+        @media (prefers-reduced-motion: reduce) {
+          .og-flow .react-flow__node { transition: none; }
+        }
       `}</style>
       <div
         className="og-flow"
@@ -260,7 +263,7 @@ export default function OntologyGraphFigure() {
         </Text>
       </Flex>
 
-      <Text size="1" style={{ color: "var(--gray-10)" }}>
+      <Text size="1" style={{ color: "var(--gray-11)" }}>
         Example: the ontology graph around the term{" "}
         <Text as="span" weight="medium">nafld</Text>. Each surrounding node is an
         equivalent name for the same concept.

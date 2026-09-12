@@ -73,7 +73,15 @@ export function ColumnInfo({ text }: { text: string }) {
           tabIndex={0}
           role="button"
           aria-label={text}
-          style={{ cursor: "help", marginLeft: 3 }}
+          style={{
+            cursor: "help",
+            // invisible padding widens tap target to ~44px; negative margins cancel its layout impact so the glyph doesn't shift
+            padding: 15,
+            marginTop: -15,
+            marginRight: -15,
+            marginBottom: -15,
+            marginLeft: 3 - 15,
+          }}
         >
           ⓘ
         </Text>

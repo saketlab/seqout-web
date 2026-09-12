@@ -20,6 +20,7 @@ import {
   SegmentedControl,
   Skeleton,
   Text,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import type { ApexOptions } from "apexcharts";
@@ -60,6 +61,7 @@ interface PlatformTotalsResponse {
 
 // Shared chart palette for comparison platforms.
 const COMPARISON_COLORS = CHART_SERIES_PALETTE;
+const DASH_CYCLE = [0, 6, 3, 8, 2, 10, 4, 12];
 
 async function fetchPlatformTotals(): Promise<PlatformTotalsResponse> {
   return fetchJsonWithIndexedDbCache<PlatformTotalsResponse>(
@@ -158,6 +160,9 @@ export default function StatsPlatformComparisonCard() {
     })),
   });
 
+  // useQueries returns a new array every render; join dataUpdatedAt so this memo only recomputes on real data changes (same fix as search-page-body.tsx)
+  const growthDataSignature = growthQueries.map((q) => q.dataUpdatedAt).join(",");
+
   // Build a lookup from platform code -> query data
   const growthByPlatform = useMemo(() => {
     const map = new Map<string, PlatformGrowthResponse>();
@@ -167,7 +172,9 @@ export default function StatsPlatformComparisonCard() {
       }
     });
     return map;
-  }, [allPlatformCodes, growthQueries]);
+    // growthDataSignature stands in for growthQueries (see comment above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allPlatformCodes, growthDataSignature]);
 
   const isLoading =
     selectedPlatforms.length > 0 &&
@@ -215,6 +222,15 @@ export default function StatsPlatformComparisonCard() {
     return result;
   }, [selectedPlatforms, growthByPlatform, db, view, displayNames, useSmooth]);
 
+  const chartSeriesDash = useMemo(
+    () =>
+      chartSeries.map((s) => {
+        const idx = COMPARISON_COLORS.indexOf(s.color);
+        return DASH_CYCLE[(idx < 0 ? 0 : idx) % DASH_CYCLE.length];
+      }),
+    [chartSeries],
+  );
+
   const chartOptions = useMemo<ApexOptions>(() => {
     return {
       chart: {
@@ -243,11 +259,13 @@ export default function StatsPlatformComparisonCard() {
       stroke: useSmooth
         ? {
             width: chartSeries.map((s) => (s.type === "scatter" ? 0 : 2.5)),
+            dashArray: chartSeriesDash,
             curve: "smooth" as const,
           }
         : {
             curve: "straight" as const,
             width: view === "cumulative" ? 2 : 1.5,
+            dashArray: chartSeriesDash,
           },
       markers: useSmooth
         ? {
@@ -285,7 +303,7 @@ export default function StatsPlatformComparisonCard() {
           : {}),
       },
     };
-  }, [isDark, logScale, view, mode, useSmooth, chartSeries, reduced]);
+  }, [isDark, logScale, view, mode, useSmooth, chartSeries, chartSeriesDash, reduced]);
 
   const platformOptions = useMemo(() => {
     return (totalsData?.platforms ?? []).map((p) => ({
@@ -442,6 +460,16 @@ export default function StatsPlatformComparisonCard() {
         </Flex>
       ) : chartSeries.length > 0 ? (
         <>
+          <VisuallyHidden asChild>
+            <p>
+              {`${view === "cumulative" ? "Cumulative" : "Monthly"} ${
+                mode === "experiments" ? "experiments" : "projects"
+              } over time for ${chartSeries
+                .filter((s) => !s.name.endsWith(" trend"))
+                .map((s) => s.name)
+                .join(", ")}, distinguished by both color and line dash pattern.`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type={view === "cumulative" ? "area" : "line"}
             options={chartOptions}

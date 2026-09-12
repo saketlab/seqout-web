@@ -41,6 +41,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -476,15 +477,16 @@ export function SearchOrganismRail({
   const [librarySourceQuery, setLibrarySourceQuery] = useState("");
   const [instrumentModelQuery, setInstrumentModelQuery] = useState("");
 
-  const journalCounts = buildFacetCounts(
-    serverFacets?.journal,
-    journalResults,
-    (r) => [r.journal],
-  );
-
-  const journalOptions = Array.from(journalCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const journalOptions = useMemo(() => {
+    const journalCounts = buildFacetCounts(
+      serverFacets?.journal,
+      journalResults,
+      (r) => [r.journal],
+    );
+    return Array.from(journalCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [serverFacets?.journal, journalResults]);
 
   const normalizedJournalQuery = journalQuery.trim().toLowerCase();
   const visibleJournalOptions = normalizedJournalQuery
@@ -503,20 +505,21 @@ export function SearchOrganismRail({
     setSelectedJournalFilters([...selectedJournalFilters, journal]);
   };
 
-  const countryCounts = buildFacetCounts(
-    serverFacets?.country,
-    countryResults,
-    (r) => r.countries ?? [],
-    (v) => v.toUpperCase(),
-  );
-
-  const countryOptions = Array.from(countryCounts.entries())
-    .map(([code, count]) => ({
-      code,
-      label: countries.getName(code, "en", { select: "official" }) ?? code,
-      count,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const countryOptions = useMemo(() => {
+    const countryCounts = buildFacetCounts(
+      serverFacets?.country,
+      countryResults,
+      (r) => r.countries ?? [],
+      (v) => v.toUpperCase(),
+    );
+    return Array.from(countryCounts.entries())
+      .map(([code, count]) => ({
+        code,
+        label: countries.getName(code, "en", { select: "official" }) ?? code,
+        count,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [serverFacets?.country, countryResults]);
 
   const normalizedCountryQuery = countryQuery.trim().toLowerCase();
   const visibleCountryOptions = normalizedCountryQuery
@@ -537,15 +540,16 @@ export function SearchOrganismRail({
     setSelectedCountryFilters([...selectedCountryFilters, countryCode]);
   };
 
-  const libraryStrategyCounts = buildFacetCounts(
-    serverFacets?.library_strategy,
-    libraryStrategyResults,
-    (r) => r.library_strategies ?? [],
-  );
-
-  const libraryStrategyOptions = Array.from(libraryStrategyCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const libraryStrategyOptions = useMemo(() => {
+    const libraryStrategyCounts = buildFacetCounts(
+      serverFacets?.library_strategy,
+      libraryStrategyResults,
+      (r) => r.library_strategies ?? [],
+    );
+    return Array.from(libraryStrategyCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [serverFacets?.library_strategy, libraryStrategyResults]);
 
   const normalizedLibraryStrategyQuery = libraryStrategyQuery
     .trim()
@@ -571,15 +575,16 @@ export function SearchOrganismRail({
 
   // Server-authoritative: library_sources isn't on result rows, so counts come
   // purely from /search/facets (buildFacetCounts lets the server list win).
-  const librarySourceCounts = buildFacetCounts(
-    serverFacets?.library_source,
-    [],
-    () => [],
-  );
-
-  const librarySourceOptions = Array.from(librarySourceCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const librarySourceOptions = useMemo(() => {
+    const librarySourceCounts = buildFacetCounts(
+      serverFacets?.library_source,
+      [],
+      () => [],
+    );
+    return Array.from(librarySourceCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [serverFacets?.library_source]);
 
   const normalizedLibrarySourceQuery = librarySourceQuery.trim().toLowerCase();
   const visibleLibrarySourceOptions = normalizedLibrarySourceQuery
@@ -598,12 +603,6 @@ export function SearchOrganismRail({
     setSelectedLibrarySourceFilters([...selectedLibrarySourceFilters, source]);
   };
 
-  const instrumentModelCounts = buildFacetCounts(
-    serverFacets?.instrument_model,
-    instrumentModelResults,
-    (r) => r.instrument_models ?? [],
-  );
-
   // Server organism facets use {value} → OrganismFilter wants {name}.
   const organismServerFacets: ScientificFacet[] | undefined =
     serverFacets?.organism?.map((f) => ({
@@ -612,9 +611,16 @@ export function SearchOrganismRail({
       score: f.score,
     }));
 
-  const instrumentModelOptions = Array.from(instrumentModelCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const instrumentModelOptions = useMemo(() => {
+    const instrumentModelCounts = buildFacetCounts(
+      serverFacets?.instrument_model,
+      instrumentModelResults,
+      (r) => r.instrument_models ?? [],
+    );
+    return Array.from(instrumentModelCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [serverFacets?.instrument_model, instrumentModelResults]);
 
   const normalizedInstrumentModelQuery = instrumentModelQuery
     .trim()
@@ -638,18 +644,19 @@ export function SearchOrganismRail({
     ]);
   };
 
-  const platformCounts = new Map<string, number>();
-  for (const result of platformResults) {
-    for (const p of result.platforms ?? []) {
-      const plat = p.trim();
-      if (!plat) continue;
-      platformCounts.set(plat, (platformCounts.get(plat) ?? 0) + 1);
+  const platformOptions = useMemo(() => {
+    const platformCounts = new Map<string, number>();
+    for (const result of platformResults) {
+      for (const p of result.platforms ?? []) {
+        const plat = p.trim();
+        if (!plat) continue;
+        platformCounts.set(plat, (platformCounts.get(plat) ?? 0) + 1);
+      }
     }
-  }
-
-  const platformOptions = Array.from(platformCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
+    return Array.from(platformCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [platformResults]);
 
   const [platformQuery, setPlatformQuery] = useState("");
   const normalizedPlatformQuery = platformQuery.trim().toLowerCase();
@@ -749,39 +756,37 @@ export function SearchOrganismRail({
                 maxWidth: "calc(100vw - 2rem)",
               }}
             >
-              <Dialog.Title>
-                <Flex align={"center"} justify={"between"}>
-                  <Flex align={"center"} gap={"2"}>
-                    <Text>More filters</Text>
-                  </Flex>
-                  <Flex align={"center"} gap={"2"}>
-                    {selectedFilterCount > 0 ? (
-                      <Button
-                        size={"1"}
-                        color="red"
-                        variant="soft"
-                        onClick={() => {
-                          onClearMoreFilters();
-                          setMoreFiltersOpen(false);
-                        }}
-                      >
-                        <CrumpledPaperIcon /> Clear
-                      </Button>
-                    ) : null}
+              <Flex align={"center"} justify={"between"}>
+                <Dialog.Title mb="0">
+                  <Text>More filters</Text>
+                </Dialog.Title>
+                <Flex align={"center"} gap={"2"}>
+                  {selectedFilterCount > 0 ? (
                     <Button
                       size={"1"}
-                      color="green"
+                      color="red"
                       variant="soft"
                       onClick={() => {
-                        onApplyMoreFilters();
+                        onClearMoreFilters();
                         setMoreFiltersOpen(false);
                       }}
                     >
-                      <CheckIcon /> Apply filters
+                      <CrumpledPaperIcon /> Clear
                     </Button>
-                  </Flex>
+                  ) : null}
+                  <Button
+                    size={"1"}
+                    color="green"
+                    variant="soft"
+                    onClick={() => {
+                      onApplyMoreFilters();
+                      setMoreFiltersOpen(false);
+                    }}
+                  >
+                    <CheckIcon /> Apply filters
+                  </Button>
                 </Flex>
-              </Dialog.Title>
+              </Flex>
 
               <Tabs.Root
                 defaultValue="journals"
@@ -882,7 +887,7 @@ export function SearchOrganismRail({
                       >
                         {visibleJournalOptions.map((journalOption) => (
                           <Text as="label" size="2" key={journalOption.name}>
-                            <Flex align="center" justify="between" gap="2">
+                            <Flex align="center" justify="between" gap="2" py="2">
                               <Flex align="center" gap="2">
                                 <Checkbox
                                   checked={selectedJournalFilters.includes(
@@ -933,7 +938,7 @@ export function SearchOrganismRail({
                       >
                         {visibleCountryOptions.map((countryOption) => (
                           <Text as="label" size="2" key={countryOption.code}>
-                            <Flex align="center" justify="between" gap="2">
+                            <Flex align="center" justify="between" gap="2" py="2">
                               <Flex align="center" gap="2">
                                 <Checkbox
                                   checked={selectedCountryFilters.includes(
@@ -991,7 +996,7 @@ export function SearchOrganismRail({
                               size="2"
                               key={libraryStrategyOption.name}
                             >
-                              <Flex align="center" justify="between" gap="2">
+                              <Flex align="center" justify="between" gap="2" py="4">
                                 <Flex align="center" gap="2">
                                   <Checkbox
                                     checked={selectedLibraryStrategyFilters.includes(
@@ -1052,7 +1057,7 @@ export function SearchOrganismRail({
                               size="2"
                               key={librarySourceOption.name}
                             >
-                              <Flex align="center" justify="between" gap="2">
+                              <Flex align="center" justify="between" gap="2" py="4">
                                 <Flex align="center" gap="2">
                                   <Checkbox
                                     checked={selectedLibrarySourceFilters.includes(
@@ -1113,7 +1118,7 @@ export function SearchOrganismRail({
                               size="2"
                               key={instrumentModelOption.name}
                             >
-                              <Flex align="center" justify="between" gap="2">
+                              <Flex align="center" justify="between" gap="2" py="4">
                                 <Flex align="center" gap="2">
                                   <Checkbox
                                     checked={selectedInstrumentModelFilters.includes(
@@ -1149,7 +1154,7 @@ export function SearchOrganismRail({
                 >
                   <Flex direction="column" gap="3" pt="3">
                     <Text as="label" size="2">
-                      <Flex align="center" gap="2">
+                      <Flex align="center" gap="2" py="2">
                         <Checkbox
                           checked={multiPlatformOnly}
                           onCheckedChange={(checked) =>
@@ -1167,7 +1172,7 @@ export function SearchOrganismRail({
                       </Flex>
                     </Text>
                     <Text as="label" size="2">
-                      <Flex align="center" gap="2">
+                      <Flex align="center" gap="2" py="2">
                         <Checkbox
                           checked={longReadOnly}
                           onCheckedChange={(checked) =>
@@ -1204,7 +1209,7 @@ export function SearchOrganismRail({
                       >
                         {visiblePlatformOptions.map((platformOption) => (
                           <Text as="label" size="2" key={platformOption.name}>
-                            <Flex align="center" justify="between" gap="2">
+                            <Flex align="center" justify="between" gap="2" py="2">
                               <Flex align="center" gap="2">
                                 <Checkbox
                                   checked={selectedPlatformFilters.includes(
@@ -1282,39 +1287,37 @@ export function SearchOrganismRail({
                 maxWidth: "calc(100vw - 2rem)",
               }}
             >
-              <Dialog.Title>
-                <Flex align={"center"} justify={"between"}>
-                  <Flex align={"center"} gap={"2"}>
-                    <Text>More filters</Text>
-                  </Flex>
-                  <Flex align={"center"} gap={"2"}>
-                    {selectedFilterCount > 0 ? (
-                      <Button
-                        size={"1"}
-                        color="red"
-                        variant="soft"
-                        onClick={() => {
-                          onClearMoreFilters();
-                          setMoreFiltersOpen(false);
-                        }}
-                      >
-                        <CrumpledPaperIcon /> Clear
-                      </Button>
-                    ) : null}
+              <Flex align={"center"} justify={"between"}>
+                <Dialog.Title mb="0">
+                  <Text>More filters</Text>
+                </Dialog.Title>
+                <Flex align={"center"} gap={"2"}>
+                  {selectedFilterCount > 0 ? (
                     <Button
                       size={"1"}
-                      color="green"
+                      color="red"
                       variant="soft"
                       onClick={() => {
-                        onApplyMoreFilters();
+                        onClearMoreFilters();
                         setMoreFiltersOpen(false);
                       }}
                     >
-                      <CheckIcon /> Apply filters
+                      <CrumpledPaperIcon /> Clear
                     </Button>
-                  </Flex>
+                  ) : null}
+                  <Button
+                    size={"1"}
+                    color="green"
+                    variant="soft"
+                    onClick={() => {
+                      onApplyMoreFilters();
+                      setMoreFiltersOpen(false);
+                    }}
+                  >
+                    <CheckIcon /> Apply filters
+                  </Button>
                 </Flex>
-              </Dialog.Title>
+              </Flex>
 
               <Tabs.Root
                 defaultValue="journals"
@@ -1415,7 +1418,7 @@ export function SearchOrganismRail({
                       >
                         {visibleJournalOptions.map((journalOption) => (
                           <Text as="label" size="2" key={journalOption.name}>
-                            <Flex align="center" justify="between" gap="2">
+                            <Flex align="center" justify="between" gap="2" py="2">
                               <Flex align="center" gap="2">
                                 <Checkbox
                                   checked={selectedJournalFilters.includes(
@@ -1466,7 +1469,7 @@ export function SearchOrganismRail({
                       >
                         {visibleCountryOptions.map((countryOption) => (
                           <Text as="label" size="2" key={countryOption.code}>
-                            <Flex align="center" justify="between" gap="2">
+                            <Flex align="center" justify="between" gap="2" py="2">
                               <Flex align="center" gap="2">
                                 <Checkbox
                                   checked={selectedCountryFilters.includes(
@@ -1524,7 +1527,7 @@ export function SearchOrganismRail({
                               size="2"
                               key={libraryStrategyOption.name}
                             >
-                              <Flex align="center" justify="between" gap="2">
+                              <Flex align="center" justify="between" gap="2" py="4">
                                 <Flex align="center" gap="2">
                                   <Checkbox
                                     checked={selectedLibraryStrategyFilters.includes(
@@ -1585,7 +1588,7 @@ export function SearchOrganismRail({
                               size="2"
                               key={librarySourceOption.name}
                             >
-                              <Flex align="center" justify="between" gap="2">
+                              <Flex align="center" justify="between" gap="2" py="4">
                                 <Flex align="center" gap="2">
                                   <Checkbox
                                     checked={selectedLibrarySourceFilters.includes(
@@ -1646,7 +1649,7 @@ export function SearchOrganismRail({
                               size="2"
                               key={instrumentModelOption.name}
                             >
-                              <Flex align="center" justify="between" gap="2">
+                              <Flex align="center" justify="between" gap="2" py="4">
                                 <Flex align="center" gap="2">
                                   <Checkbox
                                     checked={selectedInstrumentModelFilters.includes(
@@ -1682,7 +1685,7 @@ export function SearchOrganismRail({
                 >
                   <Flex direction="column" gap="3" pt="3">
                     <Text as="label" size="2">
-                      <Flex align="center" gap="2">
+                      <Flex align="center" gap="2" py="2">
                         <Checkbox
                           checked={multiPlatformOnly}
                           onCheckedChange={(checked) =>
@@ -1700,7 +1703,7 @@ export function SearchOrganismRail({
                       </Flex>
                     </Text>
                     <Text as="label" size="2">
-                      <Flex align="center" gap="2">
+                      <Flex align="center" gap="2" py="2">
                         <Checkbox
                           checked={longReadOnly}
                           onCheckedChange={(checked) =>
@@ -1737,7 +1740,7 @@ export function SearchOrganismRail({
                       >
                         {visiblePlatformOptions.map((platformOption) => (
                           <Text as="label" size="2" key={platformOption.name}>
-                            <Flex align="center" justify="between" gap="2">
+                            <Flex align="center" justify="between" gap="2" py="2">
                               <Flex align="center" gap="2">
                                 <Checkbox
                                   checked={selectedPlatformFilters.includes(

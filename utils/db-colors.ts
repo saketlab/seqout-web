@@ -68,6 +68,18 @@ export const DB_BADGE_FG: Record<DbSource, { light: string; dark: string }> = {
   gea: { light: "#b64c11", dark: "#ec7837" },
 };
 
+/**
+ * Badge palette for non-archive-source badges (e.g. BioProject cross-reference
+ * links) that still use the .db-badge styling contract (--db/--db-fg/--db-fg-dark)
+ * but aren't a DbSource.
+ */
+export const NEUTRAL_BADGE_COLORS = {
+  /** Muted grey to distinguish BioProject IDs from study accession badges. */
+  prj: { hex: "#797979", fg: { light: "#696969", dark: "#8f8f8f" } },
+  /** tab10 muted's blue. */
+  visit: { hex: "#4878d0", fg: { light: "#3265c3", dark: "#6990d8" } },
+} as const;
+
 export const PLATFORM_DBS: DbSource[] = DB_ORDER.filter(
   (db) => db !== "arrayexpress",
 );

@@ -117,24 +117,26 @@ export default function SubmittingOrgPanel({ center }: Props) {
             const details = buildDetails(c);
             return (
               <Flex key={i} direction="column" gap="2" style={{ flex: "1 1 0", minHeight: 0 }}>
-                <Table.Root variant="surface" size="1" style={{ height: "100%" }}>
-                  <Table.Body>
-                    {details.map((row) => (
-                      <Table.Row key={row.label}>
-                        <Table.RowHeaderCell
-                          style={{ width: "140px", whiteSpace: "nowrap" }}
-                        >
-                          <Text size="2" weight="medium">
-                            {row.label}
-                          </Text>
-                        </Table.RowHeaderCell>
-                        <Table.Cell>
-                          <Text size="2">{row.value}</Text>
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
+                <Box style={{ overflowX: "auto", height: "100%" }}>
+                  <Table.Root variant="surface" size="1" style={{ height: "100%" }}>
+                    <Table.Body>
+                      {details.map((row) => (
+                        <Table.Row key={row.label}>
+                          <Table.RowHeaderCell
+                            style={{ width: "min(140px, 40vw)" }}
+                          >
+                            <Text size="2" weight="medium">
+                              {row.label}
+                            </Text>
+                          </Table.RowHeaderCell>
+                          <Table.Cell>
+                            <Text size="2">{row.value}</Text>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </Box>
               </Flex>
             );
           })}

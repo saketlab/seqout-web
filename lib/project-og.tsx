@@ -1,5 +1,8 @@
 import { OG, SERVER_API_BASE, ogBackground, ogGlow } from "@/utils/constants";
 import { DB_COLOR_MAP, type DbSource } from "@/utils/db-colors";
+import type { DatasetSourceInfo } from "@/lib/dataset-jsonld";
+import { normalizeAliases, normalizeAuthors } from "@/utils/project";
+import type { StudyPublication } from "@/utils/types";
 import { ImageResponse } from "next/og";
 
 type ProjectKind = DbSource;
@@ -58,8 +61,9 @@ export async function fetchProjectTitleLookup(
 ): Promise<TitleLookup> {
   let response: Response;
   try {
+    // only the title is needed (page title + OG caption), so hit the lightweight metadata endpoint, not the full project record
     response = await fetch(
-      `${SERVER_API_BASE}/project/${encodeURIComponent(accession)}`,
+      `${SERVER_API_BASE}/project/${encodeURIComponent(accession)}/metadata`,
       {
         next: { revalidate: 3600 },
       },
@@ -92,6 +96,69 @@ export async function fetchProjectTitleLookup(
 async function fetchProjectTitle(accession: string): Promise<string> {
   const lookup = await fetchProjectTitleLookup(accession);
   return lookup.status === "ok" ? lookup.title : accession;
+}
+
+export type ProjectDatasetInfo = DatasetSourceInfo;
+
+type ProjectDatasetPayload = {
+  title?: string | null;
+  authors?: string | string[] | null;
+  organisms?: string | string[] | null;
+  library_strategies?: string[] | null;
+  publications?: StudyPublication[] | null;
+  published_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type ProjectDatasetLookup =
+  | { status: "ok"; data: ProjectDatasetInfo }
+  | { status: "missing" }
+  | { status: "error" };
+
+/** Same /project/{accession} payload as fetchProjectTitleLookup, plus the fields Dataset JSON-LD needs. */
+export async function fetchProjectDatasetInfo(
+  accession: string,
+): Promise<ProjectDatasetLookup> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${SERVER_API_BASE}/project/${encodeURIComponent(accession)}`,
+      { next: { revalidate: 3600 } },
+    );
+  } catch {
+    return { status: "error" };
+  }
+
+  if (response.status === 404 || response.status === 422) {
+    return { status: "missing" };
+  }
+  if (!response.ok) {
+    return { status: "error" };
+  }
+
+  let payload: ProjectDatasetPayload | null;
+  try {
+    payload = (await response.json()) as ProjectDatasetPayload | null;
+  } catch {
+    return { status: "error" };
+  }
+  if (!payload) {
+    return { status: "missing" };
+  }
+
+  const title = payload.title?.trim();
+  return {
+    status: "ok",
+    data: {
+      title: title ? decodeHtmlEntities(title) : accession,
+      authors: normalizeAuthors(payload.authors ?? null),
+      organisms: normalizeAliases(payload.organisms ?? null),
+      libraryStrategies: (payload.library_strategies ?? []).filter(Boolean),
+      publications: payload.publications ?? [],
+      publishedAt: payload.published_at ?? null,
+      updatedAt: payload.updated_at ?? null,
+    },
+  };
 }
 
 export async function generateProjectOgImage(

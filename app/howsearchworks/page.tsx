@@ -1,4 +1,4 @@
-import OntologyGraphFigure from "@/components/ontology-graph-figure";
+import OntologyGraphFigure from "@/components/ontology-graph-figure-lazy";
 import SearchBar from "@/components/search-bar";
 import SectionAnchor from "@/components/section-anchor";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
@@ -19,7 +19,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: "How search works",
   description:
-    "How to search seqout. Write plain keywords and let synonym expansion work, or use structured search with OR, AND, NOT, parentheses, quotes, and * for exact control across GEO, SRA, ENA, DRA, GEA, GSA & ArrayExpress.",
+    "Search seqout with plain keywords and automatic synonym expansion, or structured queries using OR, AND, NOT, parentheses, quotes, and * across all archives.",
   alternates: {
     canonical: "https://seqout.org/howsearchworks",
   },

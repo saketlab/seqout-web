@@ -1,5 +1,5 @@
 "use client";
-import { Link, Text } from "@radix-ui/themes";
+import { Text } from "@radix-ui/themes";
 import DOMPurify from "dompurify";
 import type { ComponentProps } from "react";
 import { useMemo, useState } from "react";
@@ -75,13 +75,21 @@ export default function ProjectSummary({
         <>{plainText.slice(0, charLimit)}...</>
       )}
       {shouldTruncate && (
-        <Link
-          ml="1"
-          style={{ cursor: "pointer" }}
+        <button
+          type="button"
           onClick={() => setExpanded(!expanded)}
+          style={{
+            marginLeft: "0.25rem",
+            border: "none",
+            background: "transparent",
+            padding: 0,
+            font: "inherit",
+            color: "var(--accent-11)",
+            cursor: "pointer",
+          }}
         >
           {expanded ? "less" : "more"}
-        </Link>
+        </button>
       )}
     </Text>
   );

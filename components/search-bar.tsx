@@ -1,7 +1,10 @@
 "use client";
 import ExpansionSection from "@/components/expansion-section";
+import { HOW_SEARCH_WORKS_KEY, useFirstVisit } from "@/components/first-visit-ping";
 import GitHubButton from "@/components/github-button";
-import SearchHistoryDropdown from "@/components/search-history-dropdown";
+import SearchHistoryDropdown, {
+  searchHistoryComboboxProps,
+} from "@/components/search-history-dropdown";
 import ThemeToggle from "@/components/theme-toggle";
 import { useSearchQuery } from "@/context/search_query";
 import { SEARCH_PLACEHOLDER } from "@/utils/constants";
@@ -10,6 +13,7 @@ import { useSearchHistory } from "@/utils/useSearchHistory";
 import {
   GitHubLogoIcon,
   HamburgerMenuIcon,
+  InfoCircledIcon,
   MagnifyingGlassIcon,
 } from "@radix-ui/react-icons";
 import {
@@ -67,6 +71,7 @@ function SearchBarContent({
   const { history, saveHistory, performSearch } = useSearchHistory();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [, markHowSearchWorksSeen] = useFirstVisit(HOW_SEARCH_WORKS_KEY);
 
   const handleMenuSelect = (item: NavItem) => {
     if (item.external) {
@@ -156,6 +161,14 @@ function SearchBarContent({
                 {item.icon} {item.label}
               </DropdownMenu.Item>
             ))}
+            <DropdownMenu.Item
+              onSelect={() => {
+                markHowSearchWorksSeen();
+                router.push("/howsearchworks");
+              }}
+            >
+              <InfoCircledIcon /> How search works
+            </DropdownMenu.Item>
             <DropdownMenu.Separator />
             <DropdownMenu.Item
               onSelect={() =>
@@ -228,6 +241,11 @@ function SearchBarContent({
                 enterKeyHint="search"
                 data-global-search-target="true"
                 placeholder={SEARCH_PLACEHOLDER}
+                {...searchHistoryComboboxProps(
+                  isFocused,
+                  filteredHistory,
+                  activeIndex,
+                )}
                 ref={inputRef}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

@@ -11,7 +11,7 @@ import {
   MoonIcon,
   SunIcon,
 } from "@radix-ui/react-icons";
-import { Dialog, Flex, Kbd, Text } from "@radix-ui/themes";
+import { Dialog, Flex, Kbd, Text, VisuallyHidden } from "@radix-ui/themes";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import {
@@ -253,10 +253,14 @@ export default function CommandPalette() {
           overflow: "hidden",
         }}
       >
-        <Dialog.Title style={{ display: "none" }}>Command palette</Dialog.Title>
-        <Dialog.Description style={{ display: "none" }}>
-          Quickly navigate, search, and run actions.
-        </Dialog.Description>
+        <VisuallyHidden asChild>
+          <Dialog.Title>Command palette</Dialog.Title>
+        </VisuallyHidden>
+        <VisuallyHidden asChild>
+          <Dialog.Description>
+            Quickly navigate, search, and run actions.
+          </Dialog.Description>
+        </VisuallyHidden>
         <Flex direction="column">
           {/* Search input */}
           <Flex
@@ -279,11 +283,19 @@ export default function CommandPalette() {
               onKeyDown={onListKeyDown}
               placeholder="Search for an accession, jump to a page, or run an action…"
               aria-label="Command palette search"
+              role="combobox"
+              aria-expanded={filtered.length > 0}
+              aria-controls="command-palette-listbox"
+              aria-autocomplete="list"
+              aria-activedescendant={
+                filtered[safeActiveIndex]
+                  ? `command-option-${safeActiveIndex}`
+                  : undefined
+              }
               style={{
                 flex: 1,
                 background: "transparent",
                 border: "none",
-                outline: "none",
                 color: "var(--gray-12)",
                 fontSize: "0.9375rem",
                 fontFamily: "var(--default-font-family)",
@@ -295,6 +307,7 @@ export default function CommandPalette() {
           {/* Command list */}
           <div
             role="listbox"
+            id="command-palette-listbox"
             aria-label="Command results"
             style={{
               maxHeight: "min(60vh, 24rem)",
@@ -317,8 +330,13 @@ export default function CommandPalette() {
                 return (
                   <button
                     key={cmd.id}
+                    id={`command-option-${index}`}
                     role="option"
                     aria-selected={isActive}
+                    tabIndex={-1}
+                    ref={(el) => {
+                      if (isActive) el?.scrollIntoView({ block: "nearest" });
+                    }}
                     onClick={() => {
                       void cmd.perform();
                     }}

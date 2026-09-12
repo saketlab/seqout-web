@@ -513,6 +513,86 @@ export default function SingleCellCard({ accession }: { accession: string }) {
       }),
     [rows.length, hasNextPage, isFetchingNextPage, fetchNextPage],
   );
+  const columnDefs = useMemo<SingleCellCol[]>(() => {
+    const allColumns: SingleCellCol[] = [
+      {
+        field: "sample_accession",
+        headerName: "Sample",
+        hasData: () => true,
+        pinned: "left",
+        minWidth: 150,
+        flex: 1,
+      },
+      {
+        field: "title",
+        headerName: "Title",
+        pinned: "left",
+        minWidth: 200,
+        flex: 1,
+      },
+      {
+        field: "tissue",
+        headerName: "Tissue",
+        minWidth: 150,
+        flex: 1,
+      },
+      {
+        field: "cells",
+        headerName: "Cells",
+        minWidth: 120,
+        flex: 1,
+        cellRenderer: CellsCellRenderer,
+      },
+      {
+        field: "genes",
+        headerName: "Genes",
+        minWidth: 110,
+        flex: 1,
+        valueFormatter: (p) => (p.value == null ? "—" : p.value.toLocaleString()),
+      },
+      {
+        field: "sex_verdict",
+        headerName: "Sex (reads)",
+        headerTooltip: DERIVATION.sex,
+        minWidth: 140,
+        flex: 1,
+        cellRenderer: SexCell,
+      },
+      {
+        field: "assay",
+        headerName: "Assay (reads)",
+        headerTooltip: DERIVATION.assay,
+        minWidth: 190,
+        flex: 1,
+        cellRenderer: AssayCell,
+      },
+      {
+        field: "sc_stats",
+        headerName: "QC per cell (median)",
+        flex: 1,
+        minWidth: 210,
+        cellRenderer: QcCellRenderer,
+        autoHeight: true,
+        sortable: false,
+        filter: false,
+      },
+      {
+        field: "detections",
+        headerName: "Microbial evidence",
+        // a screened sample with no detections still gets the column
+        hasData: () => hasScreened,
+        flex: 1,
+        minWidth: 240,
+        cellRenderer: FlagsCellRenderer,
+        sortable: false,
+        // detections holds objects; the text filter would match "[object Object]"
+        filter: false,
+      },
+    ];
+    return allColumns.filter((c) =>
+      c.hasData ? c.hasData() : nonEmptyFields.has(c.field!),
+    );
+  }, [hasScreened, nonEmptyFields]);
 
   if (isError || (!isLoading && !data?.pages[0])) return null;
   if (isLoading) return <Spinner />;
@@ -521,86 +601,6 @@ export default function SingleCellCard({ accession }: { accession: string }) {
   const exactChemistryCount = head.longread_chemistry.filter(
     (r) => r.chemistry_confidence === "exact",
   ).length;
-
-  const allColumns: SingleCellCol[] = [
-    {
-      field: "sample_accession",
-      headerName: "Sample",
-      hasData: () => true,
-      pinned: "left",
-      minWidth: 150,
-      flex: 1,
-    },
-    {
-      field: "title",
-      headerName: "Title",
-      pinned: "left",
-      minWidth: 200,
-      flex: 1,
-    },
-    {
-      field: "tissue",
-      headerName: "Tissue",
-      minWidth: 150,
-      flex: 1,
-    },
-    {
-      field: "cells",
-      headerName: "Cells",
-      minWidth: 120,
-      flex: 1,
-      cellRenderer: CellsCellRenderer,
-    },
-    {
-      field: "genes",
-      headerName: "Genes",
-      minWidth: 110,
-      flex: 1,
-      valueFormatter: (p) => (p.value == null ? "—" : p.value.toLocaleString()),
-    },
-    {
-      field: "sex_verdict",
-      headerName: "Sex (reads)",
-      headerTooltip: DERIVATION.sex,
-      minWidth: 140,
-      flex: 1,
-      cellRenderer: SexCell,
-    },
-    {
-      field: "assay",
-      headerName: "Assay (reads)",
-      headerTooltip: DERIVATION.assay,
-      minWidth: 190,
-      flex: 1,
-      cellRenderer: AssayCell,
-    },
-    {
-      field: "sc_stats",
-      headerName: "QC per cell (median)",
-      flex: 1,
-      minWidth: 210,
-      cellRenderer: QcCellRenderer,
-      autoHeight: true,
-      sortable: false,
-      filter: false,
-    },
-    {
-      field: "detections",
-      headerName: "Microbial evidence",
-      // a screened sample with no detections still gets the column
-      hasData: () => hasScreened,
-      flex: 1,
-      minWidth: 240,
-      cellRenderer: FlagsCellRenderer,
-      sortable: false,
-      // detections holds objects; the text filter would match "[object Object]"
-      filter: false,
-    },
-  ];
-
-  const columnDefs = allColumns.filter((c) =>
-    c.hasData ? c.hasData() : nonEmptyFields.has(c.field!),
-  );
 
   const gridHeight = Math.min(400, 42 + rows.length * 42);
 
@@ -720,6 +720,8 @@ export default function SingleCellCard({ accession }: { accession: string }) {
         className={
           resolvedTheme === "dark" ? "ag-theme-quartz-dark" : "ag-theme-quartz"
         }
+        role="region"
+        aria-label="Pentimento per-sample metadata"
         style={{ height: `${gridHeight}px`, width: "100%" }}
       >
         <AgGridReact<SingleCellSample>

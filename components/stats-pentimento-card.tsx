@@ -12,7 +12,14 @@ import { CHART_SERIES_PALETTE, getApexChartTheme } from "@/utils/chart-theme";
 import { formatOrganismName, humanize } from "@/utils/format";
 import { usePentimentoOverview } from "@/utils/useStats";
 import { useReducedMotion } from "@/utils/useReducedMotion";
-import { Box, Flex, Heading, Skeleton, Text } from "@radix-ui/themes";
+import {
+  Box,
+  Flex,
+  Heading,
+  Skeleton,
+  Text,
+  VisuallyHidden,
+} from "@radix-ui/themes";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
@@ -319,6 +326,13 @@ export default function StatsPentimentoCard() {
             Chemistry comes from the reads; tissue comes from the submitter. Top
             eight tissues, counted in studies.
           </Text>
+          <VisuallyHidden asChild>
+            <p>
+              {`Stacked bar chart: study counts for ${categories.length} assays, broken down by tissue (${series
+                .map((s) => s.name)
+                .join(", ")}).`}
+            </p>
+          </VisuallyHidden>
           <Chart
             type="bar"
             options={chartOptions}

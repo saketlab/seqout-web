@@ -3,6 +3,26 @@ import { CountdownTimerIcon, Cross1Icon } from "@radix-ui/react-icons";
 import { Box, Button, Card, Flex, Text } from "@radix-ui/themes";
 import { useRef, useState } from "react";
 
+export const SEARCH_HISTORY_LISTBOX_ID = "search-history-listbox";
+export const searchHistoryOptionId = (index: number) =>
+  `search-history-option-${index}`;
+
+/** ARIA combobox props to spread onto the TextField.Root driving this dropdown. */
+export function searchHistoryComboboxProps(
+  isFocused: boolean,
+  filteredHistory: string[],
+  activeIndex: number,
+) {
+  return {
+    role: "combobox" as const,
+    "aria-expanded": isFocused && filteredHistory.length > 0,
+    "aria-controls": SEARCH_HISTORY_LISTBOX_ID,
+    "aria-autocomplete": "list" as const,
+    "aria-activedescendant":
+      activeIndex >= 0 ? searchHistoryOptionId(activeIndex) : undefined,
+  };
+}
+
 interface SearchHistoryDropdownProps {
   isVisible: boolean;
   filteredHistory: string[];
@@ -37,12 +57,15 @@ export default function SearchHistoryDropdown({
             e.preventDefault();
           }}
         >
-          <Flex direction={"column"} gap={"1"}>
-            {filteredHistory.map((item) => (
+          <Flex direction={"column"} gap={"1"} role="listbox" id={SEARCH_HISTORY_LISTBOX_ID}>
+            {filteredHistory.map((item, index) => (
               <div key={item}>
                 <Flex
                   align={"center"}
                   justify={"between"}
+                  role="option"
+                  id={searchHistoryOptionId(index)}
+                  aria-selected={activeItem === item}
                   style={{
                     cursor: "pointer",
                     color: "var(--accent-12)",
@@ -63,7 +86,9 @@ export default function SearchHistoryDropdown({
                   </Flex>
                   <Button
                     variant="ghost"
+                    aria-label={`Remove "${item}" from search history`}
                     onClick={(e) => onRemoveItem(item, e)}
+                    style={{ minWidth: 44, minHeight: 44 }}
                   >
                     <Cross1Icon />
                   </Button>
@@ -94,12 +119,15 @@ export default function SearchHistoryDropdown({
             e.preventDefault();
           }}
         >
-          <Flex direction={"column"} gap={"2"}>
-            {filteredHistory.map((item) => (
+          <Flex direction={"column"} gap={"2"} role="listbox" id={SEARCH_HISTORY_LISTBOX_ID}>
+            {filteredHistory.map((item, index) => (
               <div key={item}>
                 <Flex
                   align={"center"}
                   justify={"between"}
+                  role="option"
+                  id={searchHistoryOptionId(index)}
+                  aria-selected={activeItem === item}
                   style={{
                     cursor: "pointer",
                     color: "var(--accent-12)",
@@ -120,7 +148,9 @@ export default function SearchHistoryDropdown({
                   </Flex>
                   <Button
                     variant="ghost"
+                    aria-label={`Remove "${item}" from search history`}
                     onClick={(e) => onRemoveItem(item, e)}
+                    style={{ minWidth: 44, minHeight: 44 }}
                   >
                     <Cross1Icon />
                   </Button>

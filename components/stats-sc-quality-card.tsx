@@ -4,6 +4,7 @@ import ChartFooter, { chartFooterEvents } from "@/components/chart-footer";
 import SectionAnchor from "@/components/section-anchor";
 import {
   getApexChartTheme,
+  getMutedBandColors,
   technologyColor,
 } from "@/utils/chart-theme";
 import { humanize } from "@/utils/format";
@@ -18,6 +19,7 @@ import {
   Skeleton,
   Switch,
   Text,
+  VisuallyHidden,
 } from "@radix-ui/themes";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -44,9 +46,6 @@ const METRIC = {
     axis: "Median genes per cell",
   },
 } as const;
-
-const BAND_FILL = "#94a3b8";
-const BAND_LINE = "#64748b";
 
 type MetricKey = keyof typeof METRIC;
 
@@ -82,6 +81,7 @@ export default function StatsScQualityCard() {
   }, [data]);
 
   const series = useMemo(() => {
+    const { fill, line } = getMutedBandColors(isDark);
     const { median, p25, p75, dot } = METRIC[metric];
     const round = (v: number | null | undefined) =>
       v == null ? null : Math.round(v);
@@ -95,13 +95,13 @@ export default function StatsScQualityCard() {
       {
         name: "All chemistries (IQR)",
         type: "rangeArea",
-        color: BAND_FILL,
+        color: fill,
         data: band,
       },
       {
         name: "All chemistries (median)",
         type: "line",
-        color: BAND_LINE,
+        color: line,
         data: years.map((y) => ({ x: y, y: round(overall.get(y)?.[median]) })),
       },
       ...techs.map((technology, i) => ({
@@ -118,7 +118,7 @@ export default function StatsScQualityCard() {
             {
               name: "Individual matrices",
               type: "scatter",
-              color: BAND_LINE,
+              color: line,
               data: samples.points
                 .map((p) => ({ x: p.year, y: round(p[dot]) }))
                 .filter((d) => d.y != null && d.y > 0),
@@ -126,7 +126,7 @@ export default function StatsScQualityCard() {
           ]
         : []),
     ];
-  }, [techs, at, overall, years, metric, showDots, samples]);
+  }, [techs, at, overall, years, metric, showDots, samples, isDark]);
 
   const flatValues = useMemo(
     () =>
@@ -274,6 +274,13 @@ export default function StatsScQualityCard() {
       </Flex>
 
       <Box>
+        <VisuallyHidden asChild>
+          <p>
+            {`Range-area and line chart: ${METRIC[metric].axis} by year for ${series
+              .map((s) => s.name)
+              .join(", ")}.`}
+          </p>
+        </VisuallyHidden>
         <Chart
           options={chartOptions}
           series={series}

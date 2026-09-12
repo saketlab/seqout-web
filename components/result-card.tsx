@@ -5,7 +5,7 @@ import { cleanJournalName, titleCaseCenter } from "@/utils/format";
 import { doiHref } from "@/utils/project";
 import { getProjectShortUrl } from "@/utils/shortUrl";
 import { ExternalLinkIcon, SewingPinIcon } from "@radix-ui/react-icons";
-import { Badge, Box, Flex, Popover, Text } from "@radix-ui/themes";
+import { Badge, Box, Flex, Popover, Text, Tooltip } from "@radix-ui/themes";
 import Link from "next/link";
 import { memo, useState } from "react";
 
@@ -295,14 +295,11 @@ function ResultCard({
           {accession}
         </DbBadge>
         {lowRelevance && (
-          <Badge
-            size="2"
-            variant="soft"
-            color="red"
-            title="This result scored far below the best match for your query — it probably matched a related term rather than what you asked for."
-          >
-            Low relevance
-          </Badge>
+          <Tooltip content="This result scored far below the best match for your query — it probably matched a related term rather than what you asked for.">
+            <Badge size="2" variant="soft" color="red" tabIndex={0}>
+              Low relevance
+            </Badge>
+          </Tooltip>
         )}
       </Flex>
     </Flex>

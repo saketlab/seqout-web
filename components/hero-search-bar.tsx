@@ -1,5 +1,7 @@
 "use client";
-import SearchHistoryDropdown from "@/components/search-history-dropdown";
+import SearchHistoryDropdown, {
+  searchHistoryComboboxProps,
+} from "@/components/search-history-dropdown";
 import TermExpansionButton from "@/components/term-expansion-button";
 import { useSearchQuery } from "@/context/search_query";
 import { SEARCH_PLACEHOLDER } from "@/utils/constants";
@@ -15,7 +17,7 @@ import { useSearchHistory } from "@/utils/useSearchHistory";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import { Box, Flex, TextField } from "@radix-ui/themes";
 import { useRouter } from "next/navigation";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 export default function HeroSearchBar() {
   const { setLastSearchQuery } = useSearchQuery();
@@ -26,6 +28,12 @@ export default function HeroSearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { history, saveHistory, performSearch } = useSearchHistory();
   const router = useRouter();
+
+  useEffect(() => {
+    if (window.matchMedia("(pointer: fine)").matches) {
+      inputRef.current?.focus();
+    }
+  }, []);
   // Safe to read during the first render even though it is client-only state:
   // the switch lives in a popover that mounts on open, so the server HTML and
   // the hydration pass render the same thing (just the button) either way.
@@ -88,6 +96,11 @@ export default function HeroSearchBar() {
                 placeholder={SEARCH_PLACEHOLDER}
                 size="3"
                 value={query}
+                {...searchHistoryComboboxProps(
+                  isFocused,
+                  filteredHistory,
+                  activeIndex,
+                )}
                 ref={inputRef}
                 onChange={(e) => {
                   setQuery(e.target.value);
@@ -150,7 +163,6 @@ export default function HeroSearchBar() {
                     setActiveIndex(-1);
                   }
                 }}
-                autoFocus
               >
                 <TextField.Slot>
                   <MagnifyingGlassIcon height="16" width="16" />

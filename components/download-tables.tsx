@@ -2,6 +2,7 @@
 
 import { CheckIcon, CopyIcon, DownloadIcon } from "@radix-ui/react-icons";
 import {
+  AlertDialog,
   Badge,
   Box,
   Button,
@@ -12,7 +13,8 @@ import {
   Separator,
   Text,
 } from "@radix-ui/themes";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 // Static file host with HTTP range support; absolute URL so local dev also works.
 const BASE = "https://seqout.org/data";
@@ -186,31 +188,31 @@ function triggerDownload(file: string) {
   a.remove();
 }
 
-export default function DownloadTables() {
-  const [sizes, setSizes] = useState<Record<string, number | null>>({});
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    ALL_FILES.forEach((t) => {
-      fetch(`${BASE}/${t.file}.parquet`, { method: "HEAD" })
-        .then((res) => {
-          const len = res.headers.get("content-length");
-          if (active) {
-            setSizes((s) => ({
-              ...s,
-              [t.file]: len ? parseInt(len, 10) : null,
-            }));
-          }
-        })
-        .catch(() => {
-          if (active) setSizes((s) => ({ ...s, [t.file]: null }));
+async function fetchTableSizes(): Promise<Record<string, number | null>> {
+  const entries = await Promise.all(
+    ALL_FILES.map(async (t) => {
+      try {
+        const res = await fetch(`${BASE}/${t.file}.parquet`, {
+          method: "HEAD",
         });
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+        const len = res.headers.get("content-length");
+        return [t.file, len ? parseInt(len, 10) : null] as const;
+      } catch {
+        return [t.file, null] as const;
+      }
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
+export default function DownloadTables() {
+  const { data: sizes = {} } = useQuery({
+    queryKey: ["download-table-sizes"],
+    queryFn: fetchTableSizes,
+    staleTime: 60 * 60 * 1000,
+  });
+  const [copied, setCopied] = useState(false);
+  const [askAll, setAskAll] = useState(false);
 
   const known = Object.values(sizes).filter((v): v is number => v != null);
   const total = known.reduce((a, b) => a + b, 0);
@@ -219,12 +221,6 @@ export default function DownloadTables() {
   const wget = `wget -c ${BASE}/{${ALL_FILES.map((t) => t.file).join(",")}}.parquet`;
 
   function downloadAll() {
-    const ok = window.confirm(
-      `Download all ${ALL_FILES.length} files${
-        allLoaded ? ` (~${fmtBytes(total)})` : ""
-      }? This is a large download — the wget command below may be easier.`,
-    );
-    if (!ok) return;
     ALL_FILES.forEach((t, i) => {
       window.setTimeout(() => triggerDownload(t.file), i * 500);
     });
@@ -259,7 +255,7 @@ export default function DownloadTables() {
               recommended way to fetch the full set.
             </Text>
           </Flex>
-          <Button onClick={downloadAll}>
+          <Button onClick={() => setAskAll(true)}>
             <DownloadIcon /> Download all
           </Button>
         </Flex>
@@ -271,7 +267,7 @@ export default function DownloadTables() {
               </Code>
             </Box>
             <Button
-              size="1"
+              size="2"
               variant="soft"
               color={copied ? "green" : "gray"}
               onClick={copyWget}
@@ -314,7 +310,7 @@ export default function DownloadTables() {
                   <Badge color="gray" variant="soft">
                     {fmtBytes(sizes[t.file])}
                   </Badge>
-                  <Button asChild size="1" variant="soft">
+                  <Button asChild size="2" variant="soft">
                     <a
                       href={`${BASE}/${t.file}.parquet`}
                       download={`${t.file}.parquet`}
@@ -328,6 +324,29 @@ export default function DownloadTables() {
           </Flex>
         </Card>
       ))}
+      <AlertDialog.Root open={askAll} onOpenChange={setAskAll}>
+        <AlertDialog.Content maxWidth="480px">
+          <AlertDialog.Title>
+            Download all {ALL_FILES.length} files?
+          </AlertDialog.Title>
+          <AlertDialog.Description size="2">
+            {allLoaded ? `~${fmtBytes(total)} total. ` : ""}This is a large
+            download — the <Code>wget</Code> command below may be easier.
+          </AlertDialog.Description>
+          <Flex gap="3" mt="4" justify="end">
+            <AlertDialog.Cancel>
+              <Button variant="soft" color="gray">
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action>
+              <Button onClick={downloadAll}>
+                <DownloadIcon /> Download all
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
     </Flex>
   );
 }

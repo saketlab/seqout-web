@@ -83,7 +83,9 @@ export default function StatsProjectOverlapCard() {
     <Flex direction="column" gap="3">
       <Flex align="center" justify="between" wrap="wrap" gap="2">
         <Flex align="center" gap="2">
-          <Heading size="4">Projects shared across archives</Heading>
+          <Heading as="h2" size="5" weight="bold" ml="1">
+            Projects shared across archives
+          </Heading>
           <SectionAnchor id="project-overlap" />
         </Flex>
         <Flex align="center" gap="3">

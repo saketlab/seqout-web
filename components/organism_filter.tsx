@@ -188,6 +188,7 @@ function FilterList({
       <Button
         variant={selectedKey === null ? "solid" : "soft"}
         color={selectedKey === null ? undefined : "gray"}
+        aria-pressed={selectedKey === null}
         onClick={onClear}
         style={{ justifyContent: "space-between" }}
       >
@@ -213,6 +214,7 @@ function FilterList({
                 key={facet.key}
                 variant={active ? "solid" : "soft"}
                 color={active ? undefined : "gray"}
+                aria-pressed={active}
                 onClick={() => onSelect(facet.key)}
                 style={{ justifyContent: "space-between", textAlign: "left" }}
               >
@@ -371,9 +373,12 @@ export function OrganismFilter({
   return (
     <Flex direction="column" gap="3">
       <Flex align="center" justify="between">
-        <Text size="2">Show common names</Text>
+        <Text size="2" id="show-common-names-label">
+          Show common names
+        </Text>
         <Switch
           checked={mode === "common"}
+          aria-labelledby="show-common-names-label"
           onCheckedChange={(checked) =>
             onChangeMode(checked ? "common" : "scientific")
           }

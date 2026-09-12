@@ -1,6 +1,3 @@
-"use client";
-
-import { useParams } from "next/navigation";
 import AuthorProjectsBody from "@/components/author-projects-body";
 
 function safeDecode(s: string): string {
@@ -11,10 +8,12 @@ function safeDecode(s: string): string {
   }
 }
 
-export default function AuthorProjectsPage() {
-  const params = useParams();
-  // useParams() returns the raw encoded segment; decode before use.
-  const raw = params.name;
-  const name = safeDecode(Array.isArray(raw) ? raw[0] : (raw ?? ""));
+export default async function AuthorProjectsPage({
+  params,
+}: {
+  params: Promise<{ name: string }>;
+}) {
+  const { name: raw } = await params;
+  const name = safeDecode(raw);
   return <AuthorProjectsBody key={name} name={name} />;
 }

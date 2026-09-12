@@ -92,7 +92,7 @@ export default function RunDetailPage() {
           align="center"
           p="4"
           ml={{ initial: "0", md: "8rem" }}
-          mr={{ md: "16rem" }}
+          mr={{ initial: "0", md: "16rem" }}
           justify="center"
           direction="column"
         >
@@ -123,7 +123,7 @@ export default function RunDetailPage() {
           align="center"
           pt="3"
           ml={{ initial: "0", md: "8rem" }}
-          mr={{ md: "16rem" }}
+          mr={{ initial: "0", md: "16rem" }}
           justify="center"
         >
           <Spinner size="3" />
@@ -198,10 +198,13 @@ export default function RunDetailPage() {
                       border: "none",
                       background: "transparent",
                       color: "inherit",
-                      padding: 0,
-                      margin: 0,
+                      padding: "8px",
+                      margin: "-8px",
                       display: "inline-flex",
                       alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: "32px",
+                      minHeight: "32px",
                       cursor: "pointer",
                     }}
                   >

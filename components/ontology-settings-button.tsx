@@ -35,7 +35,7 @@ export default function OntologySettingsButton({
           <IconButton
             variant="ghost"
             color="gray"
-            size="1"
+            size={{ initial: "3", md: "1" }}
             aria-label="Ontology sources"
             onPointerEnter={() => setHovering(true)}
             onPointerLeave={() => setHovering(false)}

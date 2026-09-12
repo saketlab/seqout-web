@@ -1173,9 +1173,9 @@ export default function ApiDocsPage() {
 
         {API.map((cat) => (
           <Flex key={cat.id} direction="column" gap="3" id={cat.id}>
-            <Text size={{ initial: "4", md: "6" }} weight="medium">
+            <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
               {cat.title}
-            </Text>
+            </Heading>
             {cat.endpoints.map((ep) => (
               <EndpointCard
                 key={`${ep.method}-${ep.path}`}
@@ -1200,9 +1200,9 @@ export default function ApiDocsPage() {
         ))}
 
         <Flex direction="column" gap="2" id="rate-limits" pt="2">
-          <Text size={{ initial: "4", md: "6" }} weight="medium">
+          <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
             Rate Limits
-          </Text>
+          </Heading>
           <Text style={{ color: "var(--gray-11)" }}>
             Most endpoints allow 60 requests/minute per IP. Search endpoints
             allow 30 requests/minute. Bulk and download endpoints allow 10
@@ -1211,9 +1211,9 @@ export default function ApiDocsPage() {
         </Flex>
 
         <Flex direction="column" gap="2" id="pagination" pt="2">
-          <Text size={{ initial: "4", md: "6" }} weight="medium">
+          <Heading as="h2" size={{ initial: "4", md: "6" }} weight="medium">
             Pagination
-          </Text>
+          </Heading>
           <Text style={{ color: "var(--gray-11)" }}>
             Search endpoints use cursor-based pagination. Each response includes
             a <Code>next_cursor</Code> object. Pass its fields as query

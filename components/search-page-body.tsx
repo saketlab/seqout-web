@@ -128,6 +128,7 @@ function DidYouMean({
         <a
           href={href}
           onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
             e.preventDefault();
             onNavigate(href);
           }}
@@ -195,6 +196,9 @@ type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 // Text search fetches server pages by offset. Each perPage option divides the
 // 200-row server page size, keeping each UI page within a server page.
 const SERVER_PAGE_SIZE = 200;
+
+// geo search prefetches every page client-side; cap it so a dense radius query can't turn into an unbounded fetch/memory storm
+const MAX_GEO_PAGES = 25;
 
 // Below this share of the query's best rank, a result is flagged "Low relevance".
 // Real matches rank far above synonym-only ones; this cutoff falls in the gap.
@@ -1360,6 +1364,11 @@ export default function SearchPageBody() {
     ? undefined
     : serverPageQueries.find((q) => q.data?.correction)?.data?.correction;
 
+  // useQueries returns a new array every render, so join dataUpdatedAt into a stable key that only changes when a page's data actually does
+  const serverPageDataSignature = serverPageQueries
+    .map((q) => q.dataUpdatedAt)
+    .join(",");
+
   // Text search holds the displayed server page. Facets supply total and sidebar counts.
   const allResults = useMemo(() => {
     const flat = isGeoSearch
@@ -1372,7 +1381,9 @@ export default function SearchPageBody() {
       seen.add(id);
       return true;
     });
-  }, [isGeoSearch, geoData, serverPageQueries]);
+    // serverPageDataSignature stands in for serverPageQueries (see comment above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGeoSearch, geoData, serverPageDataSignature]);
 
   // Geo returns its own (client-side) count; text search reads the deferred
   // total from facets, falling back to the loaded count while it's pending.
@@ -1400,15 +1411,26 @@ export default function SearchPageBody() {
   // keep eagerly prefetching every page. Text search paginates on the server and
   // fetches exactly the page it needs, so it never prefetches.
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const geoPageCount = geoData?.pages.length ?? 0;
   useEffect(() => {
     if (!isGeoSearch) return;
-    if (geoHasNextPage && !geoIsFetchingNextPage) {
+    if (
+      geoHasNextPage &&
+      !geoIsFetchingNextPage &&
+      geoPageCount < MAX_GEO_PAGES
+    ) {
       prefetchTimerRef.current = setTimeout(() => fetchNextPage(), 150);
       return () => {
         if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
       };
     }
-  }, [isGeoSearch, geoHasNextPage, geoIsFetchingNextPage, fetchNextPage]);
+  }, [
+    isGeoSearch,
+    geoHasNextPage,
+    geoIsFetchingNextPage,
+    geoPageCount,
+    fetchNextPage,
+  ]);
 
   // Prefetch the next server page when the total confirms it exists.
   const queryClient = useQueryClient();
@@ -1448,7 +1470,9 @@ export default function SearchPageBody() {
   let sidebarResults = isGeoSearch ? sidebarSnapshot : allResults;
   if (isGeoSearch && !sidebarSearchChanged && !snapshotFrozen) {
     const allLoaded =
-      !geoHasNextPage && !geoIsFetchingNextPage && allResults.length > 0;
+      (!geoHasNextPage || geoPageCount >= MAX_GEO_PAGES) &&
+      !geoIsFetchingNextPage &&
+      allResults.length > 0;
     if (allLoaded) {
       setSidebarSnapshot(allResults);
       setSnapshotFrozen(true);

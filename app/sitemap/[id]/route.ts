@@ -15,8 +15,14 @@ const STATIC_PATHS = [
   "/mcp",
   "/stats",
   "/technology/longread",
+  "/technology/single-cell",
   "/api-docs",
   "/authors",
+  "/data",
+  "/howsearchworks",
+  "/pmid",
+  "/disease/rare",
+  "/disease/nord",
 ];
 
 export async function GET(

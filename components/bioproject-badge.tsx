@@ -1,21 +1,20 @@
+import { NEUTRAL_BADGE_COLORS } from "@/utils/db-colors";
 import { EnterIcon, ExternalLinkIcon } from "@radix-ui/react-icons";
 import { Badge, Flex } from "@radix-ui/themes";
 import type { CSSProperties } from "react";
 
-// Use muted grey to distinguish BioProject IDs from study accession badges.
 const PRJ_STYLE = {
-  "--db": "#797979",
-  "--db-fg": "#696969",
-  "--db-fg-dark": "#8f8f8f",
+  "--db": NEUTRAL_BADGE_COLORS.prj.hex,
+  "--db-fg": NEUTRAL_BADGE_COLORS.prj.fg.light,
+  "--db-fg-dark": NEUTRAL_BADGE_COLORS.prj.fg.dark,
   cursor: "pointer",
   whiteSpace: "nowrap",
 } as CSSProperties;
 
-// tab10 muted's blue.
 const VISIT_STYLE = {
-  "--db": "#4878d0",
-  "--db-fg": "#3265c3",
-  "--db-fg-dark": "#6990d8",
+  "--db": NEUTRAL_BADGE_COLORS.visit.hex,
+  "--db-fg": NEUTRAL_BADGE_COLORS.visit.fg.light,
+  "--db-fg-dark": NEUTRAL_BADGE_COLORS.visit.fg.dark,
   cursor: "pointer",
   whiteSpace: "nowrap",
 } as CSSProperties;

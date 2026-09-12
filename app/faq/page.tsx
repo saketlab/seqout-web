@@ -268,19 +268,6 @@ export default async function FAQ() {
           tables, enriched annotations, similarity graphs, and download scripts.
         </Text>
 
-        <Text size={{ initial: "2", md: "3" }}>
-          seqout is the web companion to{" "}
-          <Link
-            href="https://saket-choudhary.me/pysradb/index.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            pysradb
-          </Link>
-          , a Python package for querying next-generation sequencing metadata
-          and data from NCBI Sequence Read Archive.
-        </Text>
-
         <Separator size="4" />
 
         <Flex align="center" gap="2" id="features">
