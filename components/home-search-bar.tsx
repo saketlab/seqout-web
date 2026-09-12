@@ -138,8 +138,14 @@ export default function HomeSearchBar() {
             </Link>
           </Text> */}
           <Text size={"1"} color="gray">
-            Search by — <Link href={"/pmid"}>PubMed ID</Link> or{" "}
+            Search by — <Link href={"/pmid/42020311"}>PubMed ID</Link> or{" "}
             <Link href={authorHref("Aviv Regev")}>author name</Link>
+          </Text>
+        </Flex>
+        <Flex gap="2" align="center" justify="center" wrap="wrap">
+          <Text size={"1"} color="gray">
+            Or browse — <Link href={"/technology/single-cell"}>Single cell</Link>{" "}
+            or <Link href={"/disease/rare"}>Rare diseases</Link>
           </Text>
         </Flex>
       </Flex>
