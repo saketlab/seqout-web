@@ -1,9 +1,5 @@
 "use client";
 import ExpansionSection from "@/components/expansion-section";
-import {
-  HOW_SEARCH_WORKS_KEY,
-  useFirstVisit,
-} from "@/components/first-visit-ping";
 import GitHubButton from "@/components/github-button";
 import SearchHistoryDropdown from "@/components/search-history-dropdown";
 import ThemeToggle from "@/components/theme-toggle";
@@ -71,8 +67,6 @@ function SearchBarContent({
   const { history, saveHistory, performSearch } = useSearchHistory();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [howSearchWorksSeen, markHowSearchWorksSeen] =
-    useFirstVisit(HOW_SEARCH_WORKS_KEY);
 
   const handleMenuSelect = (item: NavItem) => {
     if (item.external) {
