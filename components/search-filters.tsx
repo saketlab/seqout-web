@@ -168,6 +168,7 @@ export type SearchFacets = {
   library_strategy?: SearchFacetList;
   library_source?: SearchFacetList;
   instrument_model?: SearchFacetList;
+  platform?: SearchFacetList;
 };
 
 /** Facet counts from loaded results, overridden by server totals for its capped top values. Client counts retain the long tail for search within filters. */
@@ -743,16 +744,18 @@ export function SearchOrganismRail({
     ]);
   };
 
-  const platformCounts = new Map<string, number>();
-  for (const result of platformResults) {
-    for (const p of result.platforms ?? []) {
-      const plat = p.trim();
-      if (!plat) continue;
-      platformCounts.set(plat, (platformCounts.get(plat) ?? 0) + 1);
-    }
-  }
+  // Server-authoritative: /search omits platforms from result rows, so the
+  // counts come from /search/facets (client rows contribute nothing).
+  const platformCounts = buildFacetCounts(
+    serverFacets?.platform,
+    platformResults,
+    (r) => r.platforms ?? [],
+  );
 
+  // The facet mixes SRA platform enums with GEO GPL accessions. Only the enums
+  // belong here — GEO sequencer identity is already under Instrument models.
   const platformOptions = Array.from(platformCounts.entries())
+    .filter(([name]) => name in PLATFORM_DISPLAY)
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 
