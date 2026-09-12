@@ -1360,6 +1360,8 @@ export function SearchOrganismRail({
             top: "6rem",
             maxHeight: "calc(100vh - 7rem)",
             overflowY: "auto",
+            // Pull back the section padding so titles line up with the logo.
+            marginLeft: "calc(-1 * var(--space-2))",
           }}
           aria-label="Filters"
         >

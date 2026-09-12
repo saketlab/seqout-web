@@ -2272,7 +2272,8 @@ export default function SearchPageBody() {
 
       <Flex
         gap={"4"}
-        px={{ initial: "0", md: "4" }}
+        // Line the columns up with the search bar, which sits at p="3".
+        px={{ initial: "0", md: "3" }}
         width={{ initial: "98%", md: "100%" }}
         mx="auto"
         justify={{ initial: "start", md: "between" }}
