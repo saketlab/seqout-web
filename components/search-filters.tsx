@@ -413,13 +413,13 @@ function FilterSection({
   return (
     <details open={defaultOpen} className="seqout-filter-section">
       <summary>
-        <Flex align="center" py="1" minWidth="0">
+        <Flex align="center" minWidth="0">
           <Text size="2" weight="medium">
             {title}
           </Text>
         </Flex>
       </summary>
-      <Box pt="2" pb="3">
+      <Box px="2" pt="1" pb="3">
         {children}
       </Box>
     </details>

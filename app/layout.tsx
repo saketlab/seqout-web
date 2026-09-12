@@ -466,6 +466,7 @@ export default function RootLayout({
           .seqout-filter-section > summary {
             display: flex;
             align-items: center;
+            padding: var(--space-2);
             cursor: pointer;
             list-style: none;
             border-radius: var(--radius-2);
