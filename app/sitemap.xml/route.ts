@@ -7,6 +7,7 @@ import {
 } from "../sitemap/_utils";
 
 export const revalidate = 2592000;
+export const dynamic = "force-dynamic";
 
 const SOURCE_DATE_KEY: Record<string, string> = {
   geo: "geo",
