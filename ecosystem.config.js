@@ -13,6 +13,8 @@ module.exports = {
         NODE_ENV: "production",
         PORT: "3002",
         HOSTNAME: "127.0.0.1",
+        // hits the backend directly; going through seqout.org gets Cloudflare bot-challenged
+        PYSRAWEB_API_BASE: "http://127.0.0.1:8000",
       },
     },
   ],
