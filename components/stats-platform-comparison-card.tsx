@@ -341,13 +341,13 @@ export default function StatsPlatformComparisonCard() {
               >
                 {displayNames.get(p) ?? p}
                 <IconButton
-                  size="1"
+                  size="2"
                   variant="ghost"
                   aria-label={`Remove ${displayNames.get(p) ?? p}`}
                   style={{ color: "white", marginLeft: 2 }}
                   onClick={() => removePlatform(p)}
                 >
-                  <Cross1Icon width="10" height="10" />
+                  <Cross1Icon width="12" height="12" />
                 </IconButton>
               </Badge>
             ))}

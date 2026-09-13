@@ -5,6 +5,7 @@ import {
   Availability,
   CollectionTable,
   FacetSelect,
+  SearchFilter,
   TagList,
   useSortFilterState,
   type ColumnDef,
@@ -177,8 +178,11 @@ export default function DiseaseCollectionCard({
   const facets = useDiseaseFacets(collection);
   const projects = useDiseaseProjects(collection, filters, sort, scope);
 
-  const rows = projects.data?.results ?? NO_ROWS;
-  const total = projects.data?.total ?? 0;
+  const rows = useMemo(
+    () => projects.data?.pages.flatMap((p) => p.results) ?? NO_ROWS,
+    [projects.data],
+  );
+  const total = projects.data?.pages[0]?.total ?? 0;
   const facetEntries = useMemo(
     () => Object.entries(facets.data ?? NO_FACETS),
     [facets.data],
@@ -206,6 +210,10 @@ export default function DiseaseCollectionCard({
             </Select.Content>
           </Select.Root>
         </Flex>
+        <SearchFilter
+          value={filters.q ?? null}
+          onChange={(v) => setFilter("q", v)}
+        />
         {facetEntries.map(([facet, options]) => (
           <FacetSelect
             key={facet}
@@ -222,9 +230,12 @@ export default function DiseaseCollectionCard({
         columns={COLUMNS}
         rows={rows}
         total={total}
-        isFetching={projects.isFetching}
+        isFetching={projects.isFetching && !projects.isFetchingNextPage}
         sort={sort}
         toggleSort={toggleSort}
+        hasMore={projects.hasNextPage}
+        isFetchingMore={projects.isFetchingNextPage}
+        onLoadMore={() => projects.fetchNextPage()}
       />
     </Flex>
   );

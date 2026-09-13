@@ -23,6 +23,22 @@ const STATIC_PATHS = [
   "/pmid",
   "/disease/rare",
   "/disease/nord",
+  // Seed list for crawling; /country/{slug} works for any ISO country
+  // regardless of whether it's listed here (see resolveCountrySlug).
+  "/country/united-states",
+  "/country/china",
+  "/country/united-kingdom",
+  "/country/germany",
+  "/country/japan",
+  "/country/france",
+  "/country/south-korea",
+  "/country/canada",
+  "/country/india",
+  "/country/spain",
+  "/country/australia",
+  "/country/italy",
+  "/country/switzerland",
+  "/country/netherlands",
 ];
 
 export async function GET(

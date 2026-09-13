@@ -285,7 +285,7 @@ export async function generateProjectOgImage(
               display: "flex",
             }}
           >
-            Explore sequencing datasets • Unified metadata views
+            Explore sequencing datasets with unified metadata
           </div>
         </div>
       </div>

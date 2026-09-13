@@ -2,9 +2,21 @@
 
 import { humanize } from "@/utils/format";
 import type { DiseaseFacetValue, DiseaseFilters, DiseaseSort } from "@/utils/useStats";
-import { Badge, Box, Card, Flex, Popover, Select, Table, Text } from "@radix-ui/themes";
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Flex,
+  Popover,
+  Select,
+  Table,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
+import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import type { ComponentProps, ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const ALL = "__all__";
 const TAG_PREVIEW = 2;
@@ -154,7 +166,7 @@ export function FacetSelect({
       <Select.Root
         value={value ?? ALL}
         onValueChange={(v) => onChange(v === ALL ? null : v)}
-        size="1"
+        size={{ initial: "2", md: "1" }}
       >
         <Select.Trigger />
         <Select.Content>
@@ -167,6 +179,41 @@ export function FacetSelect({
         </Select.Content>
       </Select.Root>
     </Flex>
+  );
+}
+
+/** Debounced free-text search box; calls onChange 300ms after typing stops. */
+export function SearchFilter({
+  value,
+  onChange,
+  placeholder = "Search title or accession…",
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  placeholder?: string;
+}) {
+  const [draft, setDraft] = useState(value ?? "");
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      onChange(draft.trim() || null);
+    }, 300);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
+
+  return (
+    <TextField.Root
+      size={{ initial: "2", md: "1" }}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      placeholder={placeholder}
+      style={{ minWidth: 220 }}
+    >
+      <TextField.Slot>
+        <MagnifyingGlassIcon />
+      </TextField.Slot>
+    </TextField.Root>
   );
 }
 
@@ -219,6 +266,9 @@ export function CollectionTable<T extends { study_accession: string }>({
   isFetching,
   sort,
   toggleSort,
+  hasMore,
+  isFetchingMore,
+  onLoadMore,
 }: {
   columns: ColumnDef<T>[];
   rows: T[];
@@ -226,6 +276,9 @@ export function CollectionTable<T extends { study_accession: string }>({
   isFetching: boolean;
   sort: DiseaseSort;
   toggleSort: (key: string) => void;
+  hasMore?: boolean;
+  isFetchingMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   return (
     <>
@@ -267,13 +320,25 @@ export function CollectionTable<T extends { study_accession: string }>({
         </Table.Body>
         </Table.Root>
       </Box>
-      <Text size="1" color="gray">
-        {isFetching
-          ? "Loading…"
-          : total > rows.length
-            ? `Showing ${humanize(rows.length)} of ${humanize(total)} studies`
-            : null}
-      </Text>
+      <Flex align="center" gap="3">
+        <Text size="1" color="gray">
+          {isFetching
+            ? "Loading…"
+            : total > rows.length
+              ? `Showing ${humanize(rows.length)} of ${humanize(total)} studies`
+              : `${humanize(rows.length)} studies`}
+        </Text>
+        {hasMore ? (
+          <Button
+            size={{ initial: "2", md: "1" }}
+            variant="soft"
+            disabled={isFetchingMore}
+            onClick={onLoadMore}
+          >
+            {isFetchingMore ? "Loading…" : "Load more"}
+          </Button>
+        ) : null}
+      </Flex>
     </>
   );
 }

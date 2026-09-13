@@ -79,7 +79,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               fontSize: "0.875rem",
               lineHeight: 1.2,
               boxShadow:
-                "0 10px 32px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08)",
+                "0 10px 32px var(--black-a4), 0 2px 6px var(--black-a2)",
               border: "1px solid var(--gray-a6)",
               maxWidth: "min(90vw, 28rem)",
               whiteSpace: "nowrap",

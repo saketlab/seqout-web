@@ -11,10 +11,12 @@ import type {
   SourceTotals,
   TissueMicrobes,
 } from "@/utils/types";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
+// Backend caps `limit` at 200; "load more" pages through with offset.
+const COLLECTION_PAGE_SIZE = 200;
 
 export function useSourceTotals() {
   return useQuery({
@@ -227,11 +229,12 @@ function useCollectionProjects<TProject>(
     () => Object.entries(filters).sort(([a], [b]) => a.localeCompare(b)),
     [filters],
   );
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: [`${keyPrefix}-projects`, active, sort],
-    queryFn: ({ signal }) => {
+    queryFn: ({ signal, pageParam }) => {
       const qs = new URLSearchParams([
-        ["limit", "100"],
+        ["limit", String(COLLECTION_PAGE_SIZE)],
+        ["offset", String(pageParam)],
         ["sort", sort.key],
         ["order", sort.order],
         ...active,
@@ -240,6 +243,11 @@ function useCollectionProjects<TProject>(
         `${basePath}/projects?${qs.toString()}`,
         signal,
       );
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.results.length, 0);
+      return loaded < lastPage.total ? loaded : undefined;
     },
     placeholderData: (prev) => prev,
     staleTime: ONE_DAY,
@@ -310,6 +318,61 @@ export const useSingleCellProjects = (
     sort,
   );
 
+export interface CountrySummary {
+  studies: number;
+  samples: number | null;
+  experiments: number | null;
+  studies_with_fastq: number;
+  studies_with_sra: number;
+  studies_human: number;
+  studies_single_cell: number;
+  studies_long_read: number;
+  n_organisms: number;
+  first_year: number | null;
+  last_year: number | null;
+}
+
+export interface CountryProject {
+  study_accession: string;
+  title: string | null;
+  organism: string | null;
+  assay_l1: string | null;
+  assay_l2: string | null;
+  source: string;
+  n_samples: number | null;
+  n_experiments: number | null;
+  is_single_cell: boolean;
+  single_cell_modality: string | null;
+  center_name: string | null;
+  pmid: string | null;
+  year: number | null;
+  has_fastq: boolean | null;
+  has_sra: boolean | null;
+  n_runs: number | null;
+  n_fastq_runs: number | null;
+  n_sra_runs: number | null;
+  has_matrix: boolean | null;
+  n_cells: number | null;
+  has_long_read: boolean;
+  technologies: string[] | null;
+}
+
+export const useCountrySummary = (code: string) =>
+  useCollectionSummary<CountrySummary>(`/country/${code}`, `country-${code}`);
+export const useCountryFacets = (code: string) =>
+  useCollectionFacets(`/country/${code}`, `country-${code}`);
+export const useCountryProjects = (
+  code: string,
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) =>
+  useCollectionProjects<CountryProject>(
+    `/country/${code}`,
+    `country-${code}`,
+    filters,
+    sort,
+  );
+
 export function useDiseaseSummary(collection: string) {
   return useQuery({
     queryKey: ["disease-summary", collection],
@@ -350,11 +413,12 @@ export function useDiseaseProjects(
     () => Object.entries(filters).sort(([a], [b]) => a.localeCompare(b)),
     [filters],
   );
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["disease-projects", collection, active, sort, scope],
-    queryFn: ({ signal }) => {
+    queryFn: ({ signal, pageParam }) => {
       const qs = new URLSearchParams([
-        ["limit", "100"],
+        ["limit", String(COLLECTION_PAGE_SIZE)],
+        ["offset", String(pageParam)],
         ["sort", sort.key],
         ["order", sort.order],
         ["scope", scope],
@@ -364,6 +428,11 @@ export function useDiseaseProjects(
         `/disease/${collection}/projects?${qs.toString()}`,
         signal,
       );
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.results.length, 0);
+      return loaded < lastPage.total ? loaded : undefined;
     },
     placeholderData: (prev) => prev,
     staleTime: ONE_DAY,

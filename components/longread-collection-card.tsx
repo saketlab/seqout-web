@@ -5,6 +5,7 @@ import {
   Availability,
   CollectionTable,
   FacetSelect,
+  SearchFilter,
   Stat,
   TagList,
   orderedFacetKeys,
@@ -215,8 +216,11 @@ export default function LongReadCollectionCard() {
   const facets = useLongReadFacets();
   const projects = useLongReadProjects(filters, sort);
 
-  const rows = projects.data?.results ?? NO_ROWS;
-  const total = projects.data?.total ?? 0;
+  const rows = useMemo(
+    () => projects.data?.pages.flatMap((p) => p.results) ?? NO_ROWS,
+    [projects.data],
+  );
+  const total = projects.data?.pages[0]?.total ?? 0;
   const facetData = facets.data ?? NO_FACETS;
   const facetKeys = useMemo(
     () => orderedFacetKeys(facetData, FACET_ORDER),
@@ -247,6 +251,10 @@ export default function LongReadCollectionCard() {
       ) : null}
 
       <Flex gap="4" wrap="wrap" align="center">
+        <SearchFilter
+          value={filters.q ?? null}
+          onChange={(v) => setFilter("q", v)}
+        />
         {facetKeys.map((facet) => (
           <FacetSelect
             key={facet}
@@ -262,9 +270,12 @@ export default function LongReadCollectionCard() {
         columns={COLUMNS}
         rows={rows}
         total={total}
-        isFetching={projects.isFetching}
+        isFetching={projects.isFetching && !projects.isFetchingNextPage}
         sort={sort}
         toggleSort={toggleSort}
+        hasMore={projects.hasNextPage}
+        isFetchingMore={projects.isFetchingNextPage}
+        onLoadMore={() => projects.fetchNextPage()}
       />
     </Flex>
   );

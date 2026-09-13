@@ -182,7 +182,7 @@ export default function QueryHighlight() {
                   "padding:4px 8px;border-radius:6px;font-size:12px;line-height:1.4;" +
                   "font-family:var(--default-font-family,ui-sans-serif,system-ui,sans-serif);" +
                   "background:var(--gray-12);color:var(--gray-1);" +
-                  "box-shadow:0 4px 12px rgba(0,0,0,.18)";
+                  "box-shadow:0 4px 12px var(--black-a4)";
                 // Attach to the theme root, where --default-font-family and the gray scale are defined.
                 (
                   document.querySelector(".seqout-root-theme") ?? document.body

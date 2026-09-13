@@ -7,9 +7,16 @@ import { notFound } from "next/navigation";
 const SCOPE_NOTE =
   "Both are scoped to human patient material: cell lines and non-human models are excluded, and sample counts cover only the matching samples.";
 
-const COLLECTIONS: Record<
+export const COLLECTIONS: Record<
   string,
-  { heading: string; title: string; description: string; blurb: string }
+  {
+    heading: string;
+    title: string;
+    description: string;
+    blurb: string;
+    ogBadge: string;
+    ogSubtitle: string;
+  }
 > = {
   rare: {
     heading: "Rare disease datasets",
@@ -17,6 +24,8 @@ const COLLECTIONS: Record<
     description:
       "Explore sequencing studies annotated with NIH GARD rare diseases, matched by MONDO identifier, with per-study sample, cell, assay and sex breakdowns.",
     blurb: `Studies with at least one sample annotated with a NIH GARD rare disease, matched by MONDO identifier and its ancestor closure. ${SCOPE_NOTE}`,
+    ogBadge: "Rare disease",
+    ogSubtitle: "NIH GARD, matched by MONDO",
   },
   nord: {
     heading: "NORD rare disease datasets",
@@ -24,6 +33,8 @@ const COLLECTIONS: Record<
     description:
       "Explore sequencing studies annotated with a NORD rare disease, matched onto MONDO identifiers and their ancestor closure, with per-study sample, cell, assay and sex breakdowns.",
     blurb: `Studies with at least one sample annotated with a disease in NORD’s catalogue, matched by MONDO identifier and its ancestor closure. NORD publishes no identifier of its own, so the mapping is by name and covers 93% of its entries; the GARD collection is matched by exact cross-reference and is the stricter set. ${SCOPE_NOTE}`,
+    ogBadge: "NORD",
+    ogSubtitle: "NORD catalogue, matched by MONDO",
   },
 };
 
