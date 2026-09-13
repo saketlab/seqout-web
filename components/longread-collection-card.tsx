@@ -199,7 +199,7 @@ const COLUMNS: ColumnDef<LongReadProject>[] = [
   },
   {
     label: "Year",
-    sort: "first_published",
+    sort: "year",
     align: "right",
     info: "Publication year of the study record.",
     render: (r) => r.year ?? "—",
@@ -208,7 +208,7 @@ const COLUMNS: ColumnDef<LongReadProject>[] = [
 
 export default function LongReadCollectionCard() {
   const { filters, sort, toggleSort, setFilter } = useSortFilterState({
-    key: "n_experiments",
+    key: "year",
     order: "desc",
   });
 

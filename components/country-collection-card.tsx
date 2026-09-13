@@ -148,7 +148,7 @@ const COLUMNS: ColumnDef<CountryProject>[] = [
 
 export default function CountryCollectionCard({ code }: { code: string }) {
   const { filters, sort, toggleSort, setFilter } = useSortFilterState({
-    key: "n_samples",
+    key: "year",
     order: "desc",
   });
 

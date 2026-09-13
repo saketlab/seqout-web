@@ -186,7 +186,7 @@ const COLUMNS: ColumnDef<SingleCellProject>[] = [
 
 export default function SingleCellCollectionCard() {
   const { filters, sort, toggleSort, setFilter } = useSortFilterState({
-    key: "n_samples",
+    key: "year",
     order: "desc",
   });
 
