@@ -146,8 +146,9 @@ export default function HomeSearchBar() {
           <Text size={"1"} color="gray">
             Or browse —{" "}
             <Link href={"/technology/single-cell"}>single cell datasets</Link>,{" "}
-            <Link href={"/technology/longread"}>long read datasets</Link>, or{" "}
-            <Link href={"/disease/rare"}>rare disease datasets</Link>
+            <Link href={"/technology/longread"}>long read datasets</Link>,{" "}
+            <Link href={"/disease/rare"}>rare disease datasets</Link>, or{" "}
+            <Link href={"/country/india"}>datasets from India</Link>
           </Text>
         </Flex>
       </Flex>
