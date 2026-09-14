@@ -26,8 +26,8 @@ describe("expansionDisabled", () => {
 });
 
 describe("expansion preference", () => {
-  it("defaults to off with no storage (SSR) and round-trips with it", () => {
-    expect(readExpansionPreference()).toBe(false);
+  it("defaults to on with no storage (SSR) and round-trips with it", () => {
+    expect(readExpansionPreference()).toBe(true);
 
     const store = new Map<string, string>();
     const g = globalThis as { window?: unknown };
@@ -38,12 +38,12 @@ describe("expansion preference", () => {
       },
     };
     try {
-      // A browser that has never touched the switch searches the words as typed.
-      expect(readExpansionPreference()).toBe(false);
-      writeExpansionPreference(true);
+      // A browser that has never touched the switch searches with synonyms.
       expect(readExpansionPreference()).toBe(true);
       writeExpansionPreference(false);
       expect(readExpansionPreference()).toBe(false);
+      writeExpansionPreference(true);
+      expect(readExpansionPreference()).toBe(true);
     } finally {
       delete g.window;
     }

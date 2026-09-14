@@ -2355,9 +2355,9 @@ export default function SearchPageBody() {
                 </Text>
                 {filterToolbar}
               </Flex>
-              {query && (
+              {query && !isGeoSearch && (
                 <ExpansionSummary
-                  query={query}
+                  query={correction?.corrected_query ?? query}
                   on={!noExpansion}
                   without={excludeOntology}
                 />

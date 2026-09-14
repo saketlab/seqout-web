@@ -1,8 +1,10 @@
-// Defaults to on; a stored "0" means it was explicitly switched off. URL
-// settings override the stored default, so shared links keep their state.
+import { useSyncExternalStore } from "react";
+
+// Defaults to on ("0" stored means explicitly off); URL settings override the stored default so links stay shareable.
 export const EXPANSION_PARAM = "expand";
 
 const STORAGE_KEY = "seqout:term-expansion";
+const CHANGE_EVENT = "seqout:term-expansion-change";
 
 /** Whether the URL disables expansion, independently of the stored preference. */
 export function expansionDisabled(params: {
@@ -25,9 +27,24 @@ export function writeExpansionPreference(on: boolean): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, on ? "1" : "0");
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   } catch {
     // Storage unavailable; retain the setting for this page.
   }
+}
+
+function subscribeToExpansionPreference(callback: () => void): () => void {
+  window.addEventListener(CHANGE_EVENT, callback);
+  return () => window.removeEventListener(CHANGE_EVENT, callback);
+}
+
+/** Live view of the stored preference; true on the server and until mount (avoids a hydration mismatch). */
+export function useExpansionPreference(): boolean {
+  return useSyncExternalStore(
+    subscribeToExpansionPreference,
+    readExpansionPreference,
+    () => true,
+  );
 }
 
 /** Ontologies contributing synonyms, mirroring the server expansions.ONTOLOGIES list. The server ignores unknown IDs. */

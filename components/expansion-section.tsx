@@ -90,11 +90,11 @@ export default function ExpansionSection({ query }: { query: string }) {
     router.push(`${pathname}?${next.toString()}`);
   };
   // Key the graph on pending ontology settings so it previews the search Apply will run.
-  // No `open` gate: the summary strip needs this fetch before the dialog opens.
+  // Stays gated by open; ExpansionSummary already covers the ungated fetch.
   const { data, isLoading, isError } = useQuery({
     queryKey: ["search-expansion", query, without.join()],
     queryFn: ({ signal }) => getSearchExpansion(query, without, signal),
-    enabled: query.trim().length > 0 && !allOff,
+    enabled: open && query.trim().length > 0 && !allOff,
     staleTime: 5 * 60 * 1000,
   });
 

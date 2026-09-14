@@ -62,8 +62,7 @@ export function TermExpansionRow({
   );
 }
 
-// A Switch is a button and can't nest inside a trigger button, so this
-// mimics its classes as a span; clicks fall through to the wrapping button.
+// Mimics a Switch as a span since a real one can't nest inside a trigger button; clicks fall through to the wrapper.
 export function FakeSwitch({ checked }: { checked: boolean }) {
   const state = checked ? "checked" : "unchecked";
   return (

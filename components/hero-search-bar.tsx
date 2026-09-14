@@ -9,7 +9,7 @@ import {
   EXPANSION_PARAM,
   ONTOLOGY_PARAM,
   readDisabledOntologies,
-  readExpansionPreference,
+  useExpansionPreference,
   writeDisabledOntologies,
   writeExpansionPreference,
 } from "@/utils/termExpansion";
@@ -34,10 +34,8 @@ export default function HeroSearchBar() {
       inputRef.current?.focus();
     }
   }, []);
-  // Safe to read during the first render even though it is client-only state:
-  // the switch lives in a popover that mounts on open, so the server HTML and
-  // the hydration pass render the same thing (just the button) either way.
-  const [expansionOn, setExpansionOn] = useState(readExpansionPreference);
+  // Reads the shared store directly, keeping the visible switch in sync through hydration.
+  const expansionOn = useExpansionPreference();
   const [disabledOntologies, setDisabledOntologies] = useState(
     readDisabledOntologies,
   );
@@ -172,10 +170,7 @@ export default function HeroSearchBar() {
           </Box>
           <TermExpansionButton
             on={expansionOn}
-            onChange={(next) => {
-              setExpansionOn(next);
-              writeExpansionPreference(next);
-            }}
+            onChange={writeExpansionPreference}
             disabledOntologies={disabledOntologies}
             onChangeOntologies={(next) => {
               setDisabledOntologies(next);
