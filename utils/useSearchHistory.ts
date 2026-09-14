@@ -18,6 +18,7 @@ const CARRIED_PARAM_KEYS = [
   "year_to",
   "expand",
   "exclude_ontology",
+  "case",
 ];
 
 const buildSearchUrl = (query: string, carry?: URLSearchParams | null) => {

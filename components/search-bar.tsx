@@ -1,6 +1,12 @@
 "use client";
+import CaseSensitiveToggle, {
+  CASE_PARAM,
+} from "@/components/case-sensitive-toggle";
 import ExpansionSection from "@/components/expansion-section";
-import { HOW_SEARCH_WORKS_KEY, useFirstVisit } from "@/components/first-visit-ping";
+import {
+  HOW_SEARCH_WORKS_KEY,
+  useFirstVisit,
+} from "@/components/first-visit-ping";
 import GitHubButton from "@/components/github-button";
 import SearchHistoryDropdown, {
   searchHistoryComboboxProps,
@@ -25,7 +31,7 @@ import {
   TextField,
 } from "@radix-ui/themes";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useRef, useState } from "react";
 
 interface SearchBarProps {
@@ -76,6 +82,29 @@ function SearchBarContent({
   const { history, saveHistory, performSearch } = useSearchHistory();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  // Follows the URL on /search; elsewhere it only applies to the next search.
+  const urlCaseSensitive = searchParams.get(CASE_PARAM) === "1";
+  const [caseSensitive, setCaseSensitive] = useState(urlCaseSensitive);
+  const [prevUrlCaseSensitive, setPrevUrlCaseSensitive] =
+    useState(urlCaseSensitive);
+  if (urlCaseSensitive !== prevUrlCaseSensitive) {
+    setPrevUrlCaseSensitive(urlCaseSensitive);
+    setCaseSensitive(urlCaseSensitive);
+  }
+  const withCase = (params: URLSearchParams, on: boolean) => {
+    const next = new URLSearchParams(params.toString());
+    if (on) next.set(CASE_PARAM, "1");
+    else next.delete(CASE_PARAM);
+    return next;
+  };
+  const toggleCaseSensitive = (on: boolean) => {
+    setCaseSensitive(on);
+    // Re-run the current search right away, like the other search settings.
+    if (pathname === "/search" && searchParams.get("q")) {
+      router.push(`/search?${withCase(searchParams, on)}`);
+    }
+  };
   const [, markHowSearchWorksSeen] = useFirstVisit(HOW_SEARCH_WORKS_KEY);
 
   const handleMenuSelect = (item: NavItem) => {
@@ -91,7 +120,11 @@ function SearchBarContent({
     e.preventDefault();
     const trimmed = searchQuery.trim();
     if (trimmed) setLastSearchQuery(trimmed);
-    await performSearch(searchQuery, router.push, searchParams);
+    await performSearch(
+      searchQuery,
+      router.push,
+      withCase(searchParams, caseSensitive),
+    );
   };
 
   const handleHistoryClick = async (item: string) => {
@@ -99,7 +132,11 @@ function SearchBarContent({
     setIsFocused(false);
     const trimmed = item.trim();
     if (trimmed) setLastSearchQuery(trimmed);
-    await performSearch(item, router.push, searchParams);
+    await performSearch(
+      item,
+      router.push,
+      withCase(searchParams, caseSensitive),
+    );
   };
 
   const removeItem = (item: string, e: React.MouseEvent) => {
@@ -316,6 +353,10 @@ function SearchBarContent({
                 <TextField.Slot>
                   <MagnifyingGlassIcon height="16" width="16" />
                 </TextField.Slot>
+                <CaseSensitiveToggle
+                  on={caseSensitive}
+                  onChange={toggleCaseSensitive}
+                />
               </TextField.Root>
             </form>
 

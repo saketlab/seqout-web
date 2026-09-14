@@ -1,4 +1,5 @@
 "use client";
+import { CASE_PARAM } from "@/components/case-sensitive-toggle";
 import { ExpansionSummary } from "@/components/expansion-section";
 import { OrganismNameMode } from "@/components/organism_filter";
 import ResultCard from "@/components/result-card";
@@ -256,6 +257,8 @@ type SearchFilterParams = {
   journal: string[];
   multi_platform: boolean;
   long_read: boolean;
+  // Exact-case post-filter on the query (the search bar's "Aa" toggle).
+  case_sensitive: boolean;
   // Every time bound is day-level; the server's year_* params go unused.
   date_from?: string;
   date_to?: string;
@@ -273,6 +276,7 @@ function appendFilterParams(url: string, f: SearchFilterParams): string {
   for (const v of f.journal) add("journal", v);
   if (f.multi_platform) add("multi_platform", "true");
   if (f.long_read) add("long_read", "true");
+  if (f.case_sensitive) add("case_sensitive", "true");
   if (f.date_from) add("date_from", f.date_from);
   if (f.date_to) add("date_to", f.date_to);
   return url;
@@ -1072,6 +1076,7 @@ export default function SearchPageBody() {
   // expand=0 -> run the query as typed. Both /search and /search/facets take it,
   // so the list and the sidebar counts stay over the same match set.
   const noExpansion = expansionDisabled(searchParams);
+  const caseSensitive = searchParams.get(CASE_PARAM) === "1";
   // Ontologies switched off in the expansion dialog. Repeatable param, passed
   // straight through to /search and /search/facets so list and counts agree.
   const excludeOntology = useMemo(
@@ -1149,6 +1154,7 @@ export default function SearchPageBody() {
       journal: selectedJournalFilters,
       multi_platform: multiPlatformOnly,
       long_read: longReadOnly,
+      case_sensitive: caseSensitive,
       ...timeFilterToYears(timeFilter, customYearRange),
     }),
     [
@@ -1161,6 +1167,7 @@ export default function SearchPageBody() {
       selectedJournalFilters,
       multiPlatformOnly,
       longReadOnly,
+      caseSensitive,
       timeFilter,
       customYearRange,
     ],
@@ -1183,6 +1190,7 @@ export default function SearchPageBody() {
     selectedLibraryStrategyFilters,
     selectedLibrarySourceFilters,
     selectedInstrumentModelFilters,
+    caseSensitive,
     perPage,
   ]);
   const [prevPageResetKey, setPrevPageResetKey] = useState(pageResetKey);

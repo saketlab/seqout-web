@@ -1,4 +1,7 @@
 "use client";
+import CaseSensitiveToggle, {
+  CASE_PARAM,
+} from "@/components/case-sensitive-toggle";
 import SearchHistoryDropdown, {
   searchHistoryComboboxProps,
 } from "@/components/search-history-dropdown";
@@ -39,6 +42,7 @@ export default function HeroSearchBar() {
   const [disabledOntologies, setDisabledOntologies] = useState(
     readDisabledOntologies,
   );
+  const [caseSensitive, setCaseSensitive] = useState(false);
 
   // Carry the expansion default into the URL so the resulting search is shareable.
   const expansionParams = () => {
@@ -46,6 +50,7 @@ export default function HeroSearchBar() {
     if (!expansionOn) carry.set(EXPANSION_PARAM, "0");
     if (disabledOntologies.length)
       carry.set(ONTOLOGY_PARAM, disabledOntologies.join(","));
+    if (caseSensitive) carry.set(CASE_PARAM, "1");
     return carry;
   };
 
@@ -165,6 +170,10 @@ export default function HeroSearchBar() {
                 <TextField.Slot>
                   <MagnifyingGlassIcon height="16" width="16" />
                 </TextField.Slot>
+                <CaseSensitiveToggle
+                  on={caseSensitive}
+                  onChange={setCaseSensitive}
+                />
               </TextField.Root>
             </form>
           </Box>
