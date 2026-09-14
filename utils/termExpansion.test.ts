@@ -36,9 +36,34 @@ describe("expansion preference", () => {
         getItem: (k: string) => store.get(k) ?? null,
         setItem: (k: string, v: string) => void store.set(k, v),
       },
+      dispatchEvent: () => true,
     };
     try {
       // A browser that has never touched the switch searches with synonyms.
+      expect(readExpansionPreference()).toBe(true);
+      writeExpansionPreference(false);
+      expect(readExpansionPreference()).toBe(false);
+      writeExpansionPreference(true);
+      expect(readExpansionPreference()).toBe(true);
+    } finally {
+      delete g.window;
+    }
+  });
+
+  it("falls back to memory for the rest of the page when storage throws", () => {
+    const g = globalThis as { window?: unknown };
+    g.window = {
+      localStorage: {
+        getItem: () => {
+          throw new Error("blocked");
+        },
+        setItem: () => {
+          throw new Error("blocked");
+        },
+      },
+      dispatchEvent: () => true,
+    };
+    try {
       expect(readExpansionPreference()).toBe(true);
       writeExpansionPreference(false);
       expect(readExpansionPreference()).toBe(false);
@@ -77,6 +102,7 @@ function withStorage(run: () => void) {
       getItem: (k: string) => store.get(k) ?? null,
       setItem: (k: string, v: string) => void store.set(k, v),
     },
+    dispatchEvent: () => true,
   };
   try {
     run();

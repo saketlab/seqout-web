@@ -6,6 +6,9 @@ export const EXPANSION_PARAM = "expand";
 const STORAGE_KEY = "seqout:term-expansion";
 const CHANGE_EVENT = "seqout:term-expansion-change";
 
+// Fallback for when localStorage throws (private mode, quota, disabled storage).
+let memoryPreference: boolean | null = null;
+
 /** Whether the URL disables expansion, independently of the stored preference. */
 export function expansionDisabled(params: {
   get(key: string): string | null;
@@ -19,7 +22,7 @@ export function readExpansionPreference(): boolean {
   try {
     return window.localStorage.getItem(STORAGE_KEY) !== "0";
   } catch {
-    return true;
+    return memoryPreference ?? true;
   }
 }
 
@@ -27,15 +30,20 @@ export function writeExpansionPreference(on: boolean): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, on ? "1" : "0");
-    window.dispatchEvent(new Event(CHANGE_EVENT));
   } catch {
-    // Storage unavailable; retain the setting for this page.
+    memoryPreference = on;
   }
+  window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 function subscribeToExpansionPreference(callback: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, callback);
-  return () => window.removeEventListener(CHANGE_EVENT, callback);
+  // Reaches other open tabs; this tab's own write already dispatches the event above.
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
 }
 
 /** Live view of the stored preference; true on the server and until mount (avoids a hydration mismatch). */

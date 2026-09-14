@@ -231,6 +231,12 @@ export function ExpansionSummary({
   on: boolean;
   without: string[];
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    setExpanded(false);
+  }
   const allOff = without.length >= ONTOLOGIES.length;
   const { data } = useQuery({
     queryKey: ["search-expansion", query, without.join()],
@@ -243,12 +249,45 @@ export function ExpansionSummary({
   const synonyms = (data?.chunks ?? []).flatMap((c) => c.synonyms);
   if (synonyms.length === 0) return null;
 
-  const shown = synonyms.slice(0, 5);
+  const shown = expanded ? synonyms : synonyms.slice(0, 5);
   const rest = synonyms.length - shown.length;
   return (
     <Text size="1" color="gray">
-      Expanded with synonyms: {shown.join(", ")}
-      {rest > 0 && ` +${rest} more`}
+      Expanded with synonyms: {shown.join(", ")}{" "}
+      {rest > 0 ? (
+        <button
+          type="button"
+          aria-expanded={false}
+          aria-label={`Show ${rest} more synonym${rest === 1 ? "" : "s"}`}
+          onClick={() => setExpanded(true)}
+          style={TOGGLE_BUTTON_STYLE}
+        >
+          +{rest} more
+        </button>
+      ) : (
+        synonyms.length > 5 && (
+          <button
+            type="button"
+            aria-expanded={true}
+            aria-label="Show fewer synonyms"
+            onClick={() => setExpanded(false)}
+            style={TOGGLE_BUTTON_STYLE}
+          >
+            show less
+          </button>
+        )
+      )}
     </Text>
   );
 }
+
+// Padding grows the touch target; the negative margin cancels the visual shift.
+const TOGGLE_BUTTON_STYLE = {
+  background: "none",
+  border: "none",
+  padding: "6px 4px",
+  margin: "-6px -4px",
+  font: "inherit",
+  color: "var(--accent-11)",
+  cursor: "pointer",
+} as const;

@@ -2258,9 +2258,12 @@ export default function SearchPageBody() {
     />
   );
 
+  // Term expansion should reflect what actually ran, not the literal query.
+  const expansionQuery = correction?.corrected_query ?? query;
+
   return (
     <>
-      <SearchBar initialQuery={query} />
+      <SearchBar initialQuery={query} expansionQuery={expansionQuery} />
 
       <div
         role="status"
@@ -2355,9 +2358,9 @@ export default function SearchPageBody() {
                 </Text>
                 {filterToolbar}
               </Flex>
-              {query && !isGeoSearch && (
+              {expansionQuery && !isGeoSearch && (
                 <ExpansionSummary
-                  query={correction?.corrected_query ?? query}
+                  query={expansionQuery}
                   on={!noExpansion}
                   without={excludeOntology}
                 />

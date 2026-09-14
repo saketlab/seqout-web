@@ -31,17 +31,21 @@ import { Suspense, useRef, useState } from "react";
 interface SearchBarProps {
   initialQuery?: string | null;
   mobileVariant?: "default" | "compact";
+  // Overrides the URL's q with the corrected term after a did-you-mean replacement.
+  expansionQuery?: string | null;
 }
 
 export default function SearchBar({
   initialQuery,
   mobileVariant = "default",
+  expansionQuery,
 }: SearchBarProps) {
   return (
     <Suspense fallback={null}>
       <SearchBarContent
         initialQuery={initialQuery}
         mobileVariant={mobileVariant}
+        expansionQuery={expansionQuery}
       />
     </Suspense>
   );
@@ -50,6 +54,7 @@ export default function SearchBar({
 function SearchBarContent({
   initialQuery,
   mobileVariant = "default",
+  expansionQuery,
 }: SearchBarProps) {
   const compactMobile = mobileVariant === "compact";
   const { lastSearchQuery, setLastSearchQuery } = useSearchQuery();
@@ -329,7 +334,9 @@ function SearchBarContent({
           <Box
             display={{ initial: compactMobile ? "none" : "block", md: "block" }}
           >
-            <ExpansionSection query={searchParams.get("q") ?? ""} />
+            <ExpansionSection
+              query={expansionQuery ?? searchParams.get("q") ?? ""}
+            />
           </Box>
         </Flex>
       </Flex>
