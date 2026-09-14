@@ -23,6 +23,7 @@ import {
   HydrationBoundary,
   QueryClient,
 } from "@tanstack/react-query";
+import { Flex, Heading } from "@radix-ui/themes";
 import { normalizeGeoProjectPayload } from "@/utils/project";
 import { doiHref } from "@/utils/project";
 import type { Metadata } from "next";
@@ -189,11 +190,20 @@ export default async function ProjectLayout({ children, params }: Props) {
       <script type="application/ld+json">
         {escapeHtmlJson(breadcrumbJsonLd)}
       </script>
-      {}
+      {/* Server-rendered so the title paints before the client bundle (ssr:false)
+          loads; margins must match its header Flex or the title jumps on mount. */}
+      <Flex
+        ml={{ initial: "0", md: "12rem" }}
+        mr={{ initial: "0", md: "8rem" }}
+        pt="3"
+        px={{ initial: "4", md: "3" }}
+      >
+        <Heading as="h1" size={{ initial: "6", md: "8" }} weight="bold">
+          <span className="seqout-sr-only">{accession} — </span>
+          {title}
+        </Heading>
+      </Flex>
       <div className="seqout-sr-only">
-        <h1>
-          {accession} — {title}
-        </h1>
         <p>{description}</p>
         {organisms.length > 0 && <p>Organisms: {organisms.join(", ")}</p>}
         {libraryStrategies.length > 0 && (

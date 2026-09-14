@@ -2611,12 +2611,7 @@ export default function ProjectPage() {
             direction="column"
             gap="4"
           >
-            <Flex justify="between" style={{ width: "100%" }} align="center">
-              <Heading as="h1" size={{ initial: "6", md: "8" }} weight="bold">
-                <span className="seqout-sr-only">{accession} — </span>
-                {project.title}
-              </Heading>
-            </Flex>
+            {/* h1 renders server-side in layout.tsx; skip here to avoid duplicating it. */}
             <Flex justify="start" align={"center"} gap="2" wrap={"wrap"}>
               <DbBadge
                 size={{ initial: "2", md: "3" }}

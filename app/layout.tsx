@@ -285,6 +285,7 @@ export default function RootLayout({
       data-enable-grammarly="false"
     >
       <head>
+        <link rel="preconnect" href="https://api.github.com" />
         <LayoutStructuredData />
         <style
           dangerouslySetInnerHTML={{
