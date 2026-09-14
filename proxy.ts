@@ -1,3 +1,4 @@
+import { wantsMarkdown } from "@/lib/agent-markdown";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -9,8 +10,18 @@ const JUNK_RE = /^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g;
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
   const accessionMatch = pathname.match(ACCESSION_ROUTE);
+
+  // /p/[accession] has a dedicated markdown route; everything else falls back to a generic one.
+  if (wantsMarkdown(request)) {
+    const url = request.nextUrl.clone();
+    url.pathname =
+      accessionMatch?.[1] === "p"
+        ? `/agent/p/${accessionMatch[2]}`
+        : `/agent${pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
   if (accessionMatch) {
     const [, kind, raw] = accessionMatch;
     let decoded: string;
@@ -100,5 +111,7 @@ export const config = {
     "/project/s/:path*",
     "/project/gse/:path*",
     "/technology/singlecell",
+    // Broad match for markdown content negotiation; excludes internal/static paths.
+    "/((?!_next/static|_next/image|agent|api|.*\\.(?:ico|png|jpg|jpeg|svg|webp|gif|css|js|mjs|woff2?|ttf|map|json|xml|txt|webmanifest)$).*)",
   ],
 };

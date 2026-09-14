@@ -35,6 +35,7 @@ import { getJson, getJsonOrNull, getJsonWithTotal } from "@/utils/api";
 import { toServerFilters } from "@/utils/gridFilters";
 import { useServerFind } from "@/utils/useServerFind";
 import { copyToClipboard } from "@/utils/clipboard";
+import { PROJECT_HEADER_INSETS } from "@/utils/constants";
 import { dbForAccession } from "@/utils/db-colors";
 import { buildSupplementaryDownloadScript } from "@/utils/downloadScript";
 import { titleCaseCenter } from "@/utils/format";
@@ -1322,14 +1323,7 @@ export default function GeoProjectPage() {
       {/* Data state */}
       {accession && !isLoading && !isError && project && (
         <>
-          <Flex
-            ml={{ initial: "0", md: "12rem" }}
-            mr={{ initial: "0", md: "8rem" }}
-            py="3"
-            px={{ initial: "4", md: "3" }}
-            direction="column"
-            gap="4"
-          >
+          <Flex {...PROJECT_HEADER_INSETS} py="3" direction="column" gap="4">
             {/* h1 renders server-side in layout.tsx; skip here to avoid duplicating it. */}
             <Flex justify={"start"} align="center" gap="2" wrap="wrap">
               <DbBadge

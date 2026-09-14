@@ -1,5 +1,12 @@
 export const SITE_URL = "https://seqout.org";
 
+/** Shared by the project title's SSR heading and its client header so hydration doesn't shift the title. */
+export const PROJECT_HEADER_INSETS = {
+  ml: { initial: "0", md: "12rem" },
+  mr: { initial: "0", md: "8rem" },
+  px: { initial: "4", md: "3" },
+} as const;
+
 /** Date of the last full metadata index refresh. */
 export const LAST_INDEX_REFRESH = "April 26, 2026";
 

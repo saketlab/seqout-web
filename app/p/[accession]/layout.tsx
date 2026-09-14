@@ -11,6 +11,7 @@ import {
   type Archive,
   ARCHIVE_CATALOG_URLS as CATALOG_URLS,
   ARCHIVE_LICENSE_URLS as LICENSE_URLS,
+  PROJECT_HEADER_INSETS,
   SITE_URL,
 } from "@/utils/constants";
 import {
@@ -190,14 +191,8 @@ export default async function ProjectLayout({ children, params }: Props) {
       <script type="application/ld+json">
         {escapeHtmlJson(breadcrumbJsonLd)}
       </script>
-      {/* Server-rendered so the title paints before the client bundle (ssr:false)
-          loads; margins must match its header Flex or the title jumps on mount. */}
-      <Flex
-        ml={{ initial: "0", md: "12rem" }}
-        mr={{ initial: "0", md: "8rem" }}
-        pt="3"
-        px={{ initial: "4", md: "3" }}
-      >
+      {/* Server-rendered for LCP; the client header below it renders the rest. */}
+      <Flex {...PROJECT_HEADER_INSETS} pt="3">
         <Heading as="h1" size={{ initial: "6", md: "8" }} weight="bold">
           <span className="seqout-sr-only">{accession} — </span>
           {title}

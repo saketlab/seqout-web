@@ -38,7 +38,7 @@ import {
   parseProjectStringFields,
 } from "@/utils/api";
 import { copyToClipboard } from "@/utils/clipboard";
-import { SERVER_URL } from "@/utils/constants";
+import { PROJECT_HEADER_INSETS, SERVER_URL } from "@/utils/constants";
 import type { DbSource } from "@/utils/db-colors";
 
 import ProjectAuthors from "@/components/project-authors";
@@ -2603,14 +2603,7 @@ export default function ProjectPage() {
 
       {accession && !isLoading && !isError && project && (
         <>
-          <Flex
-            ml={{ initial: "0", md: "12rem" }}
-            mr={{ initial: "0", md: "8rem" }}
-            py="3"
-            px={{ initial: "4", md: "3" }}
-            direction="column"
-            gap="4"
-          >
+          <Flex {...PROJECT_HEADER_INSETS} py="3" direction="column" gap="4">
             {/* h1 renders server-side in layout.tsx; skip here to avoid duplicating it. */}
             <Flex justify="start" align={"center"} gap="2" wrap={"wrap"}>
               <DbBadge

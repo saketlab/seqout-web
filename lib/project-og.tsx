@@ -28,7 +28,7 @@ const labelByKind: Record<ProjectKind, string> = {
   gea: "GEA",
 };
 
-function decodeHtmlEntities(input: string): string {
+export function decodeHtmlEntities(input: string): string {
   return input
     .replace(/&#(\d+);/g, (_, dec) => {
       const code = Number(dec);
