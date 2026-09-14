@@ -42,7 +42,7 @@ export default function BioProjectBadge({
         href={ncbiHref ?? `https://www.ncbi.nlm.nih.gov/bioproject/${accession}`}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`Visit ${accession} BioProject page`}
+        aria-label={`Visit BioProject page for ${accession}`}
       >
         <Badge
           size={{ initial: "2", md: "3" }}

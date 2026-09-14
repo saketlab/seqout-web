@@ -1,7 +1,6 @@
 "use client";
 
 import CountryFlagIcon from "@/components/country-flag-icon";
-import { ensureAgGridModules } from "@/lib/ag-grid";
 import { SERVER_URL } from "@/utils/constants";
 import { humanize } from "@/utils/format";
 import { MapView } from "@deck.gl/core";
@@ -43,12 +42,10 @@ import {
 import type { PickingInfo } from "@deck.gl/core";
 import { useQuery } from "@tanstack/react-query";
 import type { ColDef } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
+import { AgGridReact } from "@/components/lazy-data-grid";
 import { useTheme } from "next-themes";
 import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-
-ensureAgGridModules();
 
 type ScaleBy = "projects" | "experiments";
 

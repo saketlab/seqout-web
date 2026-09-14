@@ -33,7 +33,7 @@ import {
   Tabs,
   Text,
 } from "@radix-ui/themes";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 type TabValue = "original" | "enriched" | "pentimento" | "longread";
 
@@ -124,6 +124,7 @@ export default function MetadataTableTabs({
     hasSupplementary: boolean;
   };
 }) {
+  const tabId = useId();
   const [seenEnriched, markEnrichedSeen] = useFirstVisit(
     "seqout-enriched-tab-clicked",
   );
@@ -199,7 +200,7 @@ export default function MetadataTableTabs({
   return (
     <>
       <Flex id={sectionId} justify="between" align="center" gap="2" wrap="wrap">
-        <Flex align="center" gap="2">
+        <Flex align="center" gap="2" wrap="wrap">
           <Heading as="h2" weight="medium" size="6">
             {sectionTitle}
           </Heading>
@@ -209,17 +210,31 @@ export default function MetadataTableTabs({
           )}
           <SectionAnchor id={sectionId} />
         </Flex>
-        <Flex align="center" gap="3">
+        <Flex
+          align="center"
+          gap="3"
+          wrap="wrap"
+          style={{ minWidth: 0, maxWidth: "100%" }}
+        >
           {hasExtraTab && (
             <Tabs.Root
+              style={{ minWidth: 0, maxWidth: "100%" }}
               value={activeTab}
               onValueChange={(value) => {
                 if (value === "enriched") markEnrichedSeen();
                 setTab(value as TabValue);
               }}
             >
-              <Tabs.List size="2">
-                <Tabs.Trigger value="original">
+              <Tabs.List
+                size="2"
+                aria-label={`${sectionTitle} metadata`}
+                style={{ flexWrap: "wrap", height: "auto" }}
+              >
+                <Tabs.Trigger
+                  value="original"
+                  id={`${tabId}-tab-original`}
+                  aria-controls={`${tabId}-panel-original`}
+                >
                   <Flex gap={"2"} align={"center"}>
                     <ArchiveIcon />
                     <span>Original</span>
@@ -235,6 +250,8 @@ export default function MetadataTableTabs({
                 {hasEnriched && (
                   <Tabs.Trigger
                     value="enriched"
+                    id={`${tabId}-tab-enriched`}
+                    aria-controls={`${tabId}-panel-enriched`}
                     style={{ position: "relative" }}
                   >
                     <Flex gap={"2"} align={"center"}>
@@ -256,7 +273,11 @@ export default function MetadataTableTabs({
                   </Tabs.Trigger>
                 )}
                 {hasPentimento && (
-                  <Tabs.Trigger value="pentimento">
+                  <Tabs.Trigger
+                    value="pentimento"
+                    id={`${tabId}-tab-pentimento`}
+                    aria-controls={`${tabId}-panel-pentimento`}
+                  >
                     <Flex gap={"2"} align={"center"}>
                       <LayersIcon />
                       <span>Pentimento</span>
@@ -271,7 +292,11 @@ export default function MetadataTableTabs({
                   </Tabs.Trigger>
                 )}
                 {hasLongRead && (
-                  <Tabs.Trigger value="longread">
+                  <Tabs.Trigger
+                    value="longread"
+                    id={`${tabId}-tab-longread`}
+                    aria-controls={`${tabId}-panel-longread`}
+                  >
                     <Flex gap={"2"} align={"center"}>
                       <MixIcon />
                       <span>Long-read chemistry</span>
@@ -341,29 +366,73 @@ export default function MetadataTableTabs({
           </Flex>
         </AlertDialog.Content>
       </AlertDialog.Root>
-      {activeTab === "pentimento" && <SingleCellCard accession={accession} />}
-      {activeTab === "longread" && (
-        <LongReadChemistryCard accession={accession} />
+      {hasExtraTab ? (
+        <div
+          id={`${tabId}-panel-original`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-original`}
+          hidden={activeTab !== "original"}
+          tabIndex={0}
+        >
+          {activeTab === "original" && originalContent}
+        </div>
+      ) : (
+        originalContent
       )}
-      {activeTab === "original" && originalContent}
-      {activeTab === "enriched" && enriched && (
-        <EnrichedMetadataGrid
-          data={enriched}
-          fetchNextPage={fetchNextPage}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-        />
+      {hasPentimento && (
+        <div
+          id={`${tabId}-panel-pentimento`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-pentimento`}
+          hidden={activeTab !== "pentimento"}
+          tabIndex={0}
+        >
+          {activeTab === "pentimento" && (
+            <SingleCellCard accession={accession} />
+          )}
+        </div>
       )}
-      {showEnriched && !enriched && isEnrichedLoading && (
-        <Flex align="center" gap="2">
-          <Spinner size="2" />
-          <Text size="2">Loading enriched metadata...</Text>
-        </Flex>
+      {hasLongRead && (
+        <div
+          id={`${tabId}-panel-longread`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-longread`}
+          hidden={activeTab !== "longread"}
+          tabIndex={0}
+        >
+          {activeTab === "longread" && (
+            <LongReadChemistryCard accession={accession} />
+          )}
+        </div>
       )}
-      {showEnriched && !enriched && !isEnrichedLoading && (
-        <Text size="2" color="gray">
-          No enriched metadata available for this study.
-        </Text>
+      {hasEnriched && (
+        <div
+          id={`${tabId}-panel-enriched`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-enriched`}
+          hidden={activeTab !== "enriched"}
+          tabIndex={0}
+        >
+          {showEnriched && enriched && (
+            <EnrichedMetadataGrid
+              data={enriched}
+              fetchNextPage={fetchNextPage}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+            />
+          )}
+          {showEnriched && !enriched && isEnrichedLoading && (
+            <Flex align="center" gap="2">
+              <Spinner size="2" />
+              <Text size="2">Loading enriched metadata...</Text>
+            </Flex>
+          )}
+          {showEnriched && !enriched && !isEnrichedLoading && (
+            <Text size="2" color="gray">
+              No enriched metadata available for this study.
+            </Text>
+          )}
+        </div>
       )}
     </>
   );

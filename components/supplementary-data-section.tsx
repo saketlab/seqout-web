@@ -3,7 +3,6 @@
 import SectionAnchor from "@/components/section-anchor";
 import { useToast } from "@/components/toast-provider";
 import {
-  ensureAgGridModules,
   searchColDef,
 } from "@/lib/ag-grid";
 import { copyToClipboard } from "@/utils/clipboard";
@@ -29,10 +28,8 @@ import {
   Text,
 } from "@radix-ui/themes";
 import type { ColDef, GridApi, ICellRendererParams } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
+import { AgGridReact } from "@/components/lazy-data-grid";
 import React, { useState } from "react";
-
-ensureAgGridModules();
 
 export function SupplementaryDataSection({
   accession,

@@ -5,11 +5,22 @@ import FooterGate from "@/components/footer-gate";
 import Wrapper from "@/components/wrapper";
 import { BRAND_BG } from "@/utils/constants";
 import { escapeHtmlJson } from "@/utils/json";
-import "@radix-ui/themes/styles.css";
+import "./theme.css";
 import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import localFont from "next/font/local";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+
+// Monospace labels should not compete with the heading font and CSS.
+const GeistMono = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
+});
 
 const GA_TRACKING_ID = "G-XF18RH7984";
 

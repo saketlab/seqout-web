@@ -111,7 +111,7 @@ type ProjectDatasetPayload = {
 };
 
 export type ProjectDatasetLookup =
-  | { status: "ok"; data: ProjectDatasetInfo }
+  | { status: "ok"; data: ProjectDatasetInfo; payload: ProjectDatasetPayload }
   | { status: "missing" }
   | { status: "error" };
 
@@ -149,6 +149,7 @@ export async function fetchProjectDatasetInfo(
   const title = payload.title?.trim();
   return {
     status: "ok",
+    payload,
     data: {
       title: title ? decodeHtmlEntities(title) : accession,
       authors: normalizeAuthors(payload.authors ?? null),

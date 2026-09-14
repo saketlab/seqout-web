@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   normalizeAuthors,
+  normalizeGeoProjectPayload,
   toDisplayText,
   parsePostgresTextArray,
 } from "./project";
@@ -51,5 +52,40 @@ describe("parsePostgresTextArray", () => {
   });
   it("preserves commas inside quoted entries", () => {
     expect(parsePostgresTextArray('{"a,b",c}')).toEqual(["a,b", "c"]);
+  });
+});
+
+describe("normalizeGeoProjectPayload", () => {
+  it("normalizes legacy strings without changing the fetched server payload", () => {
+    const payload = {
+      accession: "GSE182227",
+      neighbors: '[{"accession":"GSE123"}]',
+      organisms: '["Homo sapiens"]',
+    };
+    expect(normalizeGeoProjectPayload(payload)).toEqual({
+      accession: "GSE182227",
+      neighbors: [{ accession: "GSE123" }],
+      organisms: ["Homo sapiens"],
+    });
+    expect(typeof payload.neighbors).toBe("string");
+    expect(typeof payload.organisms).toBe("string");
+  });
+
+  it("handles malformed neighbors and delimited organism names", () => {
+    expect(
+      normalizeGeoProjectPayload({
+        neighbors: "not JSON",
+        organisms: "Homo sapiens; Mus musculus | ",
+      }),
+    ).toEqual({ neighbors: null, organisms: ["Homo sapiens", "Mus musculus"] });
+  });
+
+  it("preserves arrays, nulls, and unrelated metadata", () => {
+    const payload = {
+      organisms: ["Homo sapiens"],
+      neighbors: null,
+      title: "Study",
+    };
+    expect(normalizeGeoProjectPayload(payload)).toEqual(payload);
   });
 });

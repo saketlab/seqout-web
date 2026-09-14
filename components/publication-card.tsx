@@ -533,7 +533,7 @@ export default function PublicationCard({
                   href={pubmedHref(publication.pmid)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Open PMID ${publication.pmid} in PubMed`}
+                  aria-label={`View on PubMed: PMID ${publication.pmid}`}
                   style={{ textDecoration: "none" }}
                 >
                   <Badge

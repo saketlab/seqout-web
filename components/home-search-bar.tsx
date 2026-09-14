@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ARCHIVE_CATALOG_URLS,
   ARCHIVE_FULL_NAMES,
@@ -71,7 +69,7 @@ export default function HomeSearchBar() {
             <Link
               href={ARCHIVE_CATALOG_URLS[archive]}
               title={ARCHIVE_FULL_NAMES[archive]}
-              aria-label={ARCHIVE_FULL_NAMES[archive]}
+              aria-label={`${archive}: ${ARCHIVE_FULL_NAMES[archive]}`}
               target="_blank"
               rel="noopener noreferrer"
               className="seqout-inline-link"

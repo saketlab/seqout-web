@@ -2,7 +2,10 @@ import {
   fetchProjectDatasetInfo,
   fetchProjectTitleLookup,
 } from "@/lib/project-og";
-import { buildBreadcrumbJsonLd, buildDatasetJsonLd } from "@/lib/dataset-jsonld";
+import {
+  buildBreadcrumbJsonLd,
+  buildDatasetJsonLd,
+} from "@/lib/dataset-jsonld";
 import { escapeHtmlJson } from "@/utils/json";
 import {
   type Archive,
@@ -15,6 +18,12 @@ import {
   dbForAccession,
   type DbSource,
 } from "@/utils/db-colors";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
+import { normalizeGeoProjectPayload } from "@/utils/project";
 import { doiHref } from "@/utils/project";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -99,7 +108,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProjectLayout({ children, params }: Props) {
-  const accession = (await params).accession.toUpperCase();
+  const routeAccession = (await params).accession;
+  const accession = routeAccession.toUpperCase();
   const lookup = await fetchProjectDatasetInfo(accession);
   if (lookup.status === "missing") notFound();
   if (lookup.status === "error") {
@@ -158,7 +168,19 @@ export default async function ProjectLayout({ children, params }: Props) {
       },
     ],
   });
-  const breadcrumbJsonLd = buildBreadcrumbJsonLd(accession, canonicalUrl, SITE_URL);
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(
+    accession,
+    canonicalUrl,
+    SITE_URL,
+  );
+  const queryClient = new QueryClient();
+  // Reuses the record fetched above; SRA fetches separately and resolves neighbors from linked GEO studies.
+  if (accession.startsWith("G") || accession.startsWith("E-")) {
+    queryClient.setQueryData(
+      ["project", routeAccession],
+      normalizeGeoProjectPayload(lookup.payload),
+    );
+  }
 
   return (
     <>
@@ -178,7 +200,11 @@ export default async function ProjectLayout({ children, params }: Props) {
           <p>Library strategies: {libraryStrategies.join(", ")}</p>
         )}
       </div>
-      {children}
+      <main>
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          {children}
+        </HydrationBoundary>
+      </main>
     </>
   );
 }

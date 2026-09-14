@@ -146,3 +146,29 @@ export const normalizeAliases = (
     .forEach((alias) => deduped.add(alias));
   return Array.from(deduped);
 };
+
+/** Normalize the GEO API's legacy JSON-string fields before caching a project. */
+export function normalizeGeoProjectPayload<
+  T extends { neighbors?: unknown; organisms?: unknown },
+>(data: T): T {
+  const result = { ...data };
+  if (typeof result.neighbors === "string") {
+    try {
+      result.neighbors = JSON.parse(result.neighbors);
+    } catch {
+      result.neighbors = null;
+    }
+  }
+  if (typeof result.organisms === "string") {
+    const text = result.organisms;
+    try {
+      result.organisms = JSON.parse(text);
+    } catch {
+      result.organisms = text
+        .split(/[;,|]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+  return result;
+}

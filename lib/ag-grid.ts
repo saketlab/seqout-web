@@ -1,19 +1,4 @@
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  type BodyScrollEvent,
-  type ColDef,
-} from "ag-grid-community";
-
-let isAgGridRegistered = false;
-
-export const ensureAgGridModules = () => {
-  if (isAgGridRegistered) return;
-  ModuleRegistry.registerModules([AllCommunityModule]);
-  isAgGridRegistered = true;
-};
+import type { BodyScrollEvent, ColDef } from "ag-grid-community";
 
 /** Rows fetched per page for infinite-scroll tables. */
 export const TABLE_PAGE_SIZE = 20;

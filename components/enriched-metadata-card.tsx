@@ -1,7 +1,6 @@
 "use client";
 import { useWrapText } from "@/components/wrap-text-toggle";
 import {
-  ensureAgGridModules,
   infiniteScrollOnBodyScroll,
   TABLE_PAGE_SIZE,
   wrapColDef,
@@ -15,11 +14,9 @@ import {
 import { Badge, Flex, Spinner, Text, Tooltip } from "@radix-ui/themes";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
+import { AgGridReact } from "@/components/lazy-data-grid";
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
-
-ensureAgGridModules();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OntologySample = Record<string, any>;

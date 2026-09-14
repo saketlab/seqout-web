@@ -22,7 +22,6 @@ import SubmittingOrgPanel, {
 import { useToast } from "@/components/toast-provider";
 import { useWrapText } from "@/components/wrap-text-toggle";
 import {
-  ensureAgGridModules,
   infiniteScrollOnBodyScroll,
   lookupColDef,
   numberColDef,
@@ -45,6 +44,7 @@ import {
 } from "@/utils/organism-highlight";
 import {
   normalizeAliases,
+  normalizeGeoProjectPayload,
   normalizeAuthors,
   toDisplayText,
 } from "@/utils/project";
@@ -87,12 +87,10 @@ import type {
   ICellRendererParams,
   ValueGetterParams,
 } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
+import { AgGridReact } from "@/components/lazy-data-grid";
 import { useTheme } from "next-themes";
 import { useParams, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-
-ensureAgGridModules();
 
 type Project = {
   accession: string;
@@ -210,25 +208,7 @@ const fetchProject = async (
       neighbors?: SimilarNeighbor[] | string | null;
     }
   >(`/project/${accession}`);
-  if (data && typeof data.neighbors === "string") {
-    try {
-      data.neighbors = JSON.parse(data.neighbors) as SimilarNeighbor[];
-    } catch {
-      data.neighbors = null;
-    }
-  }
-  if (data && typeof data.organisms === "string") {
-    const organismText = data.organisms;
-    try {
-      data.organisms = JSON.parse(organismText) as string[];
-    } catch {
-      data.organisms = organismText
-        .split(/[;,|]/)
-        .map((item: string) => item.trim())
-        .filter((item: string) => item.length > 0);
-    }
-  }
-  return data as Project;
+  return normalizeGeoProjectPayload(data) as Project;
 };
 
 const SUMMARY_CHAR_LIMIT = 350;

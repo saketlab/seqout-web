@@ -1,12 +1,9 @@
 "use client";
 
-import * as FlagIcons from "country-flag-icons/react/3x2";
+import { hasFlag } from "country-flag-icons";
+import Image from "next/image";
 import { normalizeToAlpha2 } from "@/utils/country";
-import type { ReactElement, SVGProps } from "react";
-
-type FlagComponent = (props: SVGProps<SVGSVGElement>) => ReactElement;
-
-const flags = FlagIcons as Record<string, FlagComponent>;
+import type { CSSProperties } from "react";
 
 export default function CountryFlagIcon({
   code,
@@ -15,18 +12,18 @@ export default function CountryFlagIcon({
 }: {
   code: string | null | undefined;
   label?: string;
-  style?: SVGProps<SVGSVGElement>["style"];
+  style?: CSSProperties;
 }) {
   const alpha2 = normalizeToAlpha2(code);
-  if (!alpha2) return null;
-
-  const Flag = flags[alpha2];
-  if (!Flag) return null;
+  if (!alpha2 || !hasFlag(alpha2)) return null;
 
   return (
-    <Flag
-      role="img"
-      aria-label={label ?? alpha2}
+    <Image
+      src={`/flags/${alpha2}`}
+      alt={label ?? alpha2}
+      width={24}
+      height={16}
+      unoptimized
       style={{
         width: "1rem",
         height: "auto",

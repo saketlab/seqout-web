@@ -21,7 +21,6 @@ import { SupplementaryDataSection } from "@/components/supplementary-data-sectio
 import { useToast } from "@/components/toast-provider";
 import { useWrapText, WrapTextToggle } from "@/components/wrap-text-toggle";
 import {
-  ensureAgGridModules,
   infiniteScrollOnBodyScroll,
   lookupColDef,
   numberColDef,
@@ -91,7 +90,7 @@ import type {
   ICellRendererParams,
   ValueGetterParams,
 } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
+import { AgGridReact } from "@/components/lazy-data-grid";
 import { useTheme } from "next-themes";
 import { useParams, useSearchParams } from "next/navigation";
 import React, {
@@ -101,8 +100,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
-ensureAgGridModules();
 
 type Project = {
   accession: string;

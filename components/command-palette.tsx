@@ -34,41 +34,24 @@ type Command = {
   perform: () => void | Promise<void>;
 };
 
-export default function CommandPalette() {
+export default function CommandPalette({
+  open,
+  onOpenChange,
+  onCloseAutoFocus,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus: (event: Event) => void;
+}) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { showToast } = useToast();
   const { history, performSearch } = useSearchHistory();
 
-  const [open, setOpen] = useState(false);
+  const setOpen = onOpenChange;
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  // Reset inline on open so we avoid a setState-in-effect.
-  const openPalette = useCallback(() => {
-    setQuery("");
-    setActiveIndex(0);
-    setOpen(true);
-  }, []);
-  const closePalette = useCallback(() => {
-    setOpen(false);
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "k") return;
-      if (!(event.metaKey || event.ctrlKey)) return;
-      event.preventDefault();
-      if (open) {
-        closePalette();
-      } else {
-        openPalette();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, openPalette, closePalette]);
 
   // RAF defer to win the race against Radix Dialog's focus trap.
   useEffect(() => {
@@ -93,7 +76,7 @@ export default function CommandPalette() {
         router.push(href);
       }
     },
-    [router],
+    [router, setOpen],
   );
 
   const runSearch = useCallback(
@@ -101,7 +84,7 @@ export default function CommandPalette() {
       setOpen(false);
       await performSearch(text, (url) => router.push(url), null);
     },
-    [performSearch, router],
+    [performSearch, router, setOpen],
   );
 
   const commands = useMemo<Command[]>(() => {
@@ -202,6 +185,7 @@ export default function CommandPalette() {
     resolvedTheme,
     runSearch,
     setTheme,
+    setOpen,
     showToast,
   ]);
 
@@ -245,6 +229,7 @@ export default function CommandPalette() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Content
+        onCloseAutoFocus={onCloseAutoFocus}
         size="2"
         style={{
           width: "min(92vw, 38rem)",

@@ -4,7 +4,7 @@ import { Theme } from "@radix-ui/themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { ReactNode, useState } from "react";
-import CommandPalette from "./command-palette";
+import CommandPaletteLauncher from "./command-palette-launcher";
 import DynamicFavicon from "./dynamic-favicon";
 import KeyboardNavigator from "./keyboard-navigator";
 import PwaRegistrar from "./pwa-registrar";
@@ -38,7 +38,7 @@ export default function Wrapper({
           <Theme accentColor="indigo" className="seqout-root-theme">
             <ToastProvider>
               {children}
-              <CommandPalette />
+              <CommandPaletteLauncher />
               <KeyboardNavigator />
             </ToastProvider>
           </Theme>

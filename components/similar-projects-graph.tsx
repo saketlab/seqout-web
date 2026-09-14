@@ -18,7 +18,14 @@ import {
 } from "@radix-ui/themes";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export type SimilarNeighbor = {
   accession: string;
@@ -237,6 +244,7 @@ export default function SimilarProjectsGraph({
   coords3d,
   neighbors,
 }: SimilarProjectsGraphProps) {
+  const viewId = useId();
   const graphContainerRef = useRef<HTMLDivElement | null>(null);
   const mountRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<ForceGraph3DInstance | null>(null);
@@ -480,7 +488,8 @@ export default function SimilarProjectsGraph({
 
     // furthest-first removal: keep the N closest by rendered distance from center
     if (neighborLimit !== null) {
-      const dist = (n: GraphNode) => Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+      const dist = (n: GraphNode) =>
+        Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
       neighbors = [...neighbors]
         .sort((a, b) => dist(a) - dist(b))
         .slice(0, neighborLimit);
@@ -713,9 +722,21 @@ export default function SimilarProjectsGraph({
               setViewMode(value === "tab" ? "tab" : "graph")
             }
           >
-            <Tabs.List>
-              <Tabs.Trigger value="graph">Graph view</Tabs.Trigger>
-              <Tabs.Trigger value="tab">Table view</Tabs.Trigger>
+            <Tabs.List aria-label="Similar projects view">
+              <Tabs.Trigger
+                value="graph"
+                id={`${viewId}-graph-tab`}
+                aria-controls={`${viewId}-graph-panel`}
+              >
+                Graph view
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="tab"
+                id={`${viewId}-table-tab`}
+                aria-controls={`${viewId}-table-panel`}
+              >
+                Table view
+              </Tabs.Trigger>
             </Tabs.List>
           </Tabs.Root>
           {isBulkProjectMetadataLoading && (
@@ -774,19 +795,31 @@ export default function SimilarProjectsGraph({
         }}
       >
         <div
-          ref={mountRef}
-          role="img"
-          aria-label="Similar projects network graph. Switch to the Table view tab for a text alternative."
-          style={{
-            display: viewMode === "graph" ? "block" : "none",
-            width: "100%",
-            height: `${viewportHeight}px`,
-            border: "1px solid var(--gray-a6)",
-            borderRadius: "12px",
-            overflow: "hidden",
-          }}
-        />
+          id={`${viewId}-graph-panel`}
+          role="tabpanel"
+          aria-labelledby={`${viewId}-graph-tab`}
+          hidden={viewMode !== "graph"}
+          tabIndex={0}
+        >
+          <div
+            ref={mountRef}
+            role="img"
+            aria-label="Similar projects network graph. Switch to the Table view tab for a text alternative."
+            style={{
+              display: viewMode === "graph" ? "block" : "none",
+              width: "100%",
+              height: `${viewportHeight}px`,
+              border: "1px solid var(--gray-a6)",
+              borderRadius: "12px",
+              overflow: "hidden",
+            }}
+          />
+        </div>
         <div
+          id={`${viewId}-table-panel`}
+          role="tabpanel"
+          aria-labelledby={`${viewId}-table-tab`}
+          tabIndex={0}
           style={{
             display: viewMode === "tab" ? "block" : "none",
             width: "100%",
