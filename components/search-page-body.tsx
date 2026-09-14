@@ -1,4 +1,5 @@
 "use client";
+import { ExpansionSummary } from "@/components/expansion-section";
 import { OrganismNameMode } from "@/components/organism_filter";
 import ResultCard from "@/components/result-card";
 import SearchBar from "@/components/search-bar";
@@ -2354,6 +2355,13 @@ export default function SearchPageBody() {
                 </Text>
                 {filterToolbar}
               </Flex>
+              {query && (
+                <ExpansionSummary
+                  query={query}
+                  on={!noExpansion}
+                  without={excludeOntology}
+                />
+              )}
               {activeFilterChips}
 
               {correction?.mode === "replaced" ? (

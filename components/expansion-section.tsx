@@ -4,6 +4,7 @@
 
 import OntologySettingsButton from "@/components/ontology-settings-button";
 import {
+  FakeSwitch,
   TermExpansionLearnMore,
   WaypointsIcon,
 } from "@/components/term-expansion-control";
@@ -19,6 +20,7 @@ import {
   writeExpansionPreference,
 } from "@/utils/termExpansion";
 import {
+  Box,
   Button,
   Card,
   Dialog,
@@ -88,10 +90,11 @@ export default function ExpansionSection({ query }: { query: string }) {
     router.push(`${pathname}?${next.toString()}`);
   };
   // Key the graph on pending ontology settings so it previews the search Apply will run.
+  // No `open` gate: the summary strip needs this fetch before the dialog opens.
   const { data, isLoading, isError } = useQuery({
     queryKey: ["search-expansion", query, without.join()],
     queryFn: ({ signal }) => getSearchExpansion(query, without, signal),
-    enabled: open && query.trim().length > 0 && !allOff,
+    enabled: query.trim().length > 0 && !allOff,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -113,9 +116,12 @@ export default function ExpansionSection({ query }: { query: string }) {
             color="gray"
             variant="surface"
             size="3"
-            aria-label={`Term expansions (${ranExpanded ? "on" : "off"})`}
+            aria-label={`Term expansion (${ranExpanded ? "on" : "off"})`}
           >
             <WaypointsIcon />
+            <Box display={{ initial: "none", sm: "block" }}>
+              <Text size="2">Term expansion</Text>
+            </Box>
             <FakeSwitch checked={ranExpanded} />
           </Button>
         </Dialog.Trigger>
@@ -215,22 +221,34 @@ export default function ExpansionSection({ query }: { query: string }) {
   );
 }
 
-// A Switch is a button, so the real one cannot be nested inside the trigger
-// button. This borrows the Radix switch classes to render the same thing as a
-// span: it only reports whether expansion is on, and the click falls through to
-// the button.
-// ponytail: rides Radix internal class names; swap for the real Switch if the
-// trigger ever stops being a button.
-function FakeSwitch({ checked }: { checked: boolean }) {
-  const state = checked ? "checked" : "unchecked";
+/** Passive readout of which terms expanded, shown above the results list. Shares ExpansionSection's query key. */
+export function ExpansionSummary({
+  query,
+  on,
+  without,
+}: {
+  query: string;
+  on: boolean;
+  without: string[];
+}) {
+  const allOff = without.length >= ONTOLOGIES.length;
+  const { data } = useQuery({
+    queryKey: ["search-expansion", query, without.join()],
+    queryFn: ({ signal }) => getSearchExpansion(query, without, signal),
+    enabled: on && query.trim().length > 0 && !allOff,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (!on || data?.structured) return null;
+  const synonyms = (data?.chunks ?? []).flatMap((c) => c.synonyms);
+  if (synonyms.length === 0) return null;
+
+  const shown = synonyms.slice(0, 5);
+  const rest = synonyms.length - shown.length;
   return (
-    <span
-      className="rt-SwitchRoot rt-r-size-2 rt-variant-surface"
-      data-state={state}
-      data-accent-color="indigo"
-      aria-hidden
-    >
-      <span className="rt-SwitchThumb" data-state={state} />
-    </span>
+    <Text size="1" color="gray">
+      Expanded with synonyms: {shown.join(", ")}
+      {rest > 0 && ` +${rest} more`}
+    </Text>
   );
 }

@@ -62,6 +62,22 @@ export function TermExpansionRow({
   );
 }
 
+// A Switch is a button and can't nest inside a trigger button, so this
+// mimics its classes as a span; clicks fall through to the wrapping button.
+export function FakeSwitch({ checked }: { checked: boolean }) {
+  const state = checked ? "checked" : "unchecked";
+  return (
+    <span
+      className="rt-SwitchRoot rt-r-size-2 rt-variant-surface"
+      data-state={state}
+      data-accent-color="indigo"
+      aria-hidden
+    >
+      <span className="rt-SwitchThumb" data-state={state} />
+    </span>
+  );
+}
+
 export function TermExpansionLearnMore() {
   return (
     <Text size="1" color="gray">

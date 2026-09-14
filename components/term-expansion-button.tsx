@@ -3,14 +3,16 @@
 // Home-page ontology dialog with a master expansion switch and per-ontology switches.
 
 import { OntologyList } from "@/components/ontology-settings-button";
-import { WaypointsIcon } from "@/components/term-expansion-control";
+import { FakeSwitch, WaypointsIcon } from "@/components/term-expansion-control";
 import {
+  Box,
+  Button,
   Dialog,
   Flex,
-  IconButton,
   Link,
   Separator,
   Switch,
+  Text,
   Tooltip,
 } from "@radix-ui/themes";
 
@@ -27,16 +29,20 @@ export default function TermExpansionButton({
 }) {
   return (
     <Dialog.Root>
-      <Tooltip content="Term expansion">
+      <Tooltip content={`Term expansion (${on ? "on" : "off"})`}>
         <Dialog.Trigger>
-          <IconButton
-            variant="soft"
+          <Button
             color="gray"
+            variant="surface"
             size="3"
-            aria-label="Term expansion"
+            aria-label={`Term expansion (${on ? "on" : "off"})`}
           >
             <WaypointsIcon />
-          </IconButton>
+            <Box display={{ initial: "none", sm: "block" }}>
+              <Text size="2">Term expansion</Text>
+            </Box>
+            <FakeSwitch checked={on} />
+          </Button>
         </Dialog.Trigger>
       </Tooltip>
       <Dialog.Content size="3">

@@ -1,5 +1,5 @@
-// Query expansion defaults to off, using the API's structured mode.
-// URL settings override the stored default so shared links preserve their search.
+// Defaults to on; a stored "0" means it was explicitly switched off. URL
+// settings override the stored default, so shared links keep their state.
 export const EXPANSION_PARAM = "expand";
 
 const STORAGE_KEY = "seqout:term-expansion";
@@ -11,13 +11,13 @@ export function expansionDisabled(params: {
   return params.get(EXPANSION_PARAM) === "0";
 }
 
-/** Stored expansion default, false until enabled. */
+/** Stored expansion default, true unless explicitly turned off. */
 export function readExpansionPreference(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") return true;
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === "1";
+    return window.localStorage.getItem(STORAGE_KEY) !== "0";
   } catch {
-    return false;
+    return true;
   }
 }
 
