@@ -22,6 +22,10 @@ import type { ReactNode } from "react";
 
 export const revalidate = 86400;
 
+export async function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   children: ReactNode;
   params: Promise<{ accession: string }>;
@@ -163,6 +167,17 @@ export default async function ProjectLayout({ children, params }: Props) {
       <script type="application/ld+json">
         {escapeHtmlJson(breadcrumbJsonLd)}
       </script>
+      {}
+      <div className="seqout-sr-only">
+        <h1>
+          {accession} — {title}
+        </h1>
+        <p>{description}</p>
+        {organisms.length > 0 && <p>Organisms: {organisms.join(", ")}</p>}
+        {libraryStrategies.length > 0 && (
+          <p>Library strategies: {libraryStrategies.join(", ")}</p>
+        )}
+      </div>
       {children}
     </>
   );

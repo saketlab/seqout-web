@@ -41,6 +41,7 @@ export default function HomeSearchBar() {
           style={{ objectFit: "contain", userSelect: "none" }}
           draggable="false"
           priority
+          fetchPriority="high"
         />
         <Image
           className="logo-dark"
@@ -51,6 +52,7 @@ export default function HomeSearchBar() {
           style={{ objectFit: "contain", userSelect: "none" }}
           draggable="false"
           priority
+          fetchPriority="high"
         />
       </Box>
 

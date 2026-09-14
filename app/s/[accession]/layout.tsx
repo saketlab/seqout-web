@@ -21,6 +21,11 @@ const API_BASE_URL = process.env.PYSRAWEB_API_BASE ?? "https://seqout.org/api";
 
 export const revalidate = 86400;
 
+// empty array still opts this route into ISR, so revalidate takes effect (see app/p/[accession]/layout.tsx)
+export async function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   children: ReactNode;
   params: Promise<{ accession: string }>;

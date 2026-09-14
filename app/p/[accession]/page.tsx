@@ -1,6 +1,7 @@
 "use client";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import QueryHighlight from "@/components/query-highlight";
 
 // Dynamically import the appropriate project page component
@@ -25,7 +26,10 @@ export default function UnifiedProjectPage() {
 
   return (
     <>
-      <QueryHighlight />
+      {}
+      <Suspense fallback={null}>
+        <QueryHighlight />
+      </Suspense>
       {isGeoLike ? <GeoProjectPage /> : <SraProjectPage />}
     </>
   );

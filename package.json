@@ -57,6 +57,7 @@
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^3.2.6"
   },
+  "browserslist": ["baseline widely available"],
   "allowScripts": {
     "@vaadin/vaadin-usage-statistics@2.1.3": true,
     "esbuild@0.28.1": true,
