@@ -29,7 +29,8 @@ import { normalizeGeoProjectPayload } from "@/utils/project";
 import { doiHref } from "@/utils/project";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import SearchBar from "@/components/search-bar";
 
 export const revalidate = 86400;
 
@@ -191,6 +192,10 @@ export default async function ProjectLayout({ children, params }: Props) {
       <script type="application/ld+json">
         {escapeHtmlJson(breadcrumbJsonLd)}
       </script>
+      {/* Lives here, not in the client page, so it sits above the server-rendered h1. */}
+      <Suspense fallback={null}>
+        <SearchBar initialQuery={""} />
+      </Suspense>
       {/* Server-rendered for LCP; the client header below it renders the rest. */}
       <Flex {...PROJECT_HEADER_INSETS} pt="3">
         <Heading as="h1" size={{ initial: "6", md: "8" }} weight="bold">

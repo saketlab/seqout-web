@@ -11,7 +11,6 @@ import ProjectSummary from "@/components/project-summary";
 import PublicationCard, {
   StudyPublication,
 } from "@/components/publication-card";
-import SearchBar from "@/components/search-bar";
 import SectionAnchor from "@/components/section-anchor";
 import SimilarProjectsGraph, {
   SimilarNeighbor,
@@ -1234,8 +1233,6 @@ export default function GeoProjectPage() {
 
   return (
     <>
-      <SearchBar initialQuery={""} />
-
       {!accession && (
         <Flex
           gap="3"
