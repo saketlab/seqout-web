@@ -8,13 +8,15 @@ import {
   TermExpansionLearnMore,
   WaypointsIcon,
 } from "@/components/term-expansion-control";
-import { getSearchExpansion } from "@/utils/api";
+import { getOntologyTerm, getSearchExpansion } from "@/utils/api";
 import {
   EXPANSION_PARAM,
   ONTOLOGIES,
+  ONTOLOGY_COLORS,
   ONTOLOGY_PARAM,
   disabledOntologies,
   expansionDisabled,
+  ontologyFromXref,
   sameOntologies,
   writeDisabledOntologies,
   writeExpansionPreference,
@@ -33,10 +35,10 @@ import {
   Text,
   Tooltip,
 } from "@radix-ui/themes";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 // Client-only: React Flow accesses the DOM.
 const ExpansionGraph = dynamic(() => import("@/components/expansion-graph"), {
@@ -108,9 +110,7 @@ export default function ExpansionSection({ query }: { query: string }) {
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Tooltip
-        content={`Term expansions (${ranExpanded ? "on" : "off"})`}
-      >
+      <Tooltip content={`Term expansions (${ranExpanded ? "on" : "off"})`}>
         <Dialog.Trigger>
           <Button
             color="gray"
@@ -244,40 +244,139 @@ export function ExpansionSummary({
     enabled: on && query.trim().length > 0 && !allOff,
     staleTime: 5 * 60 * 1000,
   });
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const chunks = data?.chunks ?? [];
+  // search/expansion carries no xrefs, so fetch them separately per term.
+  const ontologyQueries = useQueries({
+    queries: chunks.map((c) => ({
+      queryKey: ["ontology-term", c.term],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        getOntologyTerm(c.term, signal),
+      enabled: on && !data?.structured,
+      staleTime: 10 * 60 * 1000,
+    })),
+  });
 
   if (!on || data?.structured) return null;
-  const synonyms = (data?.chunks ?? []).flatMap((c) => c.synonyms);
+  // Two chunks can share a synonym; keep the first spelling seen.
+  const seen = new Set<string>();
+  const synonyms = chunks
+    .flatMap((c) => c.synonyms)
+    .filter((s) => s.trim())
+    .filter((s) => {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   if (synonyms.length === 0) return null;
+
+  // First ontology (in canonical order) that has an xref for this synonym.
+  const ontologyByTerm = new Map<string, string>();
+  for (const q of ontologyQueries) {
+    for (const syn of q.data?.synonyms ?? []) {
+      const key = syn.name.toLowerCase();
+      if (ontologyByTerm.has(key)) continue;
+      for (const o of ONTOLOGIES) {
+        if (syn.xrefs.some((x) => ontologyFromXref(x) === o.id)) {
+          ontologyByTerm.set(key, o.id);
+          break;
+        }
+      }
+    }
+  }
+  const legend = ONTOLOGIES.filter((o) =>
+    synonyms.some((s) => ontologyByTerm.get(s.toLowerCase()) === o.id),
+  );
+
+  // Searches this term standalone, keeping the current db/sort/filters.
+  const termHref = (term: string) => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("q", term);
+    p.delete("cursor_rank");
+    p.delete("cursor_acc");
+    return `/search?${p.toString()}`;
+  };
 
   const shown = expanded ? synonyms : synonyms.slice(0, 5);
   const rest = synonyms.length - shown.length;
   return (
-    <Text size="1" color="gray">
-      Expanded with synonyms: {shown.join(", ")}{" "}
-      {rest > 0 ? (
-        <button
-          type="button"
-          aria-expanded={false}
-          aria-label={`Show ${rest} more synonym${rest === 1 ? "" : "s"}`}
-          onClick={() => setExpanded(true)}
-          style={TOGGLE_BUTTON_STYLE}
-        >
-          +{rest} more
-        </button>
-      ) : (
-        synonyms.length > 5 && (
+    <Flex direction="column" gap="1">
+      <Text size="1" color="gray">
+        Expanded with synonyms:{" "}
+        {shown.map((term, i) => {
+          const href = termHref(term);
+          const ontologyColor =
+            ONTOLOGY_COLORS[ontologyByTerm.get(term.toLowerCase()) ?? ""];
+          return (
+            <Fragment key={`${term}-${i}`}>
+              {i > 0 && ", "}
+              <a
+                href={href}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+                    return;
+                  e.preventDefault();
+                  router.push(href);
+                }}
+                style={SYNONYM_LINK_STYLE}
+              >
+                {ontologyColor && (
+                  <span
+                    aria-hidden
+                    style={{ ...ONTOLOGY_DOT_STYLE, background: ontologyColor }}
+                  />
+                )}
+                {term}
+              </a>
+            </Fragment>
+          );
+        })}{" "}
+        {rest > 0 ? (
           <button
             type="button"
-            aria-expanded={true}
-            aria-label="Show fewer synonyms"
-            onClick={() => setExpanded(false)}
+            aria-expanded={false}
+            aria-label={`Show ${rest} more synonym${rest === 1 ? "" : "s"}`}
+            onClick={() => setExpanded(true)}
             style={TOGGLE_BUTTON_STYLE}
           >
-            show less
+            +{rest} more
           </button>
-        )
+        ) : (
+          synonyms.length > 5 && (
+            <button
+              type="button"
+              aria-expanded={true}
+              aria-label="Show fewer synonyms"
+              onClick={() => setExpanded(false)}
+              style={TOGGLE_BUTTON_STYLE}
+            >
+              show less
+            </button>
+          )
+        )}
+      </Text>
+      {legend.length > 0 && (
+        <Flex gap="3" wrap="wrap">
+          {legend.map((o) => (
+            <Tooltip key={o.id} content={o.label}>
+              <Text size="1" color="gray">
+                <span
+                  aria-hidden
+                  style={{
+                    ...ONTOLOGY_DOT_STYLE,
+                    background: ONTOLOGY_COLORS[o.id],
+                  }}
+                />
+                {o.id}
+              </Text>
+            </Tooltip>
+          ))}
+        </Flex>
       )}
-    </Text>
+    </Flex>
   );
 }
 
@@ -290,4 +389,18 @@ const TOGGLE_BUTTON_STYLE = {
   font: "inherit",
   color: "var(--accent-11)",
   cursor: "pointer",
+} as const;
+
+const SYNONYM_LINK_STYLE = {
+  color: "var(--accent-11)",
+  textDecorationLine: "none",
+} as const;
+
+const ONTOLOGY_DOT_STYLE = {
+  display: "inline-block",
+  width: "6px",
+  height: "6px",
+  borderRadius: "9999px",
+  marginRight: "4px",
+  verticalAlign: "middle",
 } as const;

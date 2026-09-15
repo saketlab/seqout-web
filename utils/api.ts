@@ -110,9 +110,25 @@ export function getSearchExpansion(
   );
 }
 
+export interface OntologyTermResult {
+  name: string;
+  xrefs: string[];
+  synonyms: { name: string; xrefs: string[] }[];
+}
+
+/** Null if the term isn't in the graph. */
+export function getOntologyTerm(term: string, signal?: AbortSignal) {
+  return getJsonOrNull<OntologyTermResult>(
+    `/ontology/term?term=${encodeURIComponent(term)}&children=false`,
+    signal,
+  );
+}
+
 /** One comma-joined exclude_ontology, the shape /search and /search/facets take. */
 export function ontologyParams(ids: string[]): string {
-  return ids.length ? `&exclude_ontology=${encodeURIComponent(ids.join(","))}` : "";
+  return ids.length
+    ? `&exclude_ontology=${encodeURIComponent(ids.join(","))}`
+    : "";
 }
 
 /**
