@@ -63,11 +63,17 @@ export function TermExpansionRow({
 }
 
 // Mimics a Switch as a span since a real one can't nest inside a trigger button; clicks fall through to the wrapper.
-export function FakeSwitch({ checked }: { checked: boolean }) {
+export function FakeSwitch({
+  checked,
+  size = "2",
+}: {
+  checked: boolean;
+  size?: "1" | "2";
+}) {
   const state = checked ? "checked" : "unchecked";
   return (
     <span
-      className="rt-SwitchRoot rt-r-size-2 rt-variant-surface"
+      className={`rt-SwitchRoot rt-r-size-${size} rt-variant-surface`}
       data-state={state}
       data-accent-color="indigo"
       aria-hidden

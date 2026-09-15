@@ -35,13 +35,14 @@ export default function TermExpansionButton({
             color="gray"
             variant="surface"
             size="3"
+            style={{ gap: "var(--space-2)", paddingInline: "var(--space-3)" }}
             aria-label={`Term expansion (${on ? "on" : "off"})`}
           >
             <WaypointsIcon />
             <Box display={{ initial: "none", sm: "block" }}>
-              <Text size="2">Term expansion</Text>
+              <Text size="1">Term expansion</Text>
             </Box>
-            <FakeSwitch checked={on} />
+            <FakeSwitch checked={on} size="1" />
           </Button>
         </Dialog.Trigger>
       </Tooltip>
