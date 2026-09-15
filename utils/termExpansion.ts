@@ -103,6 +103,23 @@ export const ONTOLOGIES: readonly {
   },
 ] as const;
 
+// Radix tokens theme-adapt automatically; picked distinct from hues Badges/charts already use.
+export const ONTOLOGY_COLORS: Record<string, string> = {
+  MONDO: "var(--tomato-9)",
+  MeSH: "var(--cyan-9)",
+  HGNC: "var(--jade-9)",
+  CHEBI: "var(--orange-9)",
+  UBERON: "var(--sky-9)",
+  CL: "var(--plum-9)",
+  EFO: "var(--amber-9)",
+  CVCL: "var(--brown-9)",
+};
+
+/** Ontology id from a source CURIE, matching the server's xref-prefix rule. */
+export function ontologyFromXref(xref: string): string {
+  return xref.startsWith("CVCL_") ? "CVCL" : xref.split(":")[0];
+}
+
 /** Same name the API takes, so the page URL copies straight into the request. */
 export const ONTOLOGY_PARAM = "exclude_ontology";
 
