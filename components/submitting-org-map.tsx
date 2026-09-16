@@ -19,7 +19,7 @@ type Props = {
 export default function SubmittingOrgMap({ markers }: Props) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const tileUrl = getBasemapTileUrl(isDark, true);
+  const tileUrl = getBasemapTileUrl(isDark);
   const popupTheme = getLeafletPopupTheme(isDark);
 
   const center: [number, number] = [
@@ -43,7 +43,6 @@ export default function SubmittingOrgMap({ markers }: Props) {
         attribution={MAP_ATTRIBUTION_HTML}
         url={tileUrl}
         maxZoom={BASEMAP_MAX_ZOOM}
-        detectRetina
       />
       {markers.map((m, i) => {
         // archive text is submitter-authored; keep it out of innerHTML

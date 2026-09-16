@@ -12,6 +12,7 @@ import SectionAnchor from "@/components/section-anchor";
 import { useToast } from "@/components/toast-provider";
 import {
   BASEMAP_MAX_ZOOM,
+  getBasemapLabelTileUrl,
   getBasemapTileUrl,
   getMapCanvasTheme,
   getMapMutedTextColor,
@@ -746,6 +747,39 @@ export default function StatsGlobalContributionsCard() {
     [isDark],
   );
 
+  // Esri's gray canvas carries no labels; this overlay adds them back.
+  const labelLayer = useMemo(
+    () =>
+      new TileLayer({
+        id: "label-tiles",
+        data: getBasemapLabelTileUrl(isDark),
+        minZoom: 0,
+        maxZoom: BASEMAP_MAX_ZOOM,
+        tileSize: 256,
+        renderSubLayers: (props: Record<string, unknown>) => {
+          const tile = props.tile as {
+            boundingBox: [[number, number], [number, number]];
+          };
+          const { boundingBox } = tile;
+          return new BitmapLayer({
+            ...props,
+            id: props.id as string,
+            data: undefined,
+            image: props.data as string,
+            bounds: [
+              boundingBox[0][0],
+              boundingBox[0][1],
+              boundingBox[1][0],
+              boundingBox[1][1],
+            ],
+            parameters: { depthTest: false },
+            opacity: 0.6,
+          });
+        },
+      }),
+    [isDark],
+  );
+
   const sizeFactor = 0.2 + (pointSize / 100) * 1.6;
 
   const [containerWidth, setContainerWidth] = useState(600);
@@ -820,7 +854,7 @@ export default function StatsGlobalContributionsCard() {
     [isDark],
   );
 
-  const layers = [tileLayer, indiaBorderLayer, scatterLayer];
+  const layers = [tileLayer, indiaBorderLayer, scatterLayer, labelLayer];
 
   const deckContainerRef = useRef<HTMLDivElement>(null);
   const [selectedLocation, setSelectedLocation] = useState<{

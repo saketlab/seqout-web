@@ -76,23 +76,49 @@ export function getMapCanvasTheme(isDark: boolean): MapCanvasTheme {
 
 export const MAP_ATTRIBUTION_COLOR = "#999999" as const;
 
-// alidade_smooth bakes in labels, so the map needs no overlay.
-// Stadia allowlists by Referer; an unregistered domain gets 401 tiles.
-const STADIA = "https://tiles.stadiamaps.com/tiles";
+// Stadia quota exhausted; swap the export bodies back once resolved.
+// // alidade_smooth bakes in labels, so the map needs no overlay.
+// // Stadia allowlists by Referer; an unregistered domain gets 401 tiles.
+// const STADIA = "https://tiles.stadiamaps.com/tiles";
+//
+// // pass retina only for renderers that substitute Leaflet's {r}
+// export function getBasemapTileUrl(isDark: boolean, retina = false): string {
+//   const style = isDark ? "alidade_smooth_dark" : "alidade_smooth";
+//   return `${STADIA}/${style}/{z}/{x}/{y}${retina ? "{r}" : ""}.png`;
+// }
+//
+// // Stadia's raster tiles top out at zoom 20.
+// export const BASEMAP_MAX_ZOOM = 20;
+//
+// // licence obligation; keep every form here so they stay in sync
+// export const MAP_ATTRIBUTION_SOURCES = [
+//   { label: "Stadia Maps", href: "https://stadiamaps.com/" },
+//   { label: "OpenMapTiles", href: "https://openmaptiles.org/" },
+//   { label: "OpenStreetMap", href: "https://www.openstreetmap.org/copyright" },
+// ] as const;
 
-// pass retina only for renderers that substitute Leaflet's {r}
-export function getBasemapTileUrl(isDark: boolean, retina = false): string {
-  const style = isDark ? "alidade_smooth_dark" : "alidade_smooth";
-  return `${STADIA}/${style}/{z}/{x}/{y}${retina ? "{r}" : ""}.png`;
+// Esri gray canvas needs no key; note {z}/{y}/{x} order and 256px tiles.
+const ESRI = "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas";
+
+// Esri serves no labels; pair with getBasemapLabelTileUrl.
+export function getBasemapTileUrl(isDark: boolean): string {
+  const style = isDark ? "World_Dark_Gray_Base" : "World_Light_Gray_Base";
+  return `${ESRI}/${style}/MapServer/tile/{z}/{y}/{x}`;
 }
 
-// Stadia's raster tiles top out at zoom 20.
-export const BASEMAP_MAX_ZOOM = 20;
+/** Esri's place-name overlay for the plain gray canvas above. */
+export function getBasemapLabelTileUrl(isDark: boolean): string {
+  const style = isDark
+    ? "World_Dark_Gray_Reference"
+    : "World_Light_Gray_Reference";
+  return `${ESRI}/${style}/MapServer/tile/{z}/{y}/{x}`;
+}
+
+export const BASEMAP_MAX_ZOOM = 16;
 
 // licence obligation; keep every form here so they stay in sync
 export const MAP_ATTRIBUTION_SOURCES = [
-  { label: "Stadia Maps", href: "https://stadiamaps.com/" },
-  { label: "OpenMapTiles", href: "https://openmaptiles.org/" },
+  { label: "Esri", href: "https://www.esri.com/" },
   { label: "OpenStreetMap", href: "https://www.openstreetmap.org/copyright" },
 ] as const;
 export const MAP_ATTRIBUTION_TEXT = MAP_ATTRIBUTION_SOURCES.map(
