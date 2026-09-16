@@ -1344,6 +1344,9 @@ export default function SearchPageBody() {
       }>;
     },
     enabled: !isGeoSearch && !!query,
+    // Instant-apply filters refetch on every tick; hold the previous facets so
+    // the sidebar counts don't blank out between them.
+    placeholderData: (prev) => prev,
   });
   const serverFacets = facetsResponse?.facets;
 
@@ -2149,6 +2152,27 @@ export default function SearchPageBody() {
     onDiscardMoreFilters: discardMoreFilters,
   };
 
+  // The left sidebar applies each tick straight to the URL, so it reads
+  // committed values instead of the dialog's Apply-gated optimistic copy.
+  const instantFilterProps = {
+    selectedJournalFilters,
+    setSelectedJournalFilters: handleSetJournalFilters,
+    selectedCountryFilters,
+    setSelectedCountryFilters: handleSetCountryFilters,
+    selectedLibraryStrategyFilters,
+    setSelectedLibraryStrategyFilters: handleSetLibraryStrategyFilters,
+    selectedLibrarySourceFilters,
+    setSelectedLibrarySourceFilters: handleSetLibrarySourceFilters,
+    selectedInstrumentModelFilters,
+    setSelectedInstrumentModelFilters: handleSetInstrumentModelFilters,
+    selectedPlatformFilters,
+    setSelectedPlatformFilters: handleSetPlatformFilters,
+    multiPlatformOnly,
+    setMultiPlatformOnly: handleSetMultiPlatform,
+    longReadOnly,
+    setLongReadOnly: handleSetLongRead,
+  };
+
   const hasAnyFilter =
     selectedOrganismKey != null ||
     selectedJournalFilters.length > 0 ||
@@ -2284,12 +2308,26 @@ export default function SearchPageBody() {
 
       <Flex
         gap={"4"}
-        px={{ initial: "0", md: "4" }}
+        // Line the columns up with the search bar, which sits at p="3".
+        px={{ initial: "0", md: "3" }}
         width={{ initial: "98%", md: "100%" }}
         mx="auto"
         justify={{ initial: "start", md: "between" }}
         direction={{ initial: "column", md: "row" }}
       >
+        {/* Left column: the filters that used to sit behind "More filters".
+            Stays mounted while loading — every tick refetches, and unmounting
+            would collapse the open sections under the user. */}
+        {isLoading || shouldShowOrganismRail ? (
+          <SearchOrganismRail
+            {...railProps}
+            {...instantFilterProps}
+            showMobile={false}
+            showDesktop={false}
+            showDesktopFilters
+          />
+        ) : null}
+
         <Flex
           gap="4"
           direction="column"
@@ -2298,8 +2336,8 @@ export default function SearchPageBody() {
               ? "100%"
               : {
                   initial: "100%",
-                  md: "calc(100% - 240px)",
-                  lg: "calc(100% - 300px)",
+                  md: "calc(100% - 240px - 11rem)",
+                  lg: "calc(100% - 300px - 11rem)",
                 }
           }
           minWidth="0"

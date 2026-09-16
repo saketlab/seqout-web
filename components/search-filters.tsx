@@ -20,6 +20,7 @@ import {
 } from "@radix-ui/react-icons";
 import {
   Badge,
+  Box,
   Button,
   Card,
   Checkbox,
@@ -168,6 +169,7 @@ export type SearchFacets = {
   library_strategy?: SearchFacetList;
   library_source?: SearchFacetList;
   instrument_model?: SearchFacetList;
+  platform?: SearchFacetList;
 };
 
 /** Facet counts from loaded results, overridden by server totals for its capped top values. Client counts retain the long tail for search within filters. */
@@ -398,6 +400,106 @@ function normalizeDateRange(
   return { from, to };
 }
 
+// ponytail: native <details>, not an accordion component. Styling lives in the
+// .seqout-filter-section rules in app/layout.tsx.
+function FilterSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} className="seqout-filter-section">
+      <summary>
+        <Flex align="center" minWidth="0">
+          <Text size="2" weight="medium">
+            {title}
+          </Text>
+        </Flex>
+      </summary>
+      <Box px="2" pt="1" pb="3">
+        {children}
+      </Box>
+    </details>
+  );
+}
+
+// Search box + checkbox list shared by every sidebar facet section.
+function FacetCheckList({
+  query,
+  setQuery,
+  placeholder,
+  options,
+  selected,
+  onToggle,
+  emptyLabel,
+}: {
+  query: string;
+  setQuery: (value: string) => void;
+  placeholder: string;
+  options: { key: string; label: string; count: number }[];
+  selected: string[];
+  onToggle: (key: string) => void;
+  emptyLabel: string;
+}) {
+  return (
+    <Flex direction="column" gap="2">
+      {/* Short lists scan faster than they search. `query` keeps the box up once
+          typing has narrowed the list below the threshold. */}
+      {options.length > 10 || query ? (
+        <TextField.Root
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          size="1"
+        >
+          <TextField.Slot>
+            <MagnifyingGlassIcon height="14" width="14" />
+          </TextField.Slot>
+        </TextField.Root>
+      ) : null}
+      {options.length > 0 ? (
+        <Flex
+          direction="column"
+          gap="2"
+          style={{ maxHeight: "14rem", overflowY: "auto" }}
+        >
+          {options.map((option) => (
+            <Text as="label" size="1" key={option.key}>
+              <Flex align="start" justify="between" gap="2">
+                <Flex align="start" gap="2" minWidth="0">
+                  <Checkbox
+                    size="1"
+                    checked={selected.includes(option.key)}
+                    onCheckedChange={() => onToggle(option.key)}
+                  />
+                  <span style={{ overflowWrap: "anywhere" }}>
+                    {option.label}
+                  </span>
+                </Flex>
+                <Badge color="gray" variant="soft">
+                  {option.count}
+                </Badge>
+              </Flex>
+            </Text>
+          ))}
+        </Flex>
+      ) : (
+        <Text size="1" color="gray">
+          {emptyLabel}
+        </Text>
+      )}
+    </Flex>
+  );
+}
+
+// Matches the search navbar logo width, so the column lines up under it.
+const FILTERS_SIDEBAR_WIDTH = "10rem";
+
 export function SearchOrganismRail({
   results,
   serverFacets,
@@ -432,6 +534,7 @@ export function SearchOrganismRail({
   onDiscardMoreFilters,
   showMobile = false,
   showDesktop = true,
+  showDesktopFilters = false,
 }: {
   results: SearchResult[];
   serverFacets?: SearchFacets;
@@ -468,6 +571,9 @@ export function SearchOrganismRail({
   onDiscardMoreFilters: () => void;
   showMobile?: boolean;
   showDesktop?: boolean;
+  // Left-hand filter column (the old More filters dialog), rendered separately
+  // from the right-hand organism rail.
+  showDesktopFilters?: boolean;
 }) {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [organismsOpen, setOrganismsOpen] = useState(false);
@@ -644,19 +750,21 @@ export function SearchOrganismRail({
     ]);
   };
 
+  // Server-authoritative: /search omits platforms from result rows, so the
+  // counts come from /search/facets (client rows contribute nothing).
+  // The facet mixes SRA platform enums with GEO GPL accessions. Only the enums
+  // belong here — GEO sequencer identity is already under Instrument models.
   const platformOptions = useMemo(() => {
-    const platformCounts = new Map<string, number>();
-    for (const result of platformResults) {
-      for (const p of result.platforms ?? []) {
-        const plat = p.trim();
-        if (!plat) continue;
-        platformCounts.set(plat, (platformCounts.get(plat) ?? 0) + 1);
-      }
-    }
+    const platformCounts = buildFacetCounts(
+      serverFacets?.platform,
+      platformResults,
+      (r) => r.platforms ?? [],
+    );
     return Array.from(platformCounts.entries())
+      .filter(([name]) => name in PLATFORM_DISPLAY)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-  }, [platformResults]);
+  }, [serverFacets?.platform, platformResults]);
 
   const [platformQuery, setPlatformQuery] = useState("");
   const normalizedPlatformQuery = platformQuery.trim().toLowerCase();
@@ -746,7 +854,7 @@ export function SearchOrganismRail({
             <Dialog.Trigger>
               <Button>
                 <MixerHorizontalIcon />
-                More filters
+                Filters
               </Button>
             </Dialog.Trigger>
             <Dialog.Content
@@ -758,7 +866,7 @@ export function SearchOrganismRail({
             >
               <Flex align={"center"} justify={"between"}>
                 <Dialog.Title mb="0">
-                  <Text>More filters</Text>
+                  <Text>Filters</Text>
                 </Dialog.Title>
                 <Flex align={"center"} gap={"2"}>
                   {selectedFilterCount > 0 ? (
@@ -1245,6 +1353,169 @@ export function SearchOrganismRail({
         </Flex>
       ) : null}
 
+      {/* Left column: everything that used to live in the More filters dialog. */}
+      {showDesktopFilters ? (
+        <Flex
+          display={{ initial: "none", md: "flex" }}
+          direction="column"
+          gap="2"
+          width={FILTERS_SIDEBAR_WIDTH}
+          position="sticky"
+          style={{
+            top: "6rem",
+            maxHeight: "calc(100vh - 7rem)",
+            overflowY: "auto",
+            // Pull back the section padding so titles line up with the logo.
+            marginLeft: "calc(-1 * var(--space-2))",
+          }}
+          aria-label="Filters"
+        >
+          <FilterSection
+            title="Platform"
+          >
+            <Flex direction="column" gap="2">
+              <Text as="label" size="1">
+                <Flex align="center" gap="2">
+                  <Checkbox
+                    size="1"
+                    checked={multiPlatformOnly}
+                    onCheckedChange={(checked) =>
+                      setMultiPlatformOnly(checked === true)
+                    }
+                  />
+                  <span>Multi-platform studies only</span>
+                  <Tooltip content="Studies that sequenced the same samples on 2+ platforms (e.g. Illumina + Oxford Nanopore). Useful for benchmarking or hybrid assembly papers.">
+                    <InfoCircledIcon
+                      width="13"
+                      height="13"
+                      style={{ opacity: 0.6, flexShrink: 0 }}
+                    />
+                  </Tooltip>
+                </Flex>
+              </Text>
+              <Text as="label" size="1">
+                <Flex align="center" gap="2">
+                  <Checkbox
+                    size="1"
+                    checked={longReadOnly}
+                    onCheckedChange={(checked) =>
+                      setLongReadOnly(checked === true)
+                    }
+                  />
+                  <span>Long-read studies only</span>
+                  <Tooltip content="Studies with PacBio or Oxford Nanopore sequencing in any archive, hybrid designs included. Browse the whole set at /technology/longread.">
+                    <InfoCircledIcon
+                      width="13"
+                      height="13"
+                      style={{ opacity: 0.6, flexShrink: 0 }}
+                    />
+                  </Tooltip>
+                </Flex>
+              </Text>
+              <Separator size="4" />
+              <FacetCheckList
+                query={platformQuery}
+                setQuery={setPlatformQuery}
+                placeholder="Search platforms"
+                options={visiblePlatformOptions.map((o) => ({
+                  key: o.name,
+                  label: PLATFORM_DISPLAY[o.name] ?? o.name,
+                  count: o.count,
+                }))}
+                selected={selectedPlatformFilters}
+                onToggle={togglePlatformSelection}
+                emptyLabel="No platforms found."
+              />
+            </Flex>
+          </FilterSection>
+          <FilterSection
+            title="Instrument models"
+          >
+            <FacetCheckList
+              query={instrumentModelQuery}
+              setQuery={setInstrumentModelQuery}
+              placeholder="Search instrument models"
+              options={visibleInstrumentModelOptions.map((o) => ({
+                key: o.name,
+                label: o.name,
+                count: o.count,
+              }))}
+              selected={selectedInstrumentModelFilters}
+              onToggle={toggleInstrumentModelSelection}
+              emptyLabel="No instrument models found."
+            />
+          </FilterSection>
+          <FilterSection
+            title="Library source"
+          >
+            <FacetCheckList
+              query={librarySourceQuery}
+              setQuery={setLibrarySourceQuery}
+              placeholder="Search library sources"
+              options={visibleLibrarySourceOptions.map((o) => ({
+                key: o.name,
+                label: o.name,
+                count: o.count,
+              }))}
+              selected={selectedLibrarySourceFilters}
+              onToggle={toggleLibrarySourceSelection}
+              emptyLabel="No library sources found."
+            />
+          </FilterSection>
+          <FilterSection
+            title="Library strategy"
+          >
+            <FacetCheckList
+              query={libraryStrategyQuery}
+              setQuery={setLibraryStrategyQuery}
+              placeholder="Search library strategies"
+              options={visibleLibraryStrategyOptions.map((o) => ({
+                key: o.name,
+                label: o.name,
+                count: o.count,
+              }))}
+              selected={selectedLibraryStrategyFilters}
+              onToggle={toggleLibraryStrategySelection}
+              emptyLabel="No library strategies found."
+            />
+          </FilterSection>
+          <FilterSection
+            title="Journals"
+          >
+            <FacetCheckList
+              query={journalQuery}
+              setQuery={setJournalQuery}
+              placeholder="Search journals"
+              options={visibleJournalOptions.map((o) => ({
+                key: o.name,
+                label: o.name,
+                count: o.count,
+              }))}
+              selected={selectedJournalFilters}
+              onToggle={toggleJournalSelection}
+              emptyLabel="No journals found."
+            />
+          </FilterSection>
+          <FilterSection
+            title="Countries"
+          >
+            <FacetCheckList
+              query={countryQuery}
+              setQuery={setCountryQuery}
+              placeholder="Search countries"
+              options={visibleCountryOptions.map((o) => ({
+                key: o.code,
+                label: o.label,
+                count: o.count,
+              }))}
+              selected={selectedCountryFilters}
+              onToggle={toggleCountrySelection}
+              emptyLabel="No countries found."
+            />
+          </FilterSection>
+        </Flex>
+      ) : null}
+
       {showDesktop ? (
         <Flex
           display={{ initial: "none", md: "flex" }}
@@ -1263,515 +1534,6 @@ export function SearchOrganismRail({
             selectedKey={selectedOrganismKey}
             onChangeSelection={setSelectedOrganismFilter}
           />
-          <Dialog.Root
-            open={moreFiltersOpen}
-            onOpenChange={(open) => {
-              // Closing via X / overlay / Esc discards unapplied ticks.
-              if (!open) onDiscardMoreFilters();
-              setMoreFiltersOpen(open);
-            }}
-          >
-            <Dialog.Trigger>
-              <Button variant="classic">
-                <MixerHorizontalIcon />
-                More filters
-                {selectedFilterCount > 0 ? (
-                  <Badge variant="surface">{selectedFilterCount}</Badge>
-                ) : null}
-              </Button>
-            </Dialog.Trigger>
-            <Dialog.Content
-              size="3"
-              style={{
-                width: "38rem",
-                maxWidth: "calc(100vw - 2rem)",
-              }}
-            >
-              <Flex align={"center"} justify={"between"}>
-                <Dialog.Title mb="0">
-                  <Text>More filters</Text>
-                </Dialog.Title>
-                <Flex align={"center"} gap={"2"}>
-                  {selectedFilterCount > 0 ? (
-                    <Button
-                      size={"1"}
-                      color="red"
-                      variant="soft"
-                      onClick={() => {
-                        onClearMoreFilters();
-                        setMoreFiltersOpen(false);
-                      }}
-                    >
-                      <CrumpledPaperIcon /> Clear
-                    </Button>
-                  ) : null}
-                  <Button
-                    size={"1"}
-                    color="green"
-                    variant="soft"
-                    onClick={() => {
-                      onApplyMoreFilters();
-                      setMoreFiltersOpen(false);
-                    }}
-                  >
-                    <CheckIcon /> Apply filters
-                  </Button>
-                </Flex>
-              </Flex>
-
-              <Tabs.Root
-                defaultValue="journals"
-                style={{ marginTop: "0.5rem" }}
-              >
-                <ScrollableTabsList>
-                  <Tabs.Trigger value="journals">
-                    <Flex align="center" gap="1">
-                      <span>Journals</span>
-                      {selectedJournalFilters.length > 0 ? (
-                        <Badge>{selectedJournalFilters.length}</Badge>
-                      ) : null}
-                    </Flex>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger value="countries">
-                    <Flex align="center" gap="1">
-                      <span>Countries</span>
-                      {selectedCountryFilters.length > 0 ? (
-                        <Badge>{selectedCountryFilters.length}</Badge>
-                      ) : null}
-                    </Flex>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger value="library-strategy">
-                    <Flex align="center" gap="1">
-                      <span>Library Strategy</span>
-                      <Tooltip content="The sequencing approach used in the experiment — e.g. RNA-Seq, ChIP-Seq, Whole Genome, ATAC-Seq, or Bisulfite-Seq.">
-                        <InfoCircledIcon
-                          width="13"
-                          height="13"
-                          style={{ opacity: 0.6 }}
-                        />
-                      </Tooltip>
-                      {selectedLibraryStrategyFilters.length > 0 ? (
-                        <Badge>{selectedLibraryStrategyFilters.length}</Badge>
-                      ) : null}
-                    </Flex>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger value="library-source">
-                    <Flex align="center" gap="1">
-                      <span>Library Source</span>
-                      <Tooltip content="The type of source material sequenced — e.g. TRANSCRIPTOMIC, GENOMIC, METAGENOMIC, or SYNTHETIC.">
-                        <InfoCircledIcon
-                          width="13"
-                          height="13"
-                          style={{ opacity: 0.6 }}
-                        />
-                      </Tooltip>
-                      {selectedLibrarySourceFilters.length > 0 ? (
-                        <Badge>{selectedLibrarySourceFilters.length}</Badge>
-                      ) : null}
-                    </Flex>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger value="instrument-models">
-                    <Flex align="center" gap="1">
-                      <span>Instrument Models</span>
-                      {selectedInstrumentModelFilters.length > 0 ? (
-                        <Badge>{selectedInstrumentModelFilters.length}</Badge>
-                      ) : null}
-                    </Flex>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger value="platform">
-                    <Flex align="center" gap="1">
-                      <span>Platform</span>
-                      {selectedPlatformFilters.length > 0 ||
-                      multiPlatformOnly ||
-                      longReadOnly ? (
-                        <Badge>
-                          {selectedPlatformFilters.length +
-                            (multiPlatformOnly ? 1 : 0) +
-                            (longReadOnly ? 1 : 0)}
-                        </Badge>
-                      ) : null}
-                    </Flex>
-                  </Tabs.Trigger>
-                </ScrollableTabsList>
-
-                <Tabs.Content
-                  value="journals"
-                  style={{ height: "17rem", overflow: "hidden" }}
-                >
-                  <Flex direction="column" gap="3" pt="3">
-                    <TextField.Root
-                      value={journalQuery}
-                      onChange={(event) => setJournalQuery(event.target.value)}
-                      placeholder="Search journals"
-                      aria-label="Search journals"
-                      size="2"
-                    >
-                      <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                      </TextField.Slot>
-                    </TextField.Root>
-                    {visibleJournalOptions.length > 0 ? (
-                      <Flex
-                        direction="column"
-                        gap="2"
-                        style={{ maxHeight: "16rem", overflowY: "auto" }}
-                      >
-                        {visibleJournalOptions.map((journalOption) => (
-                          <Text as="label" size="2" key={journalOption.name}>
-                            <Flex align="center" justify="between" gap="2" py="2">
-                              <Flex align="center" gap="2">
-                                <Checkbox
-                                  checked={selectedJournalFilters.includes(
-                                    journalOption.name,
-                                  )}
-                                  onCheckedChange={() =>
-                                    toggleJournalSelection(journalOption.name)
-                                  }
-                                />
-                                <span>{journalOption.name}</span>
-                              </Flex>
-                              <Badge color="gray" variant="soft">
-                                {journalOption.count}
-                              </Badge>
-                            </Flex>
-                          </Text>
-                        ))}
-                      </Flex>
-                    ) : (
-                      <Text size="2" color="gray">
-                        No journals found.
-                      </Text>
-                    )}
-                  </Flex>
-                </Tabs.Content>
-
-                <Tabs.Content
-                  value="countries"
-                  style={{ height: "17rem", overflow: "hidden" }}
-                >
-                  <Flex direction="column" gap="3" pt="3">
-                    <TextField.Root
-                      value={countryQuery}
-                      onChange={(event) => setCountryQuery(event.target.value)}
-                      placeholder="Search countries"
-                      aria-label="Search countries"
-                      size="2"
-                    >
-                      <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                      </TextField.Slot>
-                    </TextField.Root>
-                    {visibleCountryOptions.length > 0 ? (
-                      <Flex
-                        direction="column"
-                        gap="2"
-                        style={{ maxHeight: "16rem", overflowY: "auto" }}
-                      >
-                        {visibleCountryOptions.map((countryOption) => (
-                          <Text as="label" size="2" key={countryOption.code}>
-                            <Flex align="center" justify="between" gap="2" py="2">
-                              <Flex align="center" gap="2">
-                                <Checkbox
-                                  checked={selectedCountryFilters.includes(
-                                    countryOption.code,
-                                  )}
-                                  onCheckedChange={() =>
-                                    toggleCountrySelection(countryOption.code)
-                                  }
-                                />
-                                <span>{countryOption.label}</span>
-                              </Flex>
-                              <Badge color="gray" variant="soft">
-                                {countryOption.count}
-                              </Badge>
-                            </Flex>
-                          </Text>
-                        ))}
-                      </Flex>
-                    ) : (
-                      <Text size="2" color="gray">
-                        No countries found.
-                      </Text>
-                    )}
-                  </Flex>
-                </Tabs.Content>
-
-                <Tabs.Content
-                  value="library-strategy"
-                  style={{ height: "17rem", overflow: "hidden" }}
-                >
-                  <Flex direction="column" gap="3" pt="3">
-                    <TextField.Root
-                      value={libraryStrategyQuery}
-                      onChange={(event) =>
-                        setLibraryStrategyQuery(event.target.value)
-                      }
-                      placeholder="Search library strategies"
-                      aria-label="Search library strategies"
-                      size="2"
-                    >
-                      <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                      </TextField.Slot>
-                    </TextField.Root>
-                    {visibleLibraryStrategyOptions.length > 0 ? (
-                      <Flex
-                        direction="column"
-                        gap="2"
-                        style={{ maxHeight: "16rem", overflowY: "auto" }}
-                      >
-                        {visibleLibraryStrategyOptions.map(
-                          (libraryStrategyOption) => (
-                            <Text
-                              as="label"
-                              size="2"
-                              key={libraryStrategyOption.name}
-                            >
-                              <Flex align="center" justify="between" gap="2" py="4">
-                                <Flex align="center" gap="2">
-                                  <Checkbox
-                                    checked={selectedLibraryStrategyFilters.includes(
-                                      libraryStrategyOption.name,
-                                    )}
-                                    onCheckedChange={() =>
-                                      toggleLibraryStrategySelection(
-                                        libraryStrategyOption.name,
-                                      )
-                                    }
-                                  />
-                                  <span>{libraryStrategyOption.name}</span>
-                                </Flex>
-                                <Badge color="gray" variant="soft">
-                                  {libraryStrategyOption.count}
-                                </Badge>
-                              </Flex>
-                            </Text>
-                          ),
-                        )}
-                      </Flex>
-                    ) : (
-                      <Text size="2" color="gray">
-                        No library strategies found.
-                      </Text>
-                    )}
-                  </Flex>
-                </Tabs.Content>
-
-                <Tabs.Content
-                  value="library-source"
-                  style={{ height: "17rem", overflow: "hidden" }}
-                >
-                  <Flex direction="column" gap="3" pt="3">
-                    <TextField.Root
-                      value={librarySourceQuery}
-                      onChange={(event) =>
-                        setLibrarySourceQuery(event.target.value)
-                      }
-                      placeholder="Search library sources"
-                      aria-label="Search library sources"
-                      size="2"
-                    >
-                      <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                      </TextField.Slot>
-                    </TextField.Root>
-                    {visibleLibrarySourceOptions.length > 0 ? (
-                      <Flex
-                        direction="column"
-                        gap="2"
-                        style={{ maxHeight: "16rem", overflowY: "auto" }}
-                      >
-                        {visibleLibrarySourceOptions.map(
-                          (librarySourceOption) => (
-                            <Text
-                              as="label"
-                              size="2"
-                              key={librarySourceOption.name}
-                            >
-                              <Flex align="center" justify="between" gap="2" py="4">
-                                <Flex align="center" gap="2">
-                                  <Checkbox
-                                    checked={selectedLibrarySourceFilters.includes(
-                                      librarySourceOption.name,
-                                    )}
-                                    onCheckedChange={() =>
-                                      toggleLibrarySourceSelection(
-                                        librarySourceOption.name,
-                                      )
-                                    }
-                                  />
-                                  <span>{librarySourceOption.name}</span>
-                                </Flex>
-                                <Badge color="gray" variant="soft">
-                                  {librarySourceOption.count}
-                                </Badge>
-                              </Flex>
-                            </Text>
-                          ),
-                        )}
-                      </Flex>
-                    ) : (
-                      <Text size="2" color="gray">
-                        No library sources found.
-                      </Text>
-                    )}
-                  </Flex>
-                </Tabs.Content>
-
-                <Tabs.Content
-                  value="instrument-models"
-                  style={{ height: "17rem", overflow: "hidden" }}
-                >
-                  <Flex direction="column" gap="3" pt="3">
-                    <TextField.Root
-                      value={instrumentModelQuery}
-                      onChange={(event) =>
-                        setInstrumentModelQuery(event.target.value)
-                      }
-                      placeholder="Search instrument models"
-                      aria-label="Search instrument models"
-                      size="2"
-                    >
-                      <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                      </TextField.Slot>
-                    </TextField.Root>
-                    {visibleInstrumentModelOptions.length > 0 ? (
-                      <Flex
-                        direction="column"
-                        gap="2"
-                        style={{ maxHeight: "16rem", overflowY: "auto" }}
-                      >
-                        {visibleInstrumentModelOptions.map(
-                          (instrumentModelOption) => (
-                            <Text
-                              as="label"
-                              size="2"
-                              key={instrumentModelOption.name}
-                            >
-                              <Flex align="center" justify="between" gap="2" py="4">
-                                <Flex align="center" gap="2">
-                                  <Checkbox
-                                    checked={selectedInstrumentModelFilters.includes(
-                                      instrumentModelOption.name,
-                                    )}
-                                    onCheckedChange={() =>
-                                      toggleInstrumentModelSelection(
-                                        instrumentModelOption.name,
-                                      )
-                                    }
-                                  />
-                                  <span>{instrumentModelOption.name}</span>
-                                </Flex>
-                                <Badge color="gray" variant="soft">
-                                  {instrumentModelOption.count}
-                                </Badge>
-                              </Flex>
-                            </Text>
-                          ),
-                        )}
-                      </Flex>
-                    ) : (
-                      <Text size="2" color="gray">
-                        No instrument models found.
-                      </Text>
-                    )}
-                  </Flex>
-                </Tabs.Content>
-
-                <Tabs.Content
-                  value="platform"
-                  style={{ height: "17rem", overflow: "hidden" }}
-                >
-                  <Flex direction="column" gap="3" pt="3">
-                    <Text as="label" size="2">
-                      <Flex align="center" gap="2" py="2">
-                        <Checkbox
-                          checked={multiPlatformOnly}
-                          onCheckedChange={(checked) =>
-                            setMultiPlatformOnly(checked === true)
-                          }
-                        />
-                        <span>Multi-platform studies only</span>
-                        <Tooltip content="Studies that sequenced the same samples on 2+ platforms (e.g. Illumina + Oxford Nanopore). Useful for benchmarking or hybrid assembly papers.">
-                          <InfoCircledIcon
-                            width="13"
-                            height="13"
-                            style={{ opacity: 0.6 }}
-                          />
-                        </Tooltip>
-                      </Flex>
-                    </Text>
-                    <Text as="label" size="2">
-                      <Flex align="center" gap="2" py="2">
-                        <Checkbox
-                          checked={longReadOnly}
-                          onCheckedChange={(checked) =>
-                            setLongReadOnly(checked === true)
-                          }
-                        />
-                        <span>Long-read studies only</span>
-                        <Tooltip content="Studies with PacBio or Oxford Nanopore sequencing in any archive, hybrid designs included. Browse the whole set at /technology/longread.">
-                          <InfoCircledIcon
-                            width="13"
-                            height="13"
-                            style={{ opacity: 0.6 }}
-                          />
-                        </Tooltip>
-                      </Flex>
-                    </Text>
-                    <Separator size="4" />
-                    <TextField.Root
-                      value={platformQuery}
-                      onChange={(event) => setPlatformQuery(event.target.value)}
-                      placeholder="Search platforms"
-                      aria-label="Search platforms"
-                      size="2"
-                    >
-                      <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                      </TextField.Slot>
-                    </TextField.Root>
-                    {visiblePlatformOptions.length > 0 ? (
-                      <Flex
-                        direction="column"
-                        gap="2"
-                        style={{ maxHeight: "16rem", overflowY: "auto" }}
-                      >
-                        {visiblePlatformOptions.map((platformOption) => (
-                          <Text as="label" size="2" key={platformOption.name}>
-                            <Flex align="center" justify="between" gap="2" py="2">
-                              <Flex align="center" gap="2">
-                                <Checkbox
-                                  checked={selectedPlatformFilters.includes(
-                                    platformOption.name,
-                                  )}
-                                  onCheckedChange={() =>
-                                    togglePlatformSelection(platformOption.name)
-                                  }
-                                />
-                                <span>
-                                  {PLATFORM_DISPLAY[platformOption.name] ??
-                                    platformOption.name}
-                                </span>
-                              </Flex>
-                              <Badge color="gray" variant="soft">
-                                {platformOption.count}
-                              </Badge>
-                            </Flex>
-                          </Text>
-                        ))}
-                      </Flex>
-                    ) : (
-                      <Text size="2" color="gray">
-                        No platforms found.
-                      </Text>
-                    )}
-                  </Flex>
-                </Tabs.Content>
-              </Tabs.Root>
-            </Dialog.Content>
-          </Dialog.Root>
           <DeepDiveSection />
           <Card variant="classic" size={"1"} asChild>
             <Text color="gray" size={"1"}>
