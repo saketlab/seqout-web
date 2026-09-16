@@ -1372,6 +1372,7 @@ export function SearchOrganismRail({
         >
           <FilterSection
             title="Platform"
+            defaultOpen
           >
             <Flex direction="column" gap="2">
               <Text as="label" size="1">
@@ -1429,6 +1430,24 @@ export function SearchOrganismRail({
             </Flex>
           </FilterSection>
           <FilterSection
+            title="Library strategy"
+            defaultOpen
+          >
+            <FacetCheckList
+              query={libraryStrategyQuery}
+              setQuery={setLibraryStrategyQuery}
+              placeholder="Search library strategies"
+              options={visibleLibraryStrategyOptions.map((o) => ({
+                key: o.name,
+                label: o.name,
+                count: o.count,
+              }))}
+              selected={selectedLibraryStrategyFilters}
+              onToggle={toggleLibraryStrategySelection}
+              emptyLabel="No library strategies found."
+            />
+          </FilterSection>
+          <FilterSection
             title="Instrument models"
           >
             <FacetCheckList
@@ -1460,23 +1479,6 @@ export function SearchOrganismRail({
               selected={selectedLibrarySourceFilters}
               onToggle={toggleLibrarySourceSelection}
               emptyLabel="No library sources found."
-            />
-          </FilterSection>
-          <FilterSection
-            title="Library strategy"
-          >
-            <FacetCheckList
-              query={libraryStrategyQuery}
-              setQuery={setLibraryStrategyQuery}
-              placeholder="Search library strategies"
-              options={visibleLibraryStrategyOptions.map((o) => ({
-                key: o.name,
-                label: o.name,
-                count: o.count,
-              }))}
-              selected={selectedLibraryStrategyFilters}
-              onToggle={toggleLibraryStrategySelection}
-              emptyLabel="No library strategies found."
             />
           </FilterSection>
           <FilterSection
