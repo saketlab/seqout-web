@@ -19,12 +19,9 @@ import type { ReactNode } from "react";
 
 const API_BASE_URL = process.env.PYSRAWEB_API_BASE ?? "https://seqout.org/api";
 
-export const revalidate = 86400;
-
-// empty array still opts this route into ISR, so revalidate takes effect (see app/p/[accession]/layout.tsx)
-export async function generateStaticParams() {
-  return [];
-}
+// force-dynamic instead of ISR: the accession space is unbounded (SRA/GEO/ENA/etc.),
+// so caching every visited page to disk forever grew .next/server/app/p to 56GB+ in a day.
+export const dynamic = "force-dynamic";
 
 type Props = {
   children: ReactNode;

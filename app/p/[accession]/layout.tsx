@@ -32,11 +32,9 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import SearchBar from "@/components/search-bar";
 
-export const revalidate = 86400;
-
-export async function generateStaticParams() {
-  return [];
-}
+// force-dynamic instead of ISR: the accession space is unbounded (SRA/GEO/ENA/etc.),
+// so caching every visited page to disk forever grew .next/server/app/p to 56GB+ in a day.
+export const dynamic = "force-dynamic";
 
 type Props = {
   children: ReactNode;
