@@ -403,6 +403,25 @@ const getGeoSearchResults = async (
   return res.json();
 };
 
+// Matches the filters column's width and sticky offset (search-filters.tsx).
+function SearchFiltersSidebarSkeleton() {
+  return (
+    <Flex
+      aria-hidden="true"
+      display={{ initial: "none", md: "flex" }}
+      direction="column"
+      gap="4"
+      width="10rem"
+      position="sticky"
+      style={{ top: "6rem", height: "fit-content" }}
+    >
+      {["7rem", "8.5rem", "6rem", "7.5rem", "5.5rem"].map((w, i) => (
+        <Skeleton key={i} height="1.25rem" width={w} />
+      ))}
+    </Flex>
+  );
+}
+
 function SearchOrganismRailSkeleton() {
   return (
     <Flex
@@ -2019,6 +2038,13 @@ export default function SearchPageBody() {
   const [downloadFailed, setDownloadFailed] = useState(false);
 
   const shouldShowOrganismRail = !isLoading && !isError && hasResults;
+  // The filters column appears once a query's first results land, then stays
+  // mounted through filter refetches so open sections don't collapse.
+  const [filtersShownFor, setFiltersShownFor] = useState<string | null>(null);
+  if (shouldShowOrganismRail && filtersShownFor !== query) {
+    setFiltersShownFor(query);
+  }
+  const keepFiltersMounted = isLoading && filtersShownFor === query;
   const shouldReserveRailSpace = isLoading;
   // Release the reserved rail column and center the message for empty results or errors.
   const emptyStateFullWidth =
@@ -2316,9 +2342,8 @@ export default function SearchPageBody() {
         direction={{ initial: "column", md: "row" }}
       >
         {/* Left column: the filters that used to sit behind "More filters".
-            Stays mounted while loading — every tick refetches, and unmounting
-            would collapse the open sections under the user. */}
-        {isLoading || shouldShowOrganismRail ? (
+            A skeleton stands in until a query's first results arrive. */}
+        {keepFiltersMounted || shouldShowOrganismRail ? (
           <SearchOrganismRail
             {...railProps}
             {...instantFilterProps}
@@ -2326,6 +2351,8 @@ export default function SearchPageBody() {
             showDesktop={false}
             showDesktopFilters
           />
+        ) : isLoading ? (
+          <SearchFiltersSidebarSkeleton />
         ) : null}
 
         <Flex
