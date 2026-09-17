@@ -19,12 +19,8 @@ import type { ReactNode } from "react";
 
 const API_BASE_URL = process.env.PYSRAWEB_API_BASE ?? "https://seqout.org/api";
 
-export const revalidate = 86400;
-
-// empty array still opts this route into ISR, so revalidate takes effect (see app/p/[accession]/layout.tsx)
-export async function generateStaticParams() {
-  return [];
-}
+// avoids ISR caching every crawled accession to disk forever
+export const dynamic = "force-dynamic";
 
 type Props = {
   children: ReactNode;
