@@ -10,6 +10,7 @@ export interface LongReadChemistryRun {
   instrument_model: string | null;
   chemistry: string | null;
   chemistry_confidence: string | null;
+  chemistry_confidence_label: string | null;
   chemistry_source: string | null;
   basecaller_software: string | null;
   basecaller_software_version: string | null;
@@ -87,7 +88,7 @@ export default function LongReadChemistryCard({
                     size="1"
                     variant="soft"
                   >
-                    {r.chemistry_confidence ?? "unknown"}
+                    {r.chemistry_confidence_label ?? "unknown"}
                   </Badge>
                 </Table.Cell>
               </Table.Row>

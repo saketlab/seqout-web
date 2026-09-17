@@ -32,11 +32,8 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import SearchBar from "@/components/search-bar";
 
-export const revalidate = 86400;
-
-export async function generateStaticParams() {
-  return [];
-}
+// avoids ISR caching every crawled accession to disk forever
+export const dynamic = "force-dynamic";
 
 type Props = {
   children: ReactNode;
