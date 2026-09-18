@@ -26,7 +26,8 @@ export interface EnrichedResponse {
   title: string;
   n_samples: number;
   single_cell_modality: string | null;
-  version: "v4" | "v1";
+  // fast: embedding-only fallback served when v4 has no row for this accession
+  version: "v4" | "fast" | "v1";
   samples: OntologySample[];
 }
 
@@ -46,7 +47,7 @@ function ontologyUrl(id: string): string | null {
   return `${base}${id.replace(":", "_")}`;
 }
 
-// these depend on `organism`, so they inherit its low-confidence flag
+// these depend on organism, so they inherit its low-confidence flag
 const ORGANISM_DEPENDENT_FIELDS = [
   "tissue",
   "disease",
@@ -196,7 +197,7 @@ type FieldDef = {
   field: string;
   header: string;
   minWidth?: number;
-  v4Only?: boolean;
+  ontologyOnly?: boolean;
   pinned?: "left";
 };
 
@@ -204,7 +205,7 @@ const ALL_FIELDS: FieldDef[] = [
   { field: "sample", header: "Sample", minWidth: 130, pinned: "left" },
   { field: "title", header: "Title", minWidth: 200, pinned: "left" },
   { field: "description", header: "Description", minWidth: 220, pinned: "left" },
-  { field: "organism", header: "Organism", minWidth: 140, v4Only: true },
+  { field: "organism", header: "Organism", minWidth: 140, ontologyOnly: true },
   { field: "tissue", header: "Tissue", minWidth: 150 },
   { field: "cell_type", header: "Cell Type", minWidth: 150 },
   { field: "cell_line", header: "Cell Line" },
@@ -215,20 +216,20 @@ const ALL_FIELDS: FieldDef[] = [
   { field: "ethnicity", header: "Ethnicity" },
   { field: "strain", header: "Strain" },
   { field: "assay", header: "Assay", minWidth: 150 },
-  { field: "assay_category", header: "Assay Category", v4Only: true },
+  { field: "assay_category", header: "Assay Category", ontologyOnly: true },
   { field: "treatment", header: "Treatment" },
   { field: "development_stage", header: "Dev. Stage", minWidth: 150 },
   { field: "sample_type", header: "Sample Type" },
   { field: "genetic_modification", header: "Genetic Mod." },
-  { field: "tissue_primary_site", header: "Primary Site", v4Only: true },
-  { field: "tissue_site_type", header: "Site Type", v4Only: true },
-  { field: "taxid", header: "Taxon ID", v4Only: true },
+  { field: "tissue_primary_site", header: "Primary Site", ontologyOnly: true },
+  { field: "tissue_site_type", header: "Site Type", ontologyOnly: true },
+  { field: "taxid", header: "Taxon ID", ontologyOnly: true },
   { field: "cell_count", header: "Cell Count", minWidth: 120 },
   { field: "gene_count", header: "Gene Count", minWidth: 120 },
 ];
 
-const V4_FIELDS = ALL_FIELDS;
-const V1_FIELDS = ALL_FIELDS.filter((f) => !f.v4Only);
+const ONTOLOGY_FIELDS = ALL_FIELDS;
+const LEGACY_FIELDS = ALL_FIELDS.filter((f) => !f.ontologyOnly);
 
 // offset == null fetches the full set (CSV export); a number fetches one page
 async function fetchEnrichedMetadata(
@@ -282,9 +283,16 @@ export function useEnrichedMetadata(
   };
 }
 
-function getVisibleFields(data: EnrichedResponse): FieldDef[] {
-  const isV4 = data.version === "v4";
-  const allFields = isV4 ? V4_FIELDS : V1_FIELDS;
+// v4 and fast share ontology fields; only v1 lacks them
+function hasOntologyFields(data: EnrichedResponse): boolean {
+  return data.version === "v4" || data.version === "fast";
+}
+
+function getVisibleFields(
+  data: EnrichedResponse,
+  withOntology: boolean,
+): FieldDef[] {
+  const allFields = withOntology ? ONTOLOGY_FIELDS : LEGACY_FIELDS;
   return allFields.filter(
     (f) =>
       f.field === "sample" ||
@@ -292,7 +300,7 @@ function getVisibleFields(data: EnrichedResponse): FieldDef[] {
         const val = s[f.field];
         if (val != null && val !== "") return true;
         const onto = ONTOLOGY_MAPPED_FIELDS[f.field];
-        if (onto && isV4) {
+        if (onto && withOntology) {
           const ontoName = s[onto.name];
           return ontoName != null && ontoName !== "";
         }
@@ -301,9 +309,24 @@ function getVisibleFields(data: EnrichedResponse): FieldDef[] {
   );
 }
 
+const METHOD_BADGE = {
+  fast: {
+    label: "Embedding Matched",
+    tooltip:
+      "Attributes matched via embedding similarity against a controlled vocabulary, without an LLM. Their correctness is not guaranteed.",
+  },
+  aiGenerated: {
+    label: "AI Generated",
+    tooltip:
+      "Attributes are generated with an AI-assisted pipeline. Their correctness is not guaranteed.",
+  },
+};
+
 export function EnrichedMetadataBadges({ data }: { data: EnrichedResponse }) {
-  const isV4 = data.version === "v4";
+  const withOntology = hasOntologyFields(data);
   const loaded = data.samples.length;
+  const methodBadge =
+    data.version === "fast" ? METHOD_BADGE.fast : METHOD_BADGE.aiGenerated;
   return (
     <>
       <Badge size="3" style={{ whiteSpace: "nowrap" }}>
@@ -311,12 +334,12 @@ export function EnrichedMetadataBadges({ data }: { data: EnrichedResponse }) {
           ? `Showing first ${loaded.toLocaleString()} of ${data.n_samples.toLocaleString()} samples`
           : `${data.n_samples.toLocaleString()} samples`}
       </Badge>
-      <Tooltip content="Attributes are generated with an AI-assisted pipeline. Their correctness is not guaranteed.">
+      <Tooltip content={methodBadge.tooltip}>
         <Badge size="3" style={{ cursor: "help" }} variant="soft">
-          <MagicWandIcon /> AI Generated
+          <MagicWandIcon /> {methodBadge.label}
         </Badge>
       </Tooltip>
-      {isV4 && (
+      {withOntology && (
         <Tooltip content="Includes standardised ontology mappings (MONDO, UBERON, CL, EFO)">
           <Badge size="3" variant="soft" style={{ cursor: "help" }}>
             <InfoCircledIcon /> Ontology
@@ -338,12 +361,12 @@ export function EnrichedMetadataBadges({ data }: { data: EnrichedResponse }) {
 export async function exportEnrichedCsv(accession: string) {
   const data = await fetchEnrichedMetadata(accession, null);
   if (!data || data.samples.length === 0) return;
-  const isV4 = data.version === "v4";
-  const visibleFields = getVisibleFields(data);
+  const withOntology = hasOntologyFields(data);
+  const visibleFields = getVisibleFields(data, withOntology);
   const exportFields: { key: string; header: string }[] = [];
   for (const f of visibleFields) {
     exportFields.push({ key: f.field, header: f.header });
-    const onto = isV4 ? ONTOLOGY_MAPPED_FIELDS[f.field] : undefined;
+    const onto = withOntology ? ONTOLOGY_MAPPED_FIELDS[f.field] : undefined;
     if (onto) {
       exportFields.push({ key: onto.id, header: `${f.header} Ontology ID` });
       exportFields.push({
@@ -390,12 +413,12 @@ export function EnrichedMetadataGrid({
   const agGridThemeClassName =
     resolvedTheme === "dark" ? "ag-theme-quartz-dark" : "ag-theme-quartz";
 
-  const isV4 = data.version === "v4";
+  const withOntology = hasOntologyFields(data);
 
   const columnDefs = useMemo<ColDef<OntologySample>[]>(() => {
-    const visibleFields = getVisibleFields(data);
+    const visibleFields = getVisibleFields(data, withOntology);
     return visibleFields.map((f) => {
-      const onto = isV4 ? ONTOLOGY_MAPPED_FIELDS[f.field] : undefined;
+      const onto = withOntology ? ONTOLOGY_MAPPED_FIELDS[f.field] : undefined;
       const base = {
         field: f.field,
         headerName: f.header,
@@ -437,7 +460,7 @@ export function EnrichedMetadataGrid({
           : { cellRenderer: PlainCellRenderer }),
       };
     });
-  }, [data, isV4]);
+  }, [data, withOntology]);
 
   const defaultColDef = useMemo(
     () => ({
