@@ -13,3 +13,6 @@ export const ONTOLOGY_KINDS: Record<
     annotated: (term) => `annotated with ${term}`,
   },
 };
+
+export const ontologyTermHref = (kind: OntologyKind, term: string) =>
+  `/${kind}/${encodeURIComponent(term)}`;

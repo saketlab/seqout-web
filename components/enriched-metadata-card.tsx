@@ -7,14 +7,20 @@ import {
 } from "@/lib/ag-grid";
 import { SERVER_URL } from "@/utils/constants";
 import {
+  ONTOLOGY_KINDS,
+  ontologyTermHref,
+  type OntologyKind,
+} from "@/utils/ontology-kinds";
+import {
   ExclamationTriangleIcon,
   InfoCircledIcon,
   MagicWandIcon,
 } from "@radix-ui/react-icons";
-import { Badge, Flex, Spinner, Text, Tooltip } from "@radix-ui/themes";
+import { Badge, Flex, Link, Spinner, Text, Tooltip } from "@radix-ui/themes";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { AgGridReact } from "@/components/lazy-data-grid";
+import NextLink from "next/link";
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
 
@@ -116,7 +122,11 @@ function CellCountCellRenderer(params: ICellRendererParams<OntologySample>) {
   );
 }
 
-function OntologyCellRenderer(idField: string, nameField: string) {
+function OntologyCellRenderer(
+  idField: string,
+  nameField: string,
+  linkKind?: OntologyKind,
+) {
   return function Renderer(params: ICellRendererParams<OntologySample>) {
     const raw = params.value;
     const data = params.data;
@@ -125,13 +135,30 @@ function OntologyCellRenderer(idField: string, nameField: string) {
 
     const ontoName = data[nameField];
     const ontoId = data[idField];
+    // resolved name matches the term label exactly; raw only substring-matches
+    const linkTerm = ontoName || raw;
+    const displayText = (ontoId && ontoName ? ontoName : raw) ?? "";
+
+    const textNode =
+      linkKind && linkTerm ? (
+        <Link asChild size="2" truncate>
+          <NextLink
+            href={ontologyTermHref(linkKind, linkTerm)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {displayText}
+          </NextLink>
+        </Link>
+      ) : (
+        <Text truncate size="2">
+          {displayText}
+        </Text>
+      );
 
     if (!ontoId || !ontoName) {
       return (
         <Flex align="center" gap="1" style={{ overflow: "hidden" }}>
-          <Text truncate size="2">
-            {raw ?? ""}
-          </Text>
+          {textNode}
           {low && <LowConfidenceBadge />}
         </Flex>
       );
@@ -141,9 +168,7 @@ function OntologyCellRenderer(idField: string, nameField: string) {
     const url = ontologyUrl(ontoId);
     return (
       <Flex align="center" gap="1" style={{ overflow: "hidden" }}>
-        <Text truncate size="2">
-          {ontoName}
-        </Text>
+        {textNode}
         <Tooltip content={ontoId}>
           {url ? (
             <a
@@ -186,7 +211,11 @@ const ONTOLOGY_MAPPED_FIELDS: Record<string, { id: string; name: string }> = {
 const ONTOLOGY_RENDERERS = Object.fromEntries(
   Object.entries(ONTOLOGY_MAPPED_FIELDS).map(([field, onto]) => [
     field,
-    OntologyCellRenderer(onto.id, onto.name),
+    OntologyCellRenderer(
+      onto.id,
+      onto.name,
+      field in ONTOLOGY_KINDS ? (field as OntologyKind) : undefined,
+    ),
   ]),
 );
 

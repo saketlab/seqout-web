@@ -12,7 +12,11 @@ import {
   type ColumnDef,
 } from "@/components/collection-card/shared";
 import { humanize } from "@/utils/format";
-import { ONTOLOGY_KINDS, type OntologyKind } from "@/utils/ontology-kinds";
+import {
+  ONTOLOGY_KINDS,
+  ontologyTermHref,
+  type OntologyKind,
+} from "@/utils/ontology-kinds";
 import {
   useCollectionFacets,
   useOntologyTermProjects,
@@ -187,7 +191,7 @@ export default function OntologyTermCollectionCard({
   term: string;
   kind: OntologyKind;
 }) {
-  const basePath = `/${kind}/${encodeURIComponent(term)}`;
+  const basePath = ontologyTermHref(kind, term);
   const keyPrefix = `${KIND_META[kind].keyPrefix}-${term}`;
 
   const { filters, sort, toggleSort, setFilter } = useSortFilterState({
