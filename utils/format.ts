@@ -100,6 +100,14 @@ export function titleCaseCenter(name: string): string {
     .join(" ");
 }
 
+// leaves the rest of each word untouched so acronyms survive
+export function titleCaseTerm(term: string): string {
+  return term
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 export function humanizeBytes(value: number): string {
   if (value >= EB) return `${(value / EB).toFixed(1).replace(/\.0$/, "")} EB`;
   if (value >= PB) return `${(value / PB).toFixed(1).replace(/\.0$/, "")} PB`;

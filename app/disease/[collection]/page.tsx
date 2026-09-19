@@ -1,8 +1,11 @@
 import DiseaseCollectionCard from "@/components/disease-collection-card";
+import OntologyTermPage, {
+  ontologyTermMetadata,
+} from "@/components/ontology-term-page";
 import SearchBar from "@/components/search-bar";
 import { Flex, Heading, Text } from "@radix-ui/themes";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 
 const SCOPE_NOTE =
   "Both are scoped to human patient material: cell lines and non-human models are excluded, and sample counts cover only the matching samples.";
@@ -49,7 +52,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { collection } = await params;
   const meta = COLLECTIONS[collection];
-  if (!meta) return {};
+  if (!meta) return ontologyTermMetadata("disease", collection);
   return {
     title: meta.title,
     description: meta.description,
@@ -64,7 +67,15 @@ export default async function DiseasePage({
 }) {
   const { collection } = await params;
   const meta = COLLECTIONS[collection];
-  if (!meta) notFound();
+  if (!meta) {
+    return (
+      <OntologyTermPage kind="disease" term={collection}>
+        See <Link href="/disease/rare">/disease/rare</Link> and{" "}
+        <Link href="/disease/nord">/disease/nord</Link> for the curated
+        rare-disease catalogues.
+      </OntologyTermPage>
+    );
+  }
 
   return (
     <>

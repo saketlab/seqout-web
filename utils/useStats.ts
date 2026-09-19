@@ -1,4 +1,4 @@
-import { getJson } from "@/utils/api";
+import { getJson, getJsonOrNull } from "@/utils/api";
 import type {
   EnrichedCoverage,
   EnrichedCrosstab,
@@ -210,7 +210,7 @@ function useCollectionSummary<TSummary>(basePath: string, keyPrefix: string) {
   });
 }
 
-function useCollectionFacets(basePath: string, keyPrefix: string) {
+export function useCollectionFacets(basePath: string, keyPrefix: string) {
   return useQuery({
     queryKey: [`${keyPrefix}-facets`],
     queryFn: ({ signal }) =>
@@ -219,26 +219,38 @@ function useCollectionFacets(basePath: string, keyPrefix: string) {
   });
 }
 
+function useActiveFilters(filters: DiseaseFilters) {
+  return useMemo(
+    () => Object.entries(filters).sort(([a], [b]) => a.localeCompare(b)),
+    [filters],
+  );
+}
+
+function projectsQuery(
+  active: [string, string][],
+  sort: DiseaseSort,
+  paging: [string, string][],
+) {
+  return new URLSearchParams([
+    ["limit", String(COLLECTION_PAGE_SIZE)],
+    ["sort", sort.key],
+    ["order", sort.order],
+    ...paging,
+    ...active,
+  ]);
+}
+
 function useCollectionProjects<TProject>(
   basePath: string,
   keyPrefix: string,
   filters: DiseaseFilters,
   sort: DiseaseSort,
 ) {
-  const active = useMemo(
-    () => Object.entries(filters).sort(([a], [b]) => a.localeCompare(b)),
-    [filters],
-  );
+  const active = useActiveFilters(filters);
   return useInfiniteQuery({
     queryKey: [`${keyPrefix}-projects`, active, sort],
     queryFn: ({ signal, pageParam }) => {
-      const qs = new URLSearchParams([
-        ["limit", String(COLLECTION_PAGE_SIZE)],
-        ["offset", String(pageParam)],
-        ["sort", sort.key],
-        ["order", sort.order],
-        ...active,
-      ]);
+      const qs = projectsQuery(active, sort, [["offset", String(pageParam)]]);
       return getJson<{ total: number; results: TProject[] }>(
         `${basePath}/projects?${qs.toString()}`,
         signal,
@@ -372,6 +384,106 @@ export const useCountryProjects = (
     filters,
     sort,
   );
+
+// /tissue/{term} and /disease/{term} for terms outside the curated GARD/NORD collections
+// summary uses getJsonOrNull: an unresolved term 404s and means "no matches"
+
+export interface OntologyTermSummary {
+  studies: number;
+  samples: number | null;
+  experiments: number | null;
+  matched_samples: number | null;
+  studies_with_fastq: number;
+  studies_with_sra: number;
+  studies_human: number;
+  studies_single_cell: number;
+  studies_long_read: number;
+  n_organisms: number;
+  first_date: string | null;
+  last_date: string | null;
+  term: string;
+  resolution: "exact" | "substring";
+  matched_labels: string[];
+}
+
+export interface OntologyTermProject {
+  study_accession: string;
+  title: string | null;
+  organism: string | null;
+  assay_l1: string | null;
+  assay_l2: string | null;
+  source: string;
+  journal: string | null;
+  country_code_iso2: string | null;
+  pub_date: string | null;
+  n_samples: number | null;
+  n_experiments: number | null;
+  is_single_cell: boolean | null;
+  single_cell_modality: string | null;
+  n_samples_with_tissue?: number | null;
+  n_samples_with_disease?: number | null;
+  has_fastq: boolean | null;
+  has_sra: boolean | null;
+  n_runs: number | null;
+  n_fastq_runs: number | null;
+  n_sra_runs: number | null;
+  is_long_read: boolean;
+}
+
+export function useOntologyTermSummary(basePath: string, keyPrefix: string) {
+  return useQuery({
+    queryKey: [`${keyPrefix}-summary`],
+    queryFn: ({ signal }) =>
+      getJsonOrNull<OntologyTermSummary>(`${basePath}/summary`, signal),
+    staleTime: ONE_DAY,
+  });
+}
+
+interface OntologyTermCursor {
+  sort_value: string | number;
+  accession: string;
+}
+
+interface OntologyTermProjectsPage<TProject> {
+  total: number;
+  count: number;
+  sort: string;
+  next_cursor: OntologyTermCursor | null;
+  results: TProject[];
+}
+
+// keyset pagination: OFFSET rescans every earlier row on broad terms
+export function useOntologyTermProjects<TProject>(
+  basePath: string,
+  keyPrefix: string,
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) {
+  const active = useActiveFilters(filters);
+  return useInfiniteQuery({
+    queryKey: [`${keyPrefix}-projects`, active, sort],
+    queryFn: ({ signal, pageParam }) => {
+      const qs = projectsQuery(
+        active,
+        sort,
+        pageParam
+          ? [
+              ["cursor_sort", String(pageParam.sort_value)],
+              ["cursor_acc", pageParam.accession],
+            ]
+          : [],
+      );
+      return getJson<OntologyTermProjectsPage<TProject>>(
+        `${basePath}/projects?${qs.toString()}`,
+        signal,
+      );
+    },
+    initialPageParam: null as OntologyTermCursor | null,
+    getNextPageParam: (lastPage) => lastPage.next_cursor,
+    placeholderData: (prev) => prev,
+    staleTime: ONE_DAY,
+  });
+}
 
 export function useDiseaseSummary(collection: string) {
   return useQuery({
