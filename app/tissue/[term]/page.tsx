@@ -18,5 +18,5 @@ export default async function TissuePage({
   params: Promise<{ term: string }>;
 }) {
   const { term } = await params;
-  return <OntologyTermPage kind="tissue" term={term} />;
+  return <OntologyTermPage kind="tissue" slug={term} />;
 }

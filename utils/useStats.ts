@@ -1,4 +1,5 @@
 import { getJson, getJsonOrNull } from "@/utils/api";
+import { ONTOLOGY_DEFAULT_SORT } from "@/utils/ontology-kinds";
 import type {
   EnrichedCoverage,
   EnrichedCrosstab,
@@ -430,11 +431,16 @@ export interface OntologyTermProject {
   is_long_read: boolean;
 }
 
-export function useOntologyTermSummary(basePath: string, keyPrefix: string) {
+export function useOntologyTermSummary(
+  basePath: string,
+  keyPrefix: string,
+  initialData?: OntologyTermSummary,
+) {
   return useQuery({
     queryKey: [`${keyPrefix}-summary`],
     queryFn: ({ signal }) =>
       getJsonOrNull<OntologyTermSummary>(`${basePath}/summary`, signal),
+    initialData,
     staleTime: ONE_DAY,
   });
 }
@@ -444,7 +450,7 @@ interface OntologyTermCursor {
   accession: string;
 }
 
-interface OntologyTermProjectsPage<TProject> {
+export interface OntologyTermProjectsPage<TProject> {
   total: number;
   count: number;
   sort: string;
@@ -458,8 +464,14 @@ export function useOntologyTermProjects<TProject>(
   keyPrefix: string,
   filters: DiseaseFilters,
   sort: DiseaseSort,
+  // server-rendered first page; default sort and no filters only
+  initialPage?: OntologyTermProjectsPage<TProject>,
 ) {
   const active = useActiveFilters(filters);
+  const isDefault =
+    active.length === 0 &&
+    sort.key === ONTOLOGY_DEFAULT_SORT.key &&
+    sort.order === ONTOLOGY_DEFAULT_SORT.order;
   return useInfiniteQuery({
     queryKey: [`${keyPrefix}-projects`, active, sort],
     queryFn: ({ signal, pageParam }) => {
@@ -479,6 +491,10 @@ export function useOntologyTermProjects<TProject>(
       );
     },
     initialPageParam: null as OntologyTermCursor | null,
+    initialData:
+      isDefault && initialPage
+        ? { pages: [initialPage], pageParams: [null] }
+        : undefined,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
     placeholderData: (prev) => prev,
     staleTime: ONE_DAY,

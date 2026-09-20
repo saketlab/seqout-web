@@ -3,7 +3,7 @@ import {
   sectionOgContentType,
   sectionOgSize,
 } from "@/lib/section-og";
-import { titleCaseTerm } from "@/utils/format";
+import { termLabel } from "@/utils/ontology-term-server";
 import { COLLECTIONS } from "./page";
 
 export const size = sectionOgSize;
@@ -16,9 +16,11 @@ type Props = {
 export default async function OpengraphImage({ params }: Props) {
   const { collection } = await params;
   const meta = COLLECTIONS[collection];
+  const title =
+    meta?.heading ?? `${await termLabel("disease", collection)} datasets`;
   return generateSectionOgImage({
     badge: meta?.ogBadge ?? "Disease",
-    title: meta?.heading ?? `${titleCaseTerm(decodeURIComponent(collection))} datasets`,
+    title,
     subtitle: meta?.ogSubtitle ?? "",
     footer: "Across GEO, SRA, ENA, and ArrayExpress",
     colors: { primary: "#c96570", secondary: "#9c4d56", accent: "#e8b0b6" },

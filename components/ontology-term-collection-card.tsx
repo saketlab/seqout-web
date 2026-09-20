@@ -14,7 +14,8 @@ import {
 import { humanize } from "@/utils/format";
 import {
   ONTOLOGY_KINDS,
-  ontologyTermHref,
+  ONTOLOGY_DEFAULT_SORT,
+  ontologyTermApiPath,
   type OntologyKind,
 } from "@/utils/ontology-kinds";
 import {
@@ -23,6 +24,8 @@ import {
   useOntologyTermSummary,
   type DiseaseFacets,
   type OntologyTermProject as Row,
+  type OntologyTermProjectsPage,
+  type OntologyTermSummary,
 } from "@/utils/useStats";
 import { Badge, Callout, Flex, Text } from "@radix-ui/themes";
 import { useMemo } from "react";
@@ -187,21 +190,30 @@ function noMatchText(kind: OntologyKind, term: string): string {
 export default function OntologyTermCollectionCard({
   term,
   kind,
+  initialSummary,
+  initialProjects,
 }: {
   term: string;
   kind: OntologyKind;
+  initialSummary?: OntologyTermSummary;
+  initialProjects?: OntologyTermProjectsPage<Row>;
 }) {
-  const basePath = ontologyTermHref(kind, term);
+  const basePath = ontologyTermApiPath(kind, term);
   const keyPrefix = `${KIND_META[kind].keyPrefix}-${term}`;
 
-  const { filters, sort, toggleSort, setFilter } = useSortFilterState({
-    key: "pub_date",
-    order: "desc",
-  });
+  const { filters, sort, toggleSort, setFilter } = useSortFilterState(
+    ONTOLOGY_DEFAULT_SORT,
+  );
 
-  const summary = useOntologyTermSummary(basePath, keyPrefix);
+  const summary = useOntologyTermSummary(basePath, keyPrefix, initialSummary);
   const facets = useCollectionFacets(basePath, keyPrefix);
-  const projects = useOntologyTermProjects<Row>(basePath, keyPrefix, filters, sort);
+  const projects = useOntologyTermProjects<Row>(
+    basePath,
+    keyPrefix,
+    filters,
+    sort,
+    initialProjects,
+  );
 
   const rows = useMemo(
     () => projects.data?.pages.flatMap((p) => p.results) ?? NO_ROWS,

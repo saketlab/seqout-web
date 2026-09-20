@@ -69,7 +69,7 @@ export default async function DiseasePage({
   const meta = COLLECTIONS[collection];
   if (!meta) {
     return (
-      <OntologyTermPage kind="disease" term={collection}>
+      <OntologyTermPage kind="disease" slug={collection}>
         See <Link href="/disease/rare">/disease/rare</Link> and{" "}
         <Link href="/disease/nord">/disease/nord</Link> for the curated
         rare-disease catalogues.
