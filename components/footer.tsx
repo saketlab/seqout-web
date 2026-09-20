@@ -38,6 +38,12 @@ export default function Footer() {
           >
             Saket Lab
           </Link>
+          <Text size="1" style={{ color: "var(--gray-11)" }}>
+            ·
+          </Text>
+          <Link href="/privacy" size="1" color="gray">
+            Privacy
+          </Link>
         </Flex>
 
         {/* Command palette keyboard shortcut. */}

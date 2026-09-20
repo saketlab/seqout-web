@@ -20,6 +20,7 @@ const STATIC_PATHS = [
   "/authors",
   "/data",
   "/howsearchworks",
+  "/privacy",
   "/pmid",
   "/disease/rare",
   "/disease/nord",
