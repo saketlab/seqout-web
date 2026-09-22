@@ -26,21 +26,13 @@ export default function PerturbationPage() {
           Single-cell perturbation datasets
         </Heading>
         <Text size={{ initial: "2", md: "3" }} color="gray">
-          Single-cell studies with genetic (CRISPR knockout, CRISPRi, CRISPRa,
-          RNAi, ORF, base and prime editing) or chemical (drug or biologic)
-          perturbation evidence, across GEO, SRA, ENA, DDBJ DRA and GSA. A study
-          mirrored in more than one archive is listed once. Every call is
-          rule-based, from named methods such as Perturb-seq, CROP-seq and
-          sci-Plex, guide-library and control-arm design tests, and a ChEBI
-          compound lexicon; no model assigns a label. Each row carries its
-          confidence and the signals behind it, and shows whether a counted
-          matrix, raw FASTQ, both or neither is available. The default view
-          keeps high and medium confidence; weak single-signal calls are one
-          click away and include false positives. A compound named only in a
-          study&apos;s title (shown separately from confirmed compounds) is
-          often what is being studied, not what was applied, so it never raises
-          confidence past low. Cell line and sample-material tags describe what
-          was sequenced, not the perturbation.
+          Single-cell studies with genetic (CRISPR, RNAi, ORF, base/prime
+          editing) or chemical (drug or biologic) perturbation evidence,
+          across GEO, SRA, ENA, DDBJ DRA and GSA. A study mirrored in more
+          than one archive appears once. Every call is rule-based, from
+          named methods, guide-library and control-arm design tests, and a
+          ChEBI compound lexicon; The default view
+          keeps high and medium confidence.
         </Text>
         <PerturbationCollectionCard />
       </Flex>
