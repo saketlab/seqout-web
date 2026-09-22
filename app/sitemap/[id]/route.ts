@@ -81,6 +81,7 @@ const STATIC_PATHS = [
   "/stats",
   "/technology/longread",
   "/technology/perturbation",
+  "/technology/spatial",
   "/technology/single-cell",
   "/api-docs",
   "/authors",

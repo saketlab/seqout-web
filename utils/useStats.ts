@@ -411,6 +411,62 @@ export const usePerturbationProjects = (
     sort,
   );
 
+export interface SpatialSummary {
+  studies: number;
+  studies_named_platform: number;
+  studies_single_cell_res: number;
+  studies_spot_res: number;
+  studies_roi_res: number;
+  studies_with_matrix: number;
+  studies_with_fastq: number;
+  studies_matrix_and_fastq: number;
+  studies_human: number;
+  samples: number | null;
+  cells: number | null;
+  first_year: number | null;
+  last_year: number | null;
+}
+
+export type SpatialResolution = "single-cell" | "spot" | "roi";
+export type SpatialTechnology = "imaging" | "sequencing" | "hybrid";
+
+export interface SpatialProject {
+  study_accession: string;
+  title: string | null;
+  organism: string | null;
+  organisms: string[] | null;
+  tissues: string[] | null;
+  single_cell_modality: string | null;
+  is_long_read: boolean;
+  assay_l1: string | null;
+  readout_assays: string[] | null;
+  cell_lines: string[] | null;
+  sample_types: string[] | null;
+  n_samples: number | null;
+  n_cells: number | null;
+  has_matrix: boolean;
+  has_fastq: boolean | null;
+  has_sra: boolean | null;
+  n_fastq_runs: number | null;
+  n_runs: number | null;
+  data_availability: DataAvailability;
+  platforms: string[] | null;
+  resolution: SpatialResolution | null;
+  technology: SpatialTechnology | null;
+  country: string | null;
+  pmid: string | null;
+  year: number | null;
+}
+
+export const useSpatialSummary = () =>
+  useCollectionSummary<SpatialSummary>("/spatial", "spatial");
+export const useSpatialFacets = () =>
+  useCollectionFacets("/spatial", "spatial");
+export const useSpatialProjects = (
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) => useCollectionProjects<SpatialProject>("/spatial", "spatial", filters, sort);
+
 export interface CountrySummary {
   studies: number;
   samples: number | null;
