@@ -274,7 +274,13 @@ export const useLongReadFacets = () =>
 export const useLongReadProjects = (
   filters: DiseaseFilters,
   sort: DiseaseSort,
-) => useCollectionProjects<LongReadProject>("/longread", "longread", filters, sort);
+) =>
+  useCollectionProjects<LongReadProject>(
+    "/longread",
+    "longread",
+    filters,
+    sort,
+  );
 
 export interface SingleCellSummary {
   studies: number;
@@ -327,6 +333,80 @@ export const useSingleCellProjects = (
   useCollectionProjects<SingleCellProject>(
     "/single-cell",
     "singlecell",
+    filters,
+    sort,
+  );
+
+export interface PerturbationSummary {
+  studies: number;
+  studies_high_medium: number;
+  studies_high: number;
+  studies_genetic: number;
+  studies_chemical: number;
+  studies_with_matrix: number;
+  studies_with_fastq: number;
+  studies_matrix_and_fastq: number;
+  studies_human: number;
+  samples: number | null;
+  cells: number | null;
+  first_year: number | null;
+  last_year: number | null;
+}
+
+export type PerturbationType = "genetic" | "chemical" | "both" | "other";
+export type PerturbationConfidence = "high" | "medium" | "low";
+export type DataAvailability =
+  "both" | "matrix_only" | "fastq_only" | "neither";
+
+export interface PerturbationProject {
+  study_accession: string;
+  title: string | null;
+  organism: string | null;
+  organisms: string[] | null;
+  tissues: string[] | null;
+  single_cell_modality: string | null;
+  is_long_read: boolean;
+  assay_l1: string | null;
+  readout_assays: string[] | null;
+  cell_lines: string[] | null;
+  sample_types: string[] | null;
+  n_samples: number | null;
+  n_cells: number | null;
+  has_matrix: boolean;
+  has_fastq: boolean | null;
+  has_sra: boolean | null;
+  n_fastq_runs: number | null;
+  n_runs: number | null;
+  data_availability: DataAvailability;
+  perturbation_type: PerturbationType;
+  confidence: PerturbationConfidence;
+  genetic_confidence: "none" | PerturbationConfidence;
+  chemical_confidence: "none" | PerturbationConfidence;
+  genetic_subtypes: string[] | null;
+  perturbation_methods: string[] | null;
+  compounds: string[] | null;
+  title_compounds: string[] | null;
+  stimuli: string[] | null;
+  has_control_arm: boolean;
+  n_compound_values: number;
+  is_pooled: boolean | null;
+  evidence: string[];
+  country: string | null;
+  pmid: string | null;
+  year: number | null;
+}
+
+export const usePerturbationSummary = () =>
+  useCollectionSummary<PerturbationSummary>("/perturbation", "perturbation");
+export const usePerturbationFacets = () =>
+  useCollectionFacets("/perturbation", "perturbation");
+export const usePerturbationProjects = (
+  filters: DiseaseFilters,
+  sort: DiseaseSort,
+) =>
+  useCollectionProjects<PerturbationProject>(
+    "/perturbation",
+    "perturbation",
     filters,
     sort,
   );

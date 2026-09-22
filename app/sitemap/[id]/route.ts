@@ -80,6 +80,7 @@ const STATIC_PATHS = [
   "/mcp",
   "/stats",
   "/technology/longread",
+  "/technology/perturbation",
   "/technology/single-cell",
   "/api-docs",
   "/authors",

@@ -1,7 +1,11 @@
 "use client";
 
 import { humanize } from "@/utils/format";
-import type { DiseaseFacetValue, DiseaseFilters, DiseaseSort } from "@/utils/useStats";
+import type {
+  DiseaseFacetValue,
+  DiseaseFilters,
+  DiseaseSort,
+} from "@/utils/useStats";
 import {
   Badge,
   Box,
@@ -22,7 +26,7 @@ export const ALL = "__all__";
 const TAG_PREVIEW = 2;
 const DEFAULT_MAX_OPTIONS = 40;
 
-type BadgeColor = ComponentProps<typeof Badge>["color"];
+export type BadgeColor = ComponentProps<typeof Badge>["color"];
 
 export function TagList({
   values,
@@ -48,7 +52,12 @@ export function TagList({
   return (
     <Flex align="center" gap="1" wrap="wrap">
       {(expanded ? list : list.slice(0, TAG_PREVIEW)).map((v) => (
-        <Badge key={v} size="1" variant="soft" color={colorFor ? colorFor(v) : color}>
+        <Badge
+          key={v}
+          size="1"
+          variant="soft"
+          color={colorFor ? colorFor(v) : color}
+        >
           {labelFor ? labelFor(v) : v}
         </Badge>
       ))}
@@ -71,6 +80,38 @@ export function TagList({
           {expanded ? "show less" : `+${hidden}`}
         </Badge>
       ) : null}
+    </Flex>
+  );
+}
+
+// one empty-state dash covers the whole cell
+export function TagGroups({
+  groups,
+}: {
+  groups: { values: string[] | null; color?: BadgeColor; prefix?: string }[];
+}) {
+  const nonEmpty = groups.filter((g) => g.values && g.values.length > 0);
+  if (nonEmpty.length === 0) {
+    return (
+      <Text size="1" color="gray">
+        —
+      </Text>
+    );
+  }
+  return (
+    <Flex direction="column" gap="1">
+      {nonEmpty.map((g, i) =>
+        g.prefix ? (
+          <Flex key={i} align="center" gap="1" wrap="wrap">
+            <Text size="1" color="gray">
+              {g.prefix}
+            </Text>
+            <TagList values={g.values} color={g.color} />
+          </Flex>
+        ) : (
+          <TagList key={i} values={g.values} color={g.color} />
+        ),
+      )}
     </Flex>
   );
 }
@@ -228,8 +269,11 @@ export function orderedFacetKeys(
   ];
 }
 
-export function useSortFilterState(defaultSort: DiseaseSort) {
-  const [filters, setFilters] = useState<DiseaseFilters>({});
+export function useSortFilterState(
+  defaultSort: DiseaseSort,
+  initialFilters: DiseaseFilters = {},
+) {
+  const [filters, setFilters] = useState<DiseaseFilters>(initialFilters);
   const [sort, setSort] = useState<DiseaseSort>(defaultSort);
 
   const toggleSort = (key: string) =>
@@ -284,40 +328,42 @@ export function CollectionTable<T extends { study_accession: string }>({
     <>
       <Box style={{ overflowX: "auto" }}>
         <Table.Root size="1" variant="surface">
-        <Table.Header>
-          <Table.Row>
-            {columns.map(({ label, sort: col, align, info }) => (
-              <Table.ColumnHeaderCell key={label} align={align}>
-                <Text
-                  size="1"
-                  style={
-                    col ? { cursor: "pointer", userSelect: "none" } : undefined
-                  }
-                  onClick={col ? () => toggleSort(col) : undefined}
-                >
-                  {label}
-                  {sort.key === col
-                    ? sort.order === "desc"
-                      ? " ↓"
-                      : " ↑"
-                    : ""}
-                </Text>
-                <ColumnInfo text={info} />
-              </Table.ColumnHeaderCell>
-            ))}
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {rows.map((r) => (
-            <Table.Row key={r.study_accession}>
-              {columns.map((c) => (
-                <Table.Cell key={c.label} align={c.align}>
-                  {c.render(r)}
-                </Table.Cell>
+          <Table.Header>
+            <Table.Row>
+              {columns.map(({ label, sort: col, align, info }) => (
+                <Table.ColumnHeaderCell key={label} align={align}>
+                  <Text
+                    size="1"
+                    style={
+                      col
+                        ? { cursor: "pointer", userSelect: "none" }
+                        : undefined
+                    }
+                    onClick={col ? () => toggleSort(col) : undefined}
+                  >
+                    {label}
+                    {sort.key === col
+                      ? sort.order === "desc"
+                        ? " ↓"
+                        : " ↑"
+                      : ""}
+                  </Text>
+                  <ColumnInfo text={info} />
+                </Table.ColumnHeaderCell>
               ))}
             </Table.Row>
-          ))}
-        </Table.Body>
+          </Table.Header>
+          <Table.Body>
+            {rows.map((r) => (
+              <Table.Row key={r.study_accession}>
+                {columns.map((c) => (
+                  <Table.Cell key={c.label} align={c.align}>
+                    {c.render(r)}
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))}
+          </Table.Body>
         </Table.Root>
       </Box>
       <Flex align="center" gap="3">
