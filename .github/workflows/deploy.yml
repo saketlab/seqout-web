@@ -104,6 +104,10 @@ jobs:
 
             ls -1dt "$BASE"/releases/*/ | tail -n +4 | xargs -r rm -rf
 
+            for dir in "$BASE"/releases/*/; do
+              [ "$(readlink -f "$dir")" = "$(readlink -f "$RELEASE")" ] || rm -rf "${dir}.next/cache"
+            done
+
             sleep 3
             curl -f http://127.0.0.1:3002
 
