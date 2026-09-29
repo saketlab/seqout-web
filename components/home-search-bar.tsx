@@ -147,9 +147,14 @@ export default function HomeSearchBar() {
             Or browse —{" "}
             <Link href={"/technology/single-cell"}>single cell datasets</Link>,{" "}
             <Link href={"/technology/longread"}>long read datasets</Link>,{" "}
-            <Link href={"/technology/perturbation"}>perturbation datasets</Link>,{" "}
-            <Link href={"/technology/spatial"}>spatial transcriptomics datasets</Link>,{" "}
-            <Link href={"/disease/rare"}>rare disease datasets</Link>, or{" "}
+            <Link href={"/technology/perturbation"}>perturbation datasets</Link>
+            ,{" "}
+          </Text>
+          <Text size={"1"} color="gray">
+            <Link href={"/technology/spatial"}>
+              spatial transcriptomics datasets
+            </Link>
+            , <Link href={"/disease/rare"}>rare disease datasets</Link>, or{" "}
             <Link href={"/country/india"}>datasets from India</Link>
           </Text>
         </Flex>
