@@ -1,4 +1,3 @@
-import ClaudeSetupCarousel from "@/components/claude-setup-carousel";
 import SearchBar from "@/components/search-bar";
 import SectionAnchor from "@/components/section-anchor";
 import { SERVER_API_BASE } from "@/utils/constants";
@@ -244,29 +243,14 @@ export default async function MCP() {
 
         <Flex direction="column" gap="4">
           <Text size={{ initial: "2", md: "3" }}>
-            Add seqout as a custom connector from Claude Desktop. Open{" "}
-            <Text weight="medium">Settings → Connectors</Text>, then choose
-            <Text weight="medium"> Add custom connector</Text>.
+            Seqout can be installed from the Claude plugins directory:{" "}
+            <Link href="https://claude.ai/directory/seqout">
+              <Code>https://claude.ai/directory/seqout</Code>
+            </Link>
           </Text>
-
-          <Text size={{ initial: "2", md: "3" }}>
-            Enter <Text weight="medium">Seqout</Text> as the name and use this
-            server URL:
-          </Text>
-
-          <ConfigBlock>{MCP_URL}</ConfigBlock>
-
-          <Text size={{ initial: "2", md: "3" }}>
-            Follow the walkthrough below to finish connecting and choose which
-            seqout tools Claude can use.
-          </Text>
-
-          <ClaudeSetupCarousel steps={CLAUDE_SETUP_STEPS} />
-
           <Text size={{ initial: "2", md: "3" }}>
             Once configured, you&apos;ll be able to search and explore GEO, SRA,
-            ENA, DRA, GEA, GSA & ArrayExpress datasets directly from Claude
-            Desktop conversations.
+            ENA, DRA, GEA, GSA & ArrayExpress datasets directly from Claude.
           </Text>
         </Flex>
 
