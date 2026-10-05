@@ -51,7 +51,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: createElement(SewingPinIcon),
   },
   {
-    label: "Use with LLMs",
+    label: "Use with AI agents",
     href: "/mcp",
     icon: createElement(MagicWandIcon),
   },
