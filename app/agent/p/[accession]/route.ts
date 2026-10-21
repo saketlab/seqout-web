@@ -1,5 +1,6 @@
 import { markdownResponse } from "@/lib/agent-markdown";
 import { fetchProjectDatasetInfo } from "@/lib/project-og";
+import { buildClientSnippets, snippetsMarkdown } from "@/utils/client-snippets";
 import { SITE_URL } from "@/utils/constants";
 import { doiHref } from "@/utils/project";
 
@@ -54,6 +55,11 @@ export async function GET(
       lines.push(`- ${pub.title ?? "Untitled"}${venue ? ` (${venue})` : ""}${doi}`);
     }
   }
+
+  lines.push(
+    "",
+    snippetsMarkdown(buildClientSnippets(accession, lookup.payload)),
+  );
 
   return markdownResponse(lines.join("\n"), revalidate);
 }

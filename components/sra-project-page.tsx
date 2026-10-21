@@ -54,6 +54,7 @@ import {
   toDisplayText,
 } from "@/utils/project";
 import { useServerFind } from "@/utils/useServerFind";
+import { PROJECT_READY_EVENT } from "@/utils/useProjectReady";
 import {
   CheckIcon,
   CopyIcon,
@@ -2091,7 +2092,7 @@ export default function ProjectPage() {
 
   useEffect(() => {
     if (!project || isLoading || isError) return;
-    window.dispatchEvent(new Event("seqout:project-ready"));
+    window.dispatchEvent(new Event(PROJECT_READY_EVENT));
   }, [project, isLoading, isError]);
 
   // Paginated: 20 experiments/page, fetch more as the grid scrolls (loaded-only).

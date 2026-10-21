@@ -155,6 +155,9 @@ export const getBrowserDownloadUrl = (url: string): string => {
 export const getAppDownloadUrl = (url: string, fileName: string): string =>
   `/web-api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(fileName)}`;
 
+export const supplementaryFileName = (entry: SupplementaryDataRecord): string =>
+  entry.path?.trim() || getFileNameFromUrl(entry.url.trim());
+
 export const buildSupplementaryItems = ({
   rawValue,
   idPrefix,
@@ -171,7 +174,7 @@ export const buildSupplementaryItems = ({
         return null;
       }
       const browserDownloadUrl = getBrowserDownloadUrl(url);
-      const fileName = entry.path?.trim() || getFileNameFromUrl(url);
+      const fileName = supplementaryFileName(entry);
       return {
         id: `${idPrefix}-${index}`,
         url: browserDownloadUrl,

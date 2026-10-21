@@ -45,10 +45,14 @@ seqout_counts(gse="GSE297547").matrix(sample="GSM8994520")
 ```r
 library(seqout)
 
-con <- seqout_connect()
-find_projects(con, keywords = "liver cancer scRNA", organism = "Homo sapiens")
-project_samples(con, "GSE151530")
+SeqoutSearch("liver cancer scRNA", organism = "Homo sapiens")
+SeqoutGet("GSE151530")$samples
+Seqout2Seurat("GSE297547", sample = "GSM8994520")
 ```
+
+Every project page ends with ready-to-run Python and R code for that accession,
+and https://seqout.org/p/{accession} returns it as markdown when requested with
+`Accept: text/markdown`.
 
 seqout is developed and maintained by Saket Lab, IIT Bombay.
 

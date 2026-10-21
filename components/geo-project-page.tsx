@@ -35,6 +35,7 @@ import { toServerFilters } from "@/utils/gridFilters";
 import { useServerFind } from "@/utils/useServerFind";
 import { copyToClipboard } from "@/utils/clipboard";
 import { PROJECT_HEADER_INSETS } from "@/utils/constants";
+import { PROJECT_READY_EVENT } from "@/utils/useProjectReady";
 import { dbForAccession } from "@/utils/db-colors";
 import { buildSupplementaryDownloadScript } from "@/utils/downloadScript";
 import { titleCaseCenter } from "@/utils/format";
@@ -309,7 +310,7 @@ export default function GeoProjectPage() {
 
   useEffect(() => {
     if (!project || isLoading || isError) return;
-    window.dispatchEvent(new Event("seqout:project-ready"));
+    window.dispatchEvent(new Event(PROJECT_READY_EVENT));
   }, [project, isLoading, isError]);
 
   const publications = project?.publications ?? null;

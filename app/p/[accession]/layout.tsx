@@ -31,6 +31,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import SearchBar from "@/components/search-bar";
+import ClientCodeSection from "@/components/client-code-section";
+import { buildClientSnippets } from "@/utils/client-snippets";
 
 // avoids ISR caching every crawled accession to disk forever
 export const dynamic = "force-dynamic";
@@ -211,6 +213,10 @@ export default async function ProjectLayout({ children, params }: Props) {
         <HydrationBoundary state={dehydrate(queryClient)}>
           {children}
         </HydrationBoundary>
+        {/* outside the ssr:false page so the snippets reach the HTML */}
+        <ClientCodeSection
+          blocks={buildClientSnippets(accession, lookup.payload)}
+        />
       </main>
     </>
   );
