@@ -33,29 +33,6 @@ const jsonLd = {
 
 const MCP_URL = "https://seqout.org/api/mcp";
 
-const CLAUDE_SETUP_STEPS = [
-  {
-    image: "/claude-setup/step_1.png",
-    description: "Open Settings from the profile menu.",
-  },
-  {
-    image: "/claude-setup/step_2.png",
-    description: "Select Connectors in the settings sidebar.",
-  },
-  {
-    image: "/claude-setup/step_3.png",
-    description: "Choose Add custom connector.",
-  },
-  {
-    image: "/claude-setup/steo_4.png",
-    description: "Name the connector Seqout and paste the MCP server URL.",
-  },
-  {
-    image: "/claude-setup/step_5.png",
-    description: "Approve the tools you want Claude to use.",
-  },
-] as const;
-
 export const revalidate = 86400;
 
 type McpTool = { name: string; description?: string };
