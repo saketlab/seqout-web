@@ -15,7 +15,7 @@ export const PYTHON_DEV_INSTALL =
   'pip install "seqout @ git+https://github.com/saketlab/seqout.git#subdirectory=python"';
 export const R_DEV_INSTALL = 'pak::pak("saketlab/seqout/R")';
 export const SNIPPETS_INTRO =
-  "Install the seqout client first; the first line of each block is its install command.";
+  "Seqout's data can be accessed via its Python and R clients. The first line of each snippet below contains the command to install it.";
 export const CLIENT_DOCS = {
   python: `${SITE_URL}/cli/python/`,
   r: `${SITE_URL}/cli/R/`,

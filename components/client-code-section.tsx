@@ -5,13 +5,11 @@ import SectionAnchor from "@/components/section-anchor";
 import { PROJECT_HEADER_INSETS } from "@/utils/constants";
 import {
   CLIENT_DOCS,
-  PYTHON_DEV_INSTALL,
-  R_DEV_INSTALL,
   SNIPPETS_INTRO,
   type SnippetBlock,
 } from "@/utils/client-snippets";
 import { useProjectReady } from "@/utils/useProjectReady";
-import { Code, Flex, Heading, Link, Tabs, Text } from "@radix-ui/themes";
+import { Flex, Heading, Link, Tabs, Text } from "@radix-ui/themes";
 import { useState } from "react";
 
 const LANGUAGES = [
@@ -39,9 +37,7 @@ export default function ClientCodeSection({
           <SectionAnchor id="code" />
         </Flex>
         <Text size="2" style={{ color: "var(--gray-11)" }}>
-          {SNIPPETS_INTRO} Development version:{" "}
-          <Code size="1">{PYTHON_DEV_INSTALL}</Code> or{" "}
-          <Code size="1">{R_DEV_INSTALL}</Code>.
+          {SNIPPETS_INTRO}
         </Text>
         <Tabs.Root
           value={language}
