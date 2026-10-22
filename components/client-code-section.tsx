@@ -29,7 +29,7 @@ export default function ClientCodeSection({
 
   return (
     <div hidden={!ready}>
-      <Flex {...PROJECT_HEADER_INSETS} pb="6" direction="column" gap="3">
+      <Flex {...PROJECT_HEADER_INSETS} pt="1" pb="6" direction="column" gap="3">
         <Flex id="code" align="center" gap="2">
           <Heading as="h2" weight="medium" size="6">
             Use in Python or R
