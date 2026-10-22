@@ -57,7 +57,7 @@ export default function ClientCodeSection({
               forceMount
               hidden={lang.value !== language}
             >
-              <Flex direction="column" gap="4" pt="1">
+              <Flex direction="column" gap="4" pt="3">
                 {blocks.map((block) => (
                   <Flex key={block.id} direction="column" gap="2">
                     <Text size="2" weight="medium">
