@@ -58,6 +58,7 @@ jobs:
           cp -r public/. deploy/public/
 
           cp ecosystem.config.js deploy/ecosystem.config.js
+          cp scripts/prune-fetch-cache.sh deploy/prune-fetch-cache.sh
 
       - name: Create release directory on server
         uses: appleboy/ssh-action@v1.2.5
@@ -98,6 +99,9 @@ jobs:
 
             ln -sfn "$RELEASE" "$BASE/current"
             cp "$RELEASE/ecosystem.config.js" "$BASE/ecosystem.config.js"
+            install -m 755 "$RELEASE/prune-fetch-cache.sh" "$BASE/prune-fetch-cache.sh"
+            (crontab -l 2>/dev/null | grep -v prune-fetch-cache || true
+             echo "*/10 * * * * $BASE/prune-fetch-cache.sh >> $HOME/prune-fetch-cache.log 2>&1") | crontab -
 
             pm2 startOrReload "$BASE/ecosystem.config.js" --update-env
             pm2 save
