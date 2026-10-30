@@ -31,21 +31,21 @@ const GROUPS: {
     label: "In the sample",
     tint: "blue",
     blurb:
-      "Reads from an organism that plausibly came with the tissue: a virus or a pathogen that the prevalence sweep leaves unflagged.",
+      "Viruses and pathogens likely carried in with the tissue.",
   },
   {
     key: "culture",
     label: "Cell-culture contamination",
     tint: "amber",
     blurb:
-      "Mycoplasma species infect cultured cell lines. A positive says the line was contaminated in somebody's incubator, so the tissue label records where the line originally came from.",
+      "Mycoplasma from cell culture; the tissue label represents the cell line's sampling site.",
   },
   {
     key: "background",
     label: "Reagent and host background",
     tint: "gray",
     blurb:
-      "Organisms that turn up at a similar rate across unrelated tissues, so the sweep flags them as prevalent: gut and skin bacteria carried in extraction kits and on hands (E. coli, C. acnes), plus retroviruses such as murine leukemia virus that sit in the mouse germline and are read straight off the host genome.",
+      "Kit, skin and gut bacteria (E. coli, C. acnes) and mouse germline retroviruses, found across unrelated tissues.",
   },
 ];
 
@@ -165,10 +165,10 @@ export default function StatsTissueMicrobeCard() {
       </Flex>
 
       <Text size="2" color="gray">
-        Share of samples of each tissue carrying reads from each organism,
-        counted over the samples we quantified. A cell needs {data.min_studies}{" "}
-        or more contributing studies, and a tissue needs {data.min_screened} or
-        more screened samples.
+        For each tissue, we show the fraction of quantified samples carrying
+        reads from each organism. To limit noise, we require at least{" "}
+        {data.min_studies} contributing studies per heatmap cell and at least{" "}
+        {data.min_screened} screened samples per tissue.
       </Text>
 
       <Flex align="center" gap="2">
@@ -286,7 +286,7 @@ export default function StatsTissueMicrobeCard() {
         </Box>
       )}
 
-      <Flex direction="column" gap="2">
+      <Flex direction="column" gap="1">
         {(grid?.groups ?? GROUPS).map((g) => (
           <Text key={g.key} size="1" color="gray">
             <Text weight="medium" style={{ color: `var(--${g.tint}-11)` }}>
@@ -296,11 +296,8 @@ export default function StatsTissueMicrobeCard() {
           </Text>
         ))}
         <Text size="1" color="gray">
-          Colour is the square root of the rate, scaled within each group, so a
-          16% contaminant does not flatten a 1% virus to the background colour.
-          Compare cells down a column, and only within one group. Every organism
-          we detect is shown, because the reads are real in all three cases.
-          What the group changes is whether the tissue label means anything.
+          We shade by the square root of the rate, scaled within each group. We
+          recommend comparing down a column, within a single group.
         </Text>
       </Flex>
     </Flex>

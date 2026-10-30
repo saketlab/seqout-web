@@ -291,7 +291,7 @@ export default function StatsGrowthChartCard() {
       {isLoading ? (
         <Flex direction="column" align="center" justify="center" gap="3" style={{ height: 400 }}>
           <Skeleton width="60%" height="16px" />
-          <Text size="2" color="gray">Crunching latest numbers…</Text>
+          <Text size="2" color="gray">Loading…</Text>
           <Skeleton width="100%" height="300px" />
         </Flex>
       ) : (

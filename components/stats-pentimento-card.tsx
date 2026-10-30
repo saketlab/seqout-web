@@ -188,8 +188,8 @@ export default function StatsPentimentoCard() {
       </Flex>
 
       <Text size="2" color="gray">
-        We compute these from the FASTQ files, so they hold even where the
-        submitted metadata is wrong.
+        We derive these calls from the FASTQ files themselves, independent of
+        the submitted metadata, so they can be used to check it.
       </Text>
 
       <StatTiles
@@ -220,17 +220,18 @@ export default function StatsPentimentoCard() {
             .join(" · ")}
         </Text>
         <Text size="1" color="gray" as="div" mb="2">
-          These thresholds measure breadth of coverage, which is a step short of
-          a presence call. At the low-breadth cut, reagent and skin-flora taxa
-          clear the same bar {bgPct.toFixed(2)}% of the time against{" "}
-          {tgPct.toFixed(2)}% for pathogen- and culture-labelled taxa, so the
-          low-breadth tier discriminates weakly from background. Skin flora can
-          genuinely be present, which makes those background taxa an imperfect
-          null, so read the comparison as a floor on the error rate.{" "}
-          {artifactPct.toFixed(0)}% of the low-breadth bacterial rows are E.
-          coli or M. hyorhinis alone (vector- and plasmid-associated signal,
-          plus a cell-culture contaminant), so the bacterial headline mostly
-          reflects those two organisms.
+          We threshold on breadth of coverage, which is weaker evidence than a
+          formal presence call. To estimate how well the low-breadth tier
+          separates signal from background, we compared reagent and skin-flora
+          taxa, which clear the bar in {bgPct.toFixed(2)}% of samples, with
+          pathogen- and culture-labelled taxa ({tgPct.toFixed(2)}%). The
+          difference is small, so we treat low-breadth hits as weak evidence.
+          Since skin flora can be present in the sample, this comparison gives a
+          lower bound on the error rate. We also note that E. coli and M.
+          hyorhinis account for {artifactPct.toFixed(0)}% of low-breadth
+          bacterial rows (vector and plasmid signal, plus a common cell-culture
+          contaminant), and these two organisms drive most of the bacterial
+          total.
         </Text>
         <Flex gap="5" wrap="wrap">
           {byKingdom.map((k) =>
@@ -257,11 +258,12 @@ export default function StatsPentimentoCard() {
           Unadjusted signal rate by read-end call
         </Text>
         <Text size="1" color="gray" as="div" mb="2">
-          Share of screened samples with a hit. The denominator removes the
-          gross imbalance between 3&apos; and 5&apos; library counts, but
-          controls nothing else: study, tissue, depth, organism mix, host and
-          batch all still confound this. Treat it as exploratory: a gap here is
-          worth a closer look.
+          We report the fraction of screened samples with a hit. Normalizing by
+          the number of screened samples accounts for the different numbers of
+          3&apos; and 5&apos; libraries. We do not correct for study, tissue,
+          depth, organism mix, host or batch, each of which can confound this
+          comparison, so we recommend treating differences here as hypotheses
+          for follow-up.
         </Text>
         <Flex gap="5" wrap="wrap">
           {byKingdom.map((k) => (
@@ -281,11 +283,11 @@ export default function StatsPentimentoCard() {
 
       <Box>
         <Text size="2" weight="bold" as="div" mb="1">
-          Assay read off the reads
+          Assay inferred from reads
         </Text>
         <Text size="1" color="gray" as="div" mb="2">
-          The three groups cover every scanned sample. The bars below name the
-          chemistry behind the single-cell group.
+          Together, the three groups account for every scanned sample. Below,
+          we break down the single-cell group by chemistry.
         </Text>
         <ShareBar
           segments={ASSAY_GROUPS.map((g) => ({
@@ -323,8 +325,8 @@ export default function StatsPentimentoCard() {
             Tissues by chemistry
           </Text>
           <Text size="1" color="gray" as="div" mb="2">
-            Chemistry comes from the reads; tissue comes from the submitter. Top
-            eight tissues, counted in studies.
+            We infer chemistry from the reads and take tissue from the submitted
+            metadata. We show the eight most common tissues, counted by study.
           </Text>
           <VisuallyHidden asChild>
             <p>
