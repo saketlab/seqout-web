@@ -244,7 +244,7 @@ export default function StatsScQualityCard() {
       </Flex>
 
       <Text size="2" color="gray">
-        Median UMIs and genes per cell, read from the matrices.
+        Median UMIs and genes per cell, computed from the count matrices.
       </Text>
 
       <SegmentedControl.Root
@@ -291,16 +291,17 @@ export default function StatsScQualityCard() {
       </Box>
 
       <Text size="1" color="gray">
-        Median per year over cells clearing each matrix&apos;s count
-        threshold; grey is the pooled IQR and its median. Needs{" "}
-        {data.min_matrices}+ matrices from {data.min_studies}+ studies. Dots are
-        one matrix each, not one study, subsampled per chemistry and year.
+        For each year, we take the median over cells that pass each
+        matrix&apos;s count threshold; grey shows the pooled IQR and median. We
+        require at least {data.min_matrices} matrices from {data.min_studies}{" "}
+        studies. Each dot is one matrix, subsampled per chemistry and year.
         {declared.length > 0 && (
           <>
             {" "}
-            Chemistry read from FASTQs for 10x and Drop-seq;{" "}
+            We infer chemistry from the FASTQs for 10x and Drop-seq; for{" "}
             {declared.slice(0, 4).join(", ")}
-            {declared.length > 4 ? " and others" : ""} use the declared assay.
+            {declared.length > 4 ? " and others" : ""}, we use the declared
+            assay.
           </>
         )}
       </Text>

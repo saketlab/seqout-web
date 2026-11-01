@@ -877,7 +877,7 @@ export default function StatsGlobalContributionsCard() {
   }, []);
 
   const chartTitle = useMemo(() => {
-    const parts = ["Where is sequencing data generated?"];
+    const parts = ["Origin of sequencing data"];
     if (organism !== ALL) parts.push(organism);
     if (assayL2 !== ALL) parts.push(assayL2);
     if (placeType !== ALL) parts.push(placeType);

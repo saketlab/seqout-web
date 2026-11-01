@@ -210,7 +210,7 @@ export default function StatsEnrichedCard() {
       {isLoading ? (
         <Flex align="center" justify="center" height="420px" width="100%">
           <Text color="gray" size="2">
-            Crunching numbers…
+            Loading…
           </Text>
         </Flex>
       ) : series.length === 0 ? (
