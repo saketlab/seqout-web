@@ -21,13 +21,35 @@
 
 Seqout is a search engine for finding genomic datasets across NCBI, EMBL-EBI, CNCB-NGDC & DDBJ portals. To learn more about how search works, [read more](https://seqout.org/howsearchworks).
 
-Additionally, we also harmonise sample metadata into fifteen standardised attributes. For example, check out: [seqout.org/p/GSE44255#samples=enriched](https://seqout.org/p/GSE44255#samples=enriched).
+## Harmonised sample metadata
 
-Apart from text-based search, Seqout also offers dataset discovery via semantic similarity using vector embeddings. For example, check out: [seqout.org/p/GSE153562#similar](https://seqout.org/p/GSE153562#similar).
+Seqout harmonises heterogenous sample metadata into fifteen standardised attributes across different datasets hosted in different databases. This is available under the "Enriched" tab.
 
-We also have an atlas of datasets across seven repositories. Visit [seqout.org/map](https://seqout.org/map) for a glimpse.
+![Eniched samples screenshot](./screenshots/enirched.png)
+
+## Semantically similar datasets
+
+Apart from text-based search, Seqout also offers dataset discovery via semantic similarity using vector embeddings.
+
+![Semantically similar datasets screenshot](./screenshots/neighbors.png)
+
+We also have an embedding similarity-based 2D map of datasets across seven repositories. Visit [seqout.org/map](https://seqout.org/map).
+
+![2D map screenshot](./screenshots/map.png)
+
+## Connect with AI agents
 
 Seqout also has an MCP server to help work with genomic datasets using AI agents (such as Claude, Codex, Antigravity etc.). Visit [seqout.org/mcp](https://seqout.org/mcp) for more information.
+
+[![Available on Claude](https://img.shields.io/badge/Available_on-Claude-D97757?style=for-the-badge&logo=claude&logoColor=white)](https://claude.ai/directory/seqout)
+
+## CLI, Python & R packages
+
+The `seqout` package is available via PyPI. For docs, go here: https://seqout.org/cli/python/. This can be used as both CLI command and a Python package.
+
+[![PyPI](https://img.shields.io/pypi/v/seqout?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/seqout/)
+
+Documentation for the R package is available at: https://seqout.org/cli/R
 
 ## Issues & support
 
