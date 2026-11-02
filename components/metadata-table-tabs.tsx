@@ -314,12 +314,12 @@ export default function MetadataTableTabs({
             </Tabs.Root>
           )}
           <WrapTextToggle size="2" />
-          {(activeTab === "original" || activeTab === "pentimento") && (
+          {activeTab !== "longread" && (
             <Button
               onClick={() => {
                 if (activeTab === "pentimento") {
                   window.location.href = `${SERVER_URL}/project/${accession}/pentimento.csv`;
-                } else if (showEnriched && enriched) {
+                } else if (activeTab === "enriched") {
                   void exportEnrichedCsv(accession);
                 } else if (canCombine) {
                   setAskCombined(true);
