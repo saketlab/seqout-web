@@ -95,9 +95,10 @@ function PlainCellRenderer(params: ICellRendererParams<OntologySample>) {
   const field = params.colDef?.field;
   const low = isLowConfidence(params.data, field);
   const text = params.valueFormatted ?? params.value ?? "";
+  const wrap = useWrapText();
   return (
     <Flex align="center" gap="1" style={{ overflow: "hidden" }}>
-      <Text truncate size="2">
+      <Text truncate={!wrap} size="2">
         {text}
       </Text>
       {low && <LowConfidenceBadge />}
@@ -131,6 +132,7 @@ function OntologyCellRenderer(
     const raw = params.value;
     const data = params.data;
     const low = isLowConfidence(data, params.colDef?.field);
+    const wrap = useWrapText();
     if (!data) return <>{raw ?? ""}</>;
 
     const ontoName = data[nameField];
@@ -141,7 +143,7 @@ function OntologyCellRenderer(
 
     const textNode =
       linkKind && linkTerm ? (
-        <Link asChild size="2" truncate>
+        <Link asChild size="2" truncate={!wrap}>
           <NextLink
             href={ontologyTermHref(linkKind, linkTerm)}
             onClick={(e) => e.stopPropagation()}
@@ -150,7 +152,7 @@ function OntologyCellRenderer(
           </NextLink>
         </Link>
       ) : (
-        <Text truncate size="2">
+        <Text truncate={!wrap} size="2">
           {displayText}
         </Text>
       );

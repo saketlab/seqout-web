@@ -375,6 +375,7 @@ function CallCellRenderer(
 ) {
   const contradiction = CONTRADICTION[field];
   return function Renderer(params: ICellRendererParams<SingleCellSample>) {
+    const wrap = useWrapText();
     const row = params.data;
     if (!row) return null;
     const value = row[field];
@@ -384,7 +385,7 @@ function CallCellRenderer(
     const conflict = contradiction?.(row) ?? null;
     const detail = evidence?.(row) ?? null;
     const label = (
-      <Text truncate size="2" style={detail ? { cursor: "help" } : undefined}>
+      <Text truncate={!wrap} size="2" style={detail ? { cursor: "help" } : undefined}>
         {formatOrganismName(String(value))}
       </Text>
     );
