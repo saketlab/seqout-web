@@ -16,6 +16,7 @@ import SimilarProjectsGraph, {
 import SubmittingOrgPanel, {
   CenterInfo,
 } from "@/components/submitting-org-panel";
+import { SeqoutCliCommand } from "@/components/seqout-cli-command";
 import { SupplementaryDataSection } from "@/components/supplementary-data-section";
 import { useToast } from "@/components/toast-provider";
 import { useWrapText, WrapTextToggle } from "@/components/wrap-text-toggle";
@@ -394,10 +395,11 @@ const fetchBams = async (
   return getJsonOrNull<BamsData>(`/project/${accession}/bams`);
 };
 
-type DownloadSource = "fastq" | "sra" | "sra_lite" | "s3" | "gcs";
+type DownloadSource = "seqout" | "fastq" | "sra" | "sra_lite" | "s3" | "gcs";
 
 /** Download options identify the format and required tool. S3 and GCS supply SRA Lite objects. */
 const DOWNLOAD_SOURCE_LABELS: Record<DownloadSource, string> = {
+  seqout: "Seqout CLI",
   fastq: "FASTQ via wget",
   sra: "SRA via wget",
   sra_lite: "SRA Lite via wget",
@@ -552,18 +554,22 @@ export function DownloadFastqSection({
   runsData,
   agGridThemeClassName,
   expTitleMap,
+  scoped = false,
 }: {
   accession: string;
   runsData: RunsData;
   agGridThemeClassName: string;
   expTitleMap: Map<string, string>;
+  // Sample, experiment or run view: runsData holds only those runs, so the
+  // seqout CLI command names each run instead of the whole study.
+  scoped?: boolean;
 }) {
   const { showToast } = useToast();
   const wrap = useWrapText("fastq");
   const [scriptCopied, setScriptCopied] = useState(false);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [downloadScriptPreview, setDownloadScriptPreview] = useState("");
-  const [selectedSource, setSelectedSource] = useState<DownloadSource>("fastq");
+  const [selectedSource, setSelectedSource] = useState<DownloadSource>("seqout");
   const [selectedRuns, setSelectedRuns] = useState<RunRow[]>([]);
   const selectedCount = selectedRuns.length;
   const [isExporting, setIsExporting] = useState(false);
@@ -633,6 +639,8 @@ export function DownloadFastqSection({
   }, []);
 
   const sourceUrl = (r: RunRow, source: DownloadSource): string | null => {
+    if (source === "seqout")
+      return r.fastq_ftp || r.ncbi_sra_lite_url || r.ncbi_sra_normalized_url;
     if (source === "fastq") return r.fastq_ftp;
     if (source === "sra") return r.ncbi_sra_normalized_url;
     if (source === "sra_lite") return r.ncbi_sra_lite_url;
@@ -813,7 +821,7 @@ export function DownloadFastqSection({
 
   const resolveRunUrls = (
     run: RunRow,
-    source: DownloadSource,
+    source: Exclude<DownloadSource, "seqout">,
   ): ResolvedEntry[] => {
     const dirpath = `${accession}/${run.experiment_accession || "unknown"}/${run.run_accession}`;
     const sraMd5 = run.sra_md5 || "";
@@ -858,7 +866,7 @@ export function DownloadFastqSection({
 
     // s3/gcs/sra_lite all serve the SRA-Lite object; only "sra" uses normalized SRA bytes.
     const sourceMap: Record<
-      Exclude<DownloadSource, "fastq">,
+      Exclude<DownloadSource, "fastq" | "seqout">,
       { url: string | null; bytes: number }
     > = {
       sra: { url: run.ncbi_sra_normalized_url, bytes: sraBytes },
@@ -872,10 +880,31 @@ export function DownloadFastqSection({
     return [{ url, filename, dirpath, md5: sraMd5, bytes }];
   };
 
+  /** seqout CLI commands, in the first format every run has. */
+  const buildCliScript = (runs: RunRow[]) => {
+    const flag = runs.every((r) => r.fastq_ftp)
+      ? "--fastq"
+      : runs.every((r) => r.ncbi_sra_lite_url)
+        ? "--sra-lite"
+        : runs.every((r) => r.ncbi_sra_normalized_url)
+          ? "--sra"
+          : null;
+    if (!flag || runs.length === 0) return "";
+    // The CLI takes a whole study or a single run, so a subset becomes one line per run.
+    const commands =
+      selectedRuns.length > 0 || scoped
+        ? runs.map((r) => `seqout download ${r.run_accession} ${flag}`)
+        : [`seqout download ${accession} ${flag}`];
+    return ["pip install seqout  # Python 3.13+", "", ...commands, ""].join(
+      "\n",
+    );
+  };
+
   const buildDownloadScript = (
     runs: RunRow[],
     source: DownloadSource = "fastq",
   ) => {
+    if (source === "seqout") return buildCliScript(runs);
     const entries = runs.flatMap((run) => resolveRunUrls(run, source));
     if (entries.length === 0) return "";
 
@@ -1505,6 +1534,7 @@ export function ScopedFastqSection({
   };
   return (
     <DownloadFastqSection
+      scoped
       accession={studyAccession}
       runsData={runsData}
       expTitleMap={expTitleMap ?? new Map()}
@@ -1838,6 +1868,8 @@ function BamFilesSection({
           theme="legacy"
         />
       </div>
+
+      <SeqoutCliCommand commands={[`seqout bams ${accession} -o ${accession}`]} />
 
       <Flex direction="column" gap="2">
         <Text size="4" weight="medium">

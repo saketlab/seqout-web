@@ -37,6 +37,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import { PROJECT_HEADER_INSETS } from "@/utils/constants";
 import { PROJECT_READY_EVENT } from "@/utils/useProjectReady";
 import { dbForAccession } from "@/utils/db-colors";
+import { SeqoutCliCommand } from "@/components/seqout-cli-command";
 import { buildSupplementaryDownloadScript } from "@/utils/downloadScript";
 import { titleCaseCenter } from "@/utils/format";
 import {
@@ -1983,6 +1984,15 @@ export default function GeoProjectPage() {
                           </code>
                         </pre>
                       </div>
+                      {/* The CLI fetches every file, so it only matches an unfiltered download. */}
+                      {supplementaryScriptPreview &&
+                        selectedSupplementaryCount === 0 && (
+                          <SeqoutCliCommand
+                            commands={[
+                              `seqout download ${supplementaryAccession} --supplementary`,
+                            ]}
+                          />
+                        )}
                     </Dialog.Content>
                   </Dialog.Root>
                 </Flex>
@@ -2169,6 +2179,14 @@ export default function GeoProjectPage() {
                               </code>
                             </pre>
                           </div>
+                          {sampleSupplementaryScriptPreview &&
+                            selectedSampleSupplementaryCount === 0 && (
+                              <SeqoutCliCommand
+                                commands={[
+                                  `seqout download ${accession} --sample-supplementary`,
+                                ]}
+                              />
+                            )}
                         </Dialog.Content>
                       </Dialog.Root>
                     </Flex>
