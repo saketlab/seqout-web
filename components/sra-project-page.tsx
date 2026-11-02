@@ -543,19 +543,14 @@ export function DownloadFastqSection({
   runsData,
   agGridThemeClassName,
   expTitleMap,
-  scoped = false,
 }: {
   accession: string;
   runsData: RunsData;
   agGridThemeClassName: string;
   expTitleMap: Map<string, string>;
-  // Scoped sample, experiment, or run view. Hide the study-wide download command
-  // to keep downloads within the scoped run set.
-  scoped?: boolean;
 }) {
   const { showToast } = useToast();
   const wrap = useWrapText("fastq");
-  const [copied, setCopied] = useState(false);
   const [scriptCopied, setScriptCopied] = useState(false);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [downloadScriptPreview, setDownloadScriptPreview] = useState("");
@@ -962,22 +957,6 @@ export function DownloadFastqSection({
   const onSelectionChanged = () => {
     setSelectedRuns(gridRef.current?.getSelectedRows() ?? []);
     if (scriptDialogOpen) void refreshScriptPreview();
-  };
-
-  const apiBase = SERVER_URL.startsWith("http")
-    ? SERVER_URL
-    : typeof window !== "undefined"
-      ? `${window.location.origin}${SERVER_URL}`
-      : SERVER_URL;
-  // TSV columns: 1=run 2=exp 3=layout 4=fastq_url 5=fastq_bytes 6=fastq_md5
-  //   7=sra_lite_url 8=sra_lite_bytes 9=sra_url 10=sra_bytes 11=s3_url 12=gs_url 13=filename 14=directory_path
-  const wgetCmd = `curl -sS --retry 10 --retry-delay 5 --fail "${apiBase}/project/${accession}/runs/download" | tail -n +2 | awk -F'\\t' '{u=$4; if(u=="") u=$9; if(u=="") u=$7; if(u=="") u=$11; if(u!="") print u}' | xargs -P4 -I{} bash -c 'wget ${WGET_RESUME_FLAGS} -x -nH --cut-dirs=6 "$1" || exit 255' _ "{}"`;
-
-  const copyCommand = () => {
-    copyToClipboard(wgetCmd);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-    showToast("Download command copied");
   };
 
   const runColDefs = React.useMemo<ColDef<RunRow>[]>(
@@ -1480,50 +1459,6 @@ export function DownloadFastqSection({
         />
       </div>
 
-      {!scoped && (
-        <Flex direction="column" gap="2">
-          <Text size="4" weight="medium">
-            Download all runs
-          </Text>
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "100%",
-              overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              background: "var(--gray-3)",
-              border: "1px solid var(--gray-6)",
-              borderRadius: "8px",
-            }}
-          >
-            <pre
-              style={{
-                margin: 0,
-                width: "calc(100% - 2.5rem)",
-                maxWidth: "calc(100% - 2.5rem)",
-                minWidth: 0,
-                boxSizing: "border-box",
-                padding: "0.875rem",
-                overflowX: "auto",
-                overflowY: "hidden",
-                fontSize: "12px",
-                lineHeight: "1.5",
-                fontFamily: "var(--default-mono-font-family)",
-              }}
-            >
-              <code>{wgetCmd}</code>
-            </pre>
-            <Button
-              size="2"
-              onClick={copyCommand}
-              aria-label="Copy download command"
-            >
-              {copied ? <CheckIcon /> : <CopyIcon />}
-            </Button>
-          </div>
-        </Flex>
-      )}
     </>
   );
 }
@@ -1561,7 +1496,6 @@ export function ScopedFastqSection({
   };
   return (
     <DownloadFastqSection
-      scoped
       accession={studyAccession}
       runsData={runsData}
       expTitleMap={expTitleMap ?? new Map()}
