@@ -12,7 +12,8 @@ const SHOW_MS = 50000;
 /** Project pages fetch client-side, so give the text time to arrive. */
 const GIVE_UP_MS = 10000;
 const MAX_RANGES = 500;
-const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NAV", "FOOTER", "BUTTON"]);
+/** Ancestors whose text is never highlighted; code covers the Python/R snippets. */
+const SKIP_SELECTOR = "script, style, nav, footer, button, pre, code";
 
 /** Match whole words reported by Postgres, which includes matched inflections. Substring matching would also select unrelated words such as "accurate" for "rat". */
 export function wordsPattern(words: string[]): RegExp | null {
@@ -54,7 +55,7 @@ export function findRanges(pattern: RegExp): Range[] {
     {
       acceptNode: (node) => {
         const parent = node.parentElement;
-        if (!parent || SKIP_TAGS.has(parent.tagName))
+        if (!parent || parent.closest(SKIP_SELECTOR))
           return NodeFilter.FILTER_REJECT;
         return node.nodeValue?.trim()
           ? NodeFilter.FILTER_ACCEPT
