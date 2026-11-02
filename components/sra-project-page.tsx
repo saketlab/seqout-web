@@ -413,6 +413,15 @@ const WGET_RESUME_FLAGS =
 const toInt = (v: string | null | undefined): number =>
   parseInt(v || "0", 10) || 0;
 
+// The body runs in a subshell so that set -e, exit and Ctrl-C end only the
+// script, never the user's terminal when they paste it instead of running it.
+const SCRIPT_OPEN = [
+  "(",
+  "set -euo pipefail",
+  `trap 'echo; echo "Interrupted. Re-run the script to resume." >&2; exit 130' INT TERM`,
+];
+const SCRIPT_CLOSE = ")";
+
 const DOWNLOAD_HELPER = `# Verify file integrity. 
 _is_complete() {
   local f="$1"
@@ -892,7 +901,7 @@ export function DownloadFastqSection({
       "# Resumable: re-run this script to skip completed files and continue partial transfers.",
       "# Integrity-checked: corrupted .gz / .bam files are detected and redownloaded automatically.",
       "",
-      "set -euo pipefail",
+      ...SCRIPT_OPEN,
       "",
       DOWNLOAD_HELPER,
       ...buildResumeStatusLines(
@@ -937,7 +946,7 @@ export function DownloadFastqSection({
       );
     }
 
-    lines.push("");
+    lines.push(SCRIPT_CLOSE, "");
     return lines.join("\n");
   };
 
@@ -1549,7 +1558,7 @@ function BamFilesSection({
       "# Resumable: re-run this script to continue any partial/failed transfers.",
       "# Integrity-checked: corrupted .bam files are detected (samtools quickcheck) and redownloaded.",
       "",
-      "set -euo pipefail",
+      ...SCRIPT_OPEN,
       "",
       DOWNLOAD_HELPER,
       ...buildResumeStatusLines(
@@ -1586,7 +1595,7 @@ function BamFilesSection({
       );
     }
 
-    lines.push("");
+    lines.push(SCRIPT_CLOSE, "");
     return lines.join("\n");
   };
 
