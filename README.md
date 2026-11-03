@@ -27,6 +27,8 @@ Seqout harmonises heterogenous sample metadata into fifteen standardised attribu
 
 ![Eniched samples screenshot](./screenshots/enirched.png)
 
+Source code implementing the harmonisation pipeline is available at: https://github.com/saketlab/seqout-ingestion
+
 ## Semantically similar datasets
 
 Apart from text-based search, Seqout also offers dataset discovery via semantic similarity using vector embeddings.
@@ -52,6 +54,8 @@ The `seqout` package is available via PyPI. For docs, go here: https://seqout.or
 Documentation for the R package is available at: https://seqout.org/cli/R
 
 Both the Python and R packages provide methods to easily go from dataset accession to counts matrix.
+
+Source code for the Seqout server is available at: https://github.com/saketlab/seqout-server
 
 ## Issues & support
 
