@@ -22,7 +22,7 @@ export interface Detection {
   organism: string;
   class: string;
   kingdom: "viral" | "bacterial" | string;
-  tier: "high_breadth" | "low_breadth";
+  tier: "high_breadth" | "low_breadth" | "trace";
   n_runs: number | null;
   breadth_frac: number | null;
   ref_bp: number | null;
@@ -144,7 +144,14 @@ function NotMeasured({ reason }: { reason: string }) {
   );
 }
 
+const GATE_NOTE =
+  "unitigs cover ≥20% of the reference (50% if host-endogenous)";
+
 const FLAG_KIND = {
+  trace: {
+    color: "gray",
+    note: `below the reporting gate, where ${GATE_NOTE}; probe-based libraries cannot reach it.`,
+  },
   endogenous: {
     color: "gray",
     note: "also in the host genome or lentiviral vectors.",
@@ -159,11 +166,12 @@ const FLAG_KIND = {
   },
   panel: {
     color: "crimson",
-    note: "unitigs cover ≥20% of the reference (50% if host-endogenous).",
+    note: `${GATE_NOTE}.`,
   },
 } as const;
 
 function detectionKind(d: Detection): keyof typeof FLAG_KIND {
+  if (d.tier === "trace") return "trace";
   if (d.class === "culture") return "contaminant";
   if (d.class === "vector" || ENDOGENOUS_ORGANISMS.has(d.organism))
     return "endogenous";
@@ -175,22 +183,23 @@ function DetectionBadge({ d }: { d: Detection }) {
   const kind = detectionKind(d);
   const pct = d.breadth_frac == null ? null : (100 * d.breadth_frac).toFixed(1);
   const high = d.tier === "high_breadth";
+  const trace = kind === "trace";
   return (
     <Tooltip
       content={`${formatOrganismName(d.organism)} — ${pct ?? "?"}% of the reference covered${
         d.covered_bp && d.ref_bp
           ? ` (${d.covered_bp.toLocaleString()} of ${d.ref_bp.toLocaleString()} bp)`
           : ""
-      }, ${high ? "high" : "low"} breadth. ${FLAG_KIND[kind].note}`}
+      }${trace ? "" : `, ${high ? "high" : "low"} breadth`}. ${FLAG_KIND[kind].note}`}
     >
       <Badge
         size="1"
         variant={high ? "soft" : "outline"}
         color={FLAG_KIND[kind].color}
-        style={{ cursor: "help" }}
+        style={{ cursor: "help", borderStyle: trace ? "dashed" : undefined }}
       >
         {formatOrganismName(d.organism)}
-        {pct ? ` ${pct}%` : ""}
+        {trace ? " trace" : pct ? ` ${pct}%` : ""}
       </Badge>
     </Tooltip>
   );
