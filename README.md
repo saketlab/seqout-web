@@ -53,7 +53,7 @@ The `seqout` package is available via PyPI. For docs, go here: https://seqout.or
 
 Documentation for the R package is available at: https://seqout.org/cli/R
 
-Both the Python and R packages provide methods to easily go from dataset accession to counts matrix.
+Both the Python and R packages provide methods to easily go from dataset accession to counts matrix. Source code is available at: https://github.com/saketlab/seqout
 
 Source code for the Seqout server is available at: https://github.com/saketlab/seqout-server
 
