@@ -145,33 +145,30 @@ function NotMeasured({ reason }: { reason: string }) {
 }
 
 const GATE_NOTE =
-  "unitigs cover ≥20% of the reference (50% if host-endogenous)";
+  "The reporting limit is unitig coverage of 20% of the reference, or 50% for a host-endogenous organism.";
+
+const TRACE_NOTE = `The coverage is below the reporting limit. ${GATE_NOTE} Probe-based libraries cannot get this coverage.`;
 
 const FLAG_KIND = {
-  trace: {
-    color: "gray",
-    note: `below the reporting gate, where ${GATE_NOTE}; probe-based libraries cannot reach it.`,
-  },
   endogenous: {
     color: "gray",
-    note: "also in the host genome or lentiviral vectors.",
+    note: "This organism also occurs in the host genome or in lentiviral vectors.",
   },
   contaminant: {
     color: "amber",
-    note: "picked up in culture.",
+    note: "This organism is a usual contaminant of cell culture.",
   },
   prevalent: {
     color: "gray",
-    note: "common across unrelated runs; weak on its own.",
+    note: "This organism occurs in many unrelated runs. One detection is not sufficient proof.",
   },
   panel: {
     color: "crimson",
-    note: `${GATE_NOTE}.`,
+    note: `The coverage is at or above the reporting limit. ${GATE_NOTE}`,
   },
 } as const;
 
 function detectionKind(d: Detection): keyof typeof FLAG_KIND {
-  if (d.tier === "trace") return "trace";
   if (d.class === "culture") return "contaminant";
   if (d.class === "vector" || ENDOGENOUS_ORGANISMS.has(d.organism))
     return "endogenous";
@@ -183,23 +180,38 @@ function DetectionBadge({ d }: { d: Detection }) {
   const kind = detectionKind(d);
   const pct = d.breadth_frac == null ? null : (100 * d.breadth_frac).toFixed(1);
   const high = d.tier === "high_breadth";
-  const trace = kind === "trace";
+  const trace = d.tier === "trace";
+  const measured = [
+    `${pct ?? "?"}% of the reference covered${
+      d.covered_bp && d.ref_bp
+        ? ` (${d.covered_bp.toLocaleString()} of ${d.ref_bp.toLocaleString()} bp)`
+        : ""
+    }`,
+    d.reads != null && `${d.reads.toLocaleString()} reads`,
+    d.kmer_mass != null && `k-mer mass ${qc(d.kmer_mass)}`,
+    d.n_runs != null && `${d.n_runs} run${d.n_runs === 1 ? "" : "s"}`,
+    !trace && `${high ? "high" : "low"} breadth`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const note = [
+    !(trace && kind === "panel") && FLAG_KIND[kind].note,
+    trace && TRACE_NOTE,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const name = formatOrganismName(d.organism);
   return (
-    <Tooltip
-      content={`${formatOrganismName(d.organism)} — ${pct ?? "?"}% of the reference covered${
-        d.covered_bp && d.ref_bp
-          ? ` (${d.covered_bp.toLocaleString()} of ${d.ref_bp.toLocaleString()} bp)`
-          : ""
-      }${trace ? "" : `, ${high ? "high" : "low"} breadth`}. ${FLAG_KIND[kind].note}`}
-    >
+    <Tooltip content={`${name}: ${measured}. ${note}`}>
       <Badge
         size="1"
         variant={high ? "soft" : "outline"}
-        color={FLAG_KIND[kind].color}
+        color={trace ? "gray" : FLAG_KIND[kind].color}
         style={{ cursor: "help", borderStyle: trace ? "dashed" : undefined }}
       >
-        {formatOrganismName(d.organism)}
-        {trace ? " trace" : pct ? ` ${pct}%` : ""}
+        {name}
+        {pct && ` ${pct}%`}
+        {trace && " trace"}
       </Badge>
     </Tooltip>
   );
