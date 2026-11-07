@@ -11,6 +11,7 @@ import {
 } from "@/components/search-filters";
 import type { SortBy } from "@/components/search-page-body";
 import { getJson } from "@/utils/api";
+import { releaseDate } from "@/utils/format";
 import { authorHref } from "@/utils/project";
 import { getProjectShortUrl } from "@/utils/shortUrl";
 import { InfoCircledIcon, MixerHorizontalIcon } from "@radix-ui/react-icons";
@@ -33,6 +34,7 @@ type AuthorProject = {
   title: string | null;
   summary: string | null;
   updated_at: string | null;
+  published_at?: string | null;
   journal: string | null;
   doi: string | null;
   citation_count: number | null;
@@ -78,7 +80,7 @@ function sortProjects(
   // Missing values sort last in every mode.
   const missing = dateOrder === "asc" ? Infinity : -Infinity;
   const time = (r: AuthorProject) => {
-    const t = new Date(r.updated_at ?? "").getTime();
+    const t = new Date(releaseDate(r) ?? "").getTime();
     return Number.isNaN(t) ? missing : t;
   };
   const sorted = [...rows];
@@ -267,7 +269,7 @@ export default function AuthorProjectsBody({ name }: { name: string }) {
                 accession={r.accession}
                 title={r.title}
                 summary={r.summary}
-                updated_at={r.updated_at}
+                date={releaseDate(r)}
                 journal={r.journal}
                 doi={r.doi}
                 citation_count={r.citation_count}

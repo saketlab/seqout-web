@@ -17,6 +17,7 @@ import { ontologyParams, withTimeout } from "@/utils/api";
 import { SERVER_URL } from "@/utils/constants";
 import { DB_LABELS, SEARCH_DBS, type SearchDb } from "@/utils/db-colors";
 import { downloadCsv } from "@/utils/exportCsv";
+import { releaseDate } from "@/utils/format";
 import { getProjectShortUrl } from "@/utils/shortUrl";
 import {
   disabledOntologies,
@@ -290,6 +291,7 @@ const DOWNLOAD_COLUMNS = [
   "source",
   "title",
   "summary",
+  "published_at",
   "updated_at",
   "organisms",
   "countries",
@@ -304,6 +306,7 @@ function resultToCsvRow(r: SearchResult): Record<string, unknown> {
     source: r.source,
     title: r.title,
     summary: r.summary,
+    published_at: r.published_at,
     updated_at: r.updated_at,
     organisms: join(r.organisms),
     countries: join(r.countries),
@@ -1756,7 +1759,7 @@ export default function SearchPageBody() {
       source={searchResult.source}
       title={searchResult.title}
       summary={searchResult.summary}
-      updated_at={searchResult.updated_at}
+      date={releaseDate(searchResult)}
       journal={searchResult.journal}
       doi={searchResult.doi}
       citation_count={searchResult.citation_count}

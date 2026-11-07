@@ -46,6 +46,7 @@ export type SearchResult = {
   title: string;
   summary: string;
   updated_at: string;
+  published_at?: string | null;
   organisms: string[] | null;
   source: string;
   rank: number;

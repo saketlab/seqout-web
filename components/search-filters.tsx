@@ -8,6 +8,7 @@ import {
 } from "@/components/organism_filter";
 import type { SortBy } from "@/components/search-page-body";
 import { DB_LABELS, SEARCH_DBS, type SearchDb } from "@/utils/db-colors";
+import { releaseDate } from "@/utils/format";
 import { SearchResult } from "@/utils/types";
 import {
   CheckIcon,
@@ -215,11 +216,10 @@ export function rollingCutoff(years: number): string {
   return cutoff.toISOString().slice(0, 10);
 }
 
-/**
- * Client-side date filter over anything carrying updated_at. Day-precise and
- * bounded identically to the server, so the rendered list and sidebar counts agree.
- */
-export function applyTimeFilter<T extends { updated_at: string | null }>(
+/** Filters on releaseDate, day-bounded like the server so list and sidebar counts agree. */
+export function applyTimeFilter<
+  T extends { updated_at: string | null; published_at?: string | null },
+>(
   results: T[],
   timeFilter: string,
   customYearRange: { from: string; to: string },
@@ -240,7 +240,7 @@ export function applyTimeFilter<T extends { updated_at: string | null }>(
   const toT = to ? new Date(to).getTime() + 86_400_000 - 1 : Infinity;
   if (Number.isNaN(fromT) || Number.isNaN(toT)) return results;
   return results.filter((r) => {
-    const t = new Date(r.updated_at ?? "").getTime();
+    const t = new Date(releaseDate(r) ?? "").getTime();
     return !Number.isNaN(t) && t >= fromT && t <= toT;
   });
 }

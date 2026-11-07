@@ -181,7 +181,7 @@ export default function SubmissionStudiesBody({
                 source={s.source}
                 title={s.title}
                 summary={s.summary}
-                updated_at={s.published_at}
+                date={s.published_at}
                 titleSize="4"
                 href={getProjectShortUrl(s.accession)}
               />

@@ -116,3 +116,11 @@ export function humanizeBytes(value: number): string {
   if (value >= MB) return `${(value / MB).toFixed(1).replace(/\.0$/, "")} MB`;
   return `${value}`;
 }
+
+/** Release date, the field the server's date_from/date_to bound; falls back to updated_at. */
+export function releaseDate(r: {
+  published_at?: string | null;
+  updated_at: string | null;
+}): string | null {
+  return r.published_at ?? r.updated_at;
+}

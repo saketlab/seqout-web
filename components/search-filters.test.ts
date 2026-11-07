@@ -52,3 +52,14 @@ describe("last-N-years presets", () => {
     );
   });
 });
+
+describe("release date", () => {
+  it("filters on published_at when present, else updated_at", () => {
+    const rows = [
+      { accession: "GSE6543", published_at: "2007-07-25", updated_at: "2018-07-11" },
+      { accession: "OLD", updated_at: "2007-01-01" },
+    ];
+    const kept = applyTimeFilter(rows, "custom", { from: "", to: "2008-01-01" });
+    expect(kept.map((r) => r.accession)).toEqual(["GSE6543", "OLD"]);
+  });
+});

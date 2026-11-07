@@ -313,7 +313,7 @@ export default function PublicationProjectsBody({ pmid }: { pmid: string }) {
               source={p.source}
               title={p.title}
               summary={p.summary}
-              updated_at={p.published_at}
+              date={p.published_at}
               center_name={p.center_name}
               country_code={p.country_code}
               titleSize="4"

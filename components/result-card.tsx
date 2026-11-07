@@ -12,7 +12,7 @@ import { memo, useState } from "react";
 type ResultCardProps = {
   accession: string;
   title: string | null;
-  updated_at: string | null;
+  date: string | null;
   summary?: string | null;
   journal?: string | null;
   doi?: string | null;
@@ -67,7 +67,7 @@ function ResultCard({
   accession,
   title,
   summary,
-  updated_at,
+  date,
   journal,
   doi,
   citation_count,
@@ -84,7 +84,7 @@ function ResultCard({
   const authorList = parseAuthors(authors ?? null);
   const [authorsPopoverOpen, setAuthorsPopoverOpen] = useState(false);
 
-  const formattedDate = formatDate(updated_at);
+  const formattedDate = formatDate(date);
   // Ingest sometimes files the org as the author string; don't say it twice.
   const formattedCenter =
     center_name && center_name !== authors
