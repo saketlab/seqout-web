@@ -30,7 +30,7 @@ import {
   wrapColDef,
 } from "@/lib/ag-grid";
 import { OrganismInfoButton } from "@/components/organism-info-button";
-import { getExternalArchiveUrl } from "@/utils/accessionLinks";
+import { getExternalArchiveUrl, getInternalUrl } from "@/utils/accessionLinks";
 import {
   getJson,
   getJsonOrNull,
@@ -105,6 +105,10 @@ import React, {
 type Project = {
   accession: string;
   alias: string | null;
+  /** Same dataset in other archives (GSE, PRJ*, E-GEOD, ...), as on a search row. */
+  linked_accessions?: string[] | null;
+  /** Submitter's free-text study name; never an accession. */
+  submitter_alias?: string | null;
   bioproject_id?: string | null;
   // ENA/DDBJ study hierarchy (child -> parent umbrella BioProject).
   parent_accession?: string | null;
@@ -134,6 +138,35 @@ type Project = {
   has_long_read?: boolean;
   single_cell?: unknown;
 };
+
+// raw alias is the fallback until the API sends linked_accessions
+const linkedAccessionsOf = (p: Project | null | undefined): string[] => {
+  if (!p) return [];
+  const own = p.accession?.toUpperCase();
+  return normalizeAliases(p.linked_accessions ?? p.alias)
+    .map((a) => a.toUpperCase())
+    .filter(
+      (a) => a !== own && (a.startsWith("PRJ") || getInternalUrl(a) !== null),
+    );
+};
+
+const linkedGseOf = (p: Project | null | undefined): string | null =>
+  linkedAccessionsOf(p).find((a) => a.startsWith("GSE")) ?? null;
+
+function InternalAccessionBadge({ accession }: { accession: string }) {
+  return (
+    <a href={getInternalUrl(accession) ?? `/p/${accession}`}>
+      <Badge
+        size={{ initial: "2", md: "3" }}
+        style={{ cursor: "pointer", whiteSpace: "nowrap" }}
+        className="seqout-accession"
+      >
+        {accession}
+        <EnterIcon />
+      </Badge>
+    </a>
+  );
+}
 
 type GeoNeighborsPayload = {
   coords_3d?: unknown;
@@ -267,9 +300,8 @@ const fetchProject = async (
     ),
   );
 
-  // alias can be a string or an array; only string-form GSE aliases supply neighbors.
-  const alias =
-    typeof data?.alias === "string" ? data.alias.trim().toUpperCase() : null;
+  // the linked GSE supplies neighbors
+  const alias = linkedGseOf(data);
   const shouldFetchGeoNeighbors =
     !!alias &&
     alias.startsWith("GSE") &&
@@ -2179,24 +2211,32 @@ export default function ProjectPage() {
     () => normalizeExternalIds(project?.external_id),
     [project?.external_id],
   );
-  const linkedGeoAliases = React.useMemo(() => {
-    const aliases = new Set<string>();
-    const addAlias = (value: unknown) => {
-      if (typeof value !== "string") return;
-      const normalized = value.trim().toUpperCase();
-      if (normalized.startsWith("GSE")) aliases.add(normalized);
-    };
-    addAlias(project?.alias);
-    externalIds.forEach((entry) => addAlias(entry.value));
-    return Array.from(aliases);
-  }, [externalIds, project?.alias]);
+  const linkedAccessions = React.useMemo(
+    () => linkedAccessionsOf(project),
+    [project],
+  );
+  const linkedGeoAliases = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...linkedAccessions,
+            ...externalIds.map((entry) => entry.value.trim().toUpperCase()),
+          ].filter((a) => a.startsWith("GSE")),
+        ),
+      ),
+    [externalIds, linkedAccessions],
+  );
   const { data: linkedGeoProjects } = useQuery({
     queryKey: ["linked-geo-projects", linkedGeoAliases],
     queryFn: async () => {
       const projects = await Promise.all(
         linkedGeoAliases.map(async (geoAccession) => ({
           accession: geoAccession,
-          project: await fetchProject(geoAccession),
+          // only supplementary_data is read, so skip fetchProject's neighbors call
+          project: parseProjectStringFields(
+            await getJson<Project>(`/project/${geoAccession}`),
+          ),
         })),
       );
       return projects.filter((entry) => entry.project);
@@ -2656,23 +2696,20 @@ export default function ProjectPage() {
                     GSA
                   </Badge>
                 ))}
-              {project.alias?.startsWith("P") && (
-                <BioProjectBadge accession={project.alias} />
-              )}
-              {project.alias?.startsWith("G") && (
-                <a href={`/p/${project.alias}`}>
-                  <Badge
-                    size={{ initial: "2", md: "3" }}
-                    style={{ cursor: "pointer", whiteSpace: "nowrap" }}
-                    className="seqout-accession"
-                  >
-                    {project.alias}
-                    <EnterIcon />
-                  </Badge>
-                </a>
+              {linkedAccessions.map((acc) =>
+                acc.startsWith("PRJ") ? (
+                  <BioProjectBadge key={acc} accession={acc} />
+                ) : (
+                  <InternalAccessionBadge key={acc} accession={acc} />
+                ),
               )}
               {externalIds
-                .filter((entry) => entry.value !== project.alias)
+                .filter(
+                  (entry) =>
+                    !linkedAccessions.includes(
+                      entry.value.trim().toUpperCase(),
+                    ),
+                )
                 .map((entry) => {
                   const keyLower = entry.key.toLowerCase();
                   const value = entry.value;
@@ -2710,16 +2747,10 @@ export default function ProjectPage() {
                     /^(GSE|[SED]RP)\d+$/.test(value)
                   ) {
                     return (
-                      <a key={`${entry.key}:${value}`} href={`/p/${value}`}>
-                        <Badge
-                          size={{ initial: "2", md: "3" }}
-                          style={{ cursor: "pointer", whiteSpace: "nowrap" }}
-                          className="seqout-accession"
-                        >
-                          {value}
-                          <EnterIcon />
-                        </Badge>
-                      </a>
+                      <InternalAccessionBadge
+                        key={`${entry.key}:${value}`}
+                        accession={value}
+                      />
                     );
                   }
 
@@ -2749,6 +2780,11 @@ export default function ProjectPage() {
                 </DbBadge>
               </a>
             </Flex>
+            {project.submitter_alias && (
+              <Text color="gray" size="2">
+                Submitter&apos;s study name: {project.submitter_alias}
+              </Text>
+            )}
             <Flex align={"center"} gap={"2"}>
               <InfoCircledIcon />
               <Text color="gray">
