@@ -1,6 +1,43 @@
 import { SITE_URL } from "@/utils/constants";
 import type { MetadataRoute } from "next";
 
+const AI_CRAWLERS = [
+  "GPTBot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "ClaudeBot",
+  "Claude-User",
+  "Claude-SearchBot",
+  "Claude-Web",
+  "anthropic-ai",
+  "PerplexityBot",
+  "Perplexity-User",
+  "Google-Extended",
+  "GoogleOther",
+  "Google-CloudVertexBot",
+  "Applebot-Extended",
+  "CCBot",
+  "Bytespider",
+  "Amazonbot",
+  "meta-externalagent",
+  "meta-externalfetcher",
+  "FacebookBot",
+  "cohere-ai",
+  "cohere-training-data-crawler",
+  "AI2Bot",
+  "Ai2Bot-Dolma",
+  "Diffbot",
+  "YouBot",
+  "DuckAssistBot",
+  "MistralAI-User",
+  "PanguBot",
+  "Timpibot",
+  "Omgilibot",
+  "ImagesiftBot",
+  "Kangaroo Bot",
+  "img2dataset",
+];
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -24,13 +61,8 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "MegaIndex", disallow: "/" },
       { userAgent: "PetalBot", disallow: "/" },
 
-      // AI crawlers
-      { userAgent: "GPTBot", disallow: "/" },
-      { userAgent: "ChatGPT-User", disallow: "/" },
-      { userAgent: "ClaudeBot", disallow: "/" },
-      { userAgent: "Claude-Web", disallow: "/" },
-      { userAgent: "PerplexityBot", disallow: "/" },
-      { userAgent: "Google-Extended", disallow: "/" },
+      // AI training, search and agent crawlers
+      ...AI_CRAWLERS.map((userAgent) => ({ userAgent, disallow: "/" })),
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
