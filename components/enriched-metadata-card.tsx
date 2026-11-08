@@ -140,9 +140,13 @@ function OntologyCellRenderer(
     // resolved name matches the term label exactly; raw only substring-matches
     const linkTerm = ontoName || raw;
     const displayText = (ontoId && ontoName ? ontoName : raw) ?? "";
+    // "Healthy" is the absence of a disease, so it links nowhere.
+    const unlinked =
+      params.colDef?.field === "disease" &&
+      String(displayText).trim().toLowerCase() === "healthy";
 
     const textNode =
-      linkKind && linkTerm ? (
+      linkKind && linkTerm && !unlinked ? (
         <Link asChild size="2" truncate={!wrap}>
           <NextLink
             href={ontologyTermHref(linkKind, linkTerm)}
@@ -167,7 +171,7 @@ function OntologyCellRenderer(
     }
 
     const prefix = ontoId.split(":")[0];
-    const url = ontologyUrl(ontoId);
+    const url = unlinked ? null : ontologyUrl(ontoId);
     return (
       <Flex align="center" gap="1" style={{ overflow: "hidden" }}>
         {textNode}
