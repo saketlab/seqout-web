@@ -139,9 +139,13 @@ const COLUMNS: ColumnDef<SingleCellProject>[] = [
   },
   {
     label: "Matrix",
-    info: "Whether a counted matrix exists, with cell count when known (unfiltered/raw-barcode counts are excluded, not real cell counts).",
+    info: "Whether a count matrix is available, and the number of cells it contains. We exclude unfiltered (raw barcode) matrices, as these primarily capture empty droplets. When no matrix is available, we estimate the number of cells (≈) directly from the 10x barcode reads.",
     render: (r) =>
-      r.has_matrix ? (
+      r.n_cells_source === "reads" && r.n_cells ? (
+        <Badge size="1" color="amber" variant="soft">
+          no (≈{humanize(r.n_cells)} cells from reads)
+        </Badge>
+      ) : r.has_matrix ? (
         <Badge size="1" color="green" variant="soft">
           yes{r.n_cells ? ` (${humanize(r.n_cells)} cells)` : ""}
         </Badge>

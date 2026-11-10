@@ -137,7 +137,11 @@ export type ScQualitySamples = {
   per_technology_year: number;
 };
 
+/** human/mouse: that species' tissue samples only; all: every sample; absent if the API lacks cohorts */
+export type TissueCohort = "human" | "mouse" | "all";
+
 export type TissueMicrobeCell = {
+  cohort?: TissueCohort;
   tissue: string;
   uberon: string;
   organism: string;
@@ -153,7 +157,12 @@ export type TissueMicrobeCell = {
 
 export type TissueMicrobes = {
   cells: TissueMicrobeCell[];
-  tissues: { tissue: string; uberon: string; screened: number }[];
+  tissues: {
+    cohort?: TissueCohort;
+    tissue: string;
+    uberon: string;
+    screened: number;
+  }[];
   min_studies: number;
   min_screened: number;
 };

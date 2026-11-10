@@ -3,12 +3,13 @@
 import { formatOrganismName } from "@/utils/format";
 import SectionAnchor from "@/components/section-anchor";
 import { useTissueMicrobes } from "@/utils/useStats";
-import type { TissueMicrobeCell } from "@/utils/types";
+import type { TissueCohort as Cohort, TissueMicrobeCell } from "@/utils/types";
 import {
   Box,
   Checkbox,
   Flex,
   Heading,
+  SegmentedControl,
   Skeleton,
   Text,
   VisuallyHidden,
@@ -19,6 +20,14 @@ const MAX_TISSUES = 20;
 const MAX_ORGANISMS = 16;
 
 type GroupKey = "sample" | "culture" | "background";
+const SPECIES_ONLY =
+  "tissue samples only: no cell lines, reference RNA, xenografts, organoids or TCR/BCR libraries.";
+
+const COHORT_TEXT: Record<Cohort, string> = {
+  human: `Human ${SPECIES_ONLY}`,
+  mouse: `Mouse ${SPECIES_ONLY}`,
+  all: "All samples with a tissue, every species, cell lines included.",
+};
 
 const GROUPS: {
   key: GroupKey;
@@ -82,10 +91,16 @@ function tooltip(c: TissueMicrobeCell) {
 export default function StatsTissueMicrobeCard() {
   const { data, isLoading } = useTissueMicrobes();
   const [showContaminants, setShowContaminants] = useState(true);
+  const [picked, setPicked] = useState<Cohort>("human");
+  // no cohort column means the API serves all samples as one cohort
+  const hasCohort = (data?.cells ?? []).some((c) => c.cohort);
+  const cohort: Cohort = hasCohort ? picked : "all";
 
   const grid = useMemo(() => {
     const cells = (data?.cells ?? []).filter(
-      (c) => showContaminants || groupOf(c) === "sample",
+      (c) =>
+        (c.cohort ?? "all") === cohort &&
+        (showContaminants || groupOf(c) === "sample"),
     );
     if (cells.length === 0) return null;
 
@@ -119,9 +134,7 @@ export default function StatsTissueMicrobeCard() {
 
     const tissues = top(byTissue, MAX_TISSUES);
     const at = new Map(cells.map((c) => [key(c.tissue, c.organism), c]));
-    const screened = new Map(
-      (data?.tissues ?? []).map((t) => [t.tissue, t.screened]),
-    );
+    const screened = new Map(cells.map((c) => [c.tissue, c.screened]));
     const max = new Map<GroupKey, number>();
     for (const t of tissues)
       for (const o of organisms) {
@@ -138,7 +151,7 @@ export default function StatsTissueMicrobeCard() {
     );
 
     return { organisms, groups, tissues, at, screened, max, sample, byOrg };
-  }, [data, showContaminants]);
+  }, [data, showContaminants, cohort]);
 
   if (isLoading) {
     return (
@@ -166,9 +179,9 @@ export default function StatsTissueMicrobeCard() {
 
       <Text size="2" color="gray">
         For each tissue, we show the fraction of quantified samples carrying
-        reads from each organism. To limit noise, we require at least{" "}
-        {data.min_studies} contributing studies per heatmap cell and at least{" "}
-        {data.min_screened} screened samples per tissue.
+        reads from each organism. {COHORT_TEXT[cohort]} To limit noise, we
+        require at least {data.min_studies} contributing studies per heatmap
+        cell and at least {data.min_screened} screened samples per tissue.
       </Text>
 
       <Flex align="center" gap="2">
@@ -179,6 +192,20 @@ export default function StatsTissueMicrobeCard() {
         />
         <Text size="2">Show contamination columns</Text>
       </Flex>
+
+      {hasCohort && (
+        <SegmentedControl.Root
+          value={picked}
+          onValueChange={(v) => setPicked(v as Cohort)}
+          size="1"
+          aria-label="Samples to show"
+          style={{ alignSelf: "flex-start" }}
+        >
+          <SegmentedControl.Item value="human">Human</SegmentedControl.Item>
+          <SegmentedControl.Item value="mouse">Mouse</SegmentedControl.Item>
+          <SegmentedControl.Item value="all">All samples</SegmentedControl.Item>
+        </SegmentedControl.Root>
+      )}
 
       {!grid ? (
         <Text size="2" color="gray">
