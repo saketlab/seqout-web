@@ -309,6 +309,8 @@ export interface SingleCellProject {
   n_samples: number | null;
   has_matrix: boolean;
   n_cells: number | null;
+  // "reads": estimated from 10x barcode reads when no matrix exists
+  n_cells_source?: "matrix" | "qc" | "reads" | null;
   has_fastq: boolean | null;
   n_fastq_runs: number | null;
   has_sra: boolean | null;
