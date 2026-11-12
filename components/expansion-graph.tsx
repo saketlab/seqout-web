@@ -59,7 +59,13 @@ function build(chunk: ExpansionChunk): { nodes: Node[]; edges: Edge[] } {
 }
 
 // Parent remounts per term (key=term); layout builds once, drags stay in React Flow's own state.
-export default function ExpansionGraph({ chunk }: { chunk: ExpansionChunk }) {
+export default function ExpansionGraph({
+  chunk,
+  onSelect,
+}: {
+  chunk: ExpansionChunk;
+  onSelect?: (synonym: string | null) => void;
+}) {
   const initial = build(chunk);
   const [nodes, , onNodesChange] = useNodesState(initial.nodes);
   const [edges, , onEdgesChange] = useEdgesState(initial.edges);
@@ -79,6 +85,10 @@ export default function ExpansionGraph({ chunk }: { chunk: ExpansionChunk }) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={(_, node) =>
+          onSelect?.(node.id === "__root__" ? null : node.id)
+        }
+        onPaneClick={() => onSelect?.(null)}
         colorMode={resolvedTheme === "dark" ? "dark" : "light"}
         fitView
         fitViewOptions={{ padding: 0.15 }}

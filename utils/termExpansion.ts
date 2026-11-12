@@ -173,3 +173,22 @@ export function inheritedSettings(params: {
   const disabled = readDisabledOntologies();
   return off || disabled.length ? { off, disabled } : null;
 }
+
+/** Query with `term` swapped for `synonym`; null when the term isn't literally in the query (the expander normalised it). */
+export function replaceTerm(
+  query: string,
+  term: string,
+  synonym: string,
+): string | null {
+  // ponytail: plain swap. A synonym holding ( ) " * or a capital OR/AND/NOT flips the search to structured mode; sanitise here if that bites.
+  const pattern = term
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\\s+");
+  const re = new RegExp(
+    `(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`,
+    "iu",
+  );
+  return re.test(query) ? query.replace(re, () => synonym) : null;
+}

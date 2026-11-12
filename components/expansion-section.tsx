@@ -17,6 +17,7 @@ import {
   disabledOntologies,
   expansionDisabled,
   ontologyFromXref,
+  replaceTerm,
   sameOntologies,
   writeDisabledOntologies,
   writeExpansionPreference,
@@ -48,6 +49,8 @@ const ExpansionGraph = dynamic(() => import("@/components/expansion-graph"), {
 export default function ExpansionSection({ query }: { query: string }) {
   const [open, setOpen] = useState(false);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
+  // Synonym clicked in the graph, offered as a replacement for its term.
+  const [picked, setPicked] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -105,6 +108,22 @@ export default function ExpansionSection({ query }: { query: string }) {
   // Default to the first term if the selection is absent from the list.
   const active =
     chunks.find((c) => c.term === selectedTerm) ?? chunks[0] ?? null;
+
+  // Null when the picked synonym isn't in the shown graph, or the term can't be found in the query text.
+  const swapped =
+    active && picked && active.synonyms.includes(picked)
+      ? replaceTerm(query, active.term, picked)
+      : null;
+  const searchSwapped = () => {
+    if (!swapped) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("q", swapped);
+    next.delete("cursor_rank");
+    next.delete("cursor_acc");
+    setOpen(false);
+    setPicked(null);
+    router.push(`${pathname}?${next.toString()}`);
+  };
 
   if (!query.trim()) return null;
 
@@ -203,7 +222,16 @@ export default function ExpansionSection({ query }: { query: string }) {
                 </Select.Content>
               </Select.Root>
             </Flex>
-            <ExpansionGraph key={active.term} chunk={active} />
+            <ExpansionGraph
+              key={active.term}
+              chunk={active}
+              onSelect={setPicked}
+            />
+            {!swapped && (
+              <Text size="1" color="gray">
+                Click a synonym to search with it in place of your term.
+              </Text>
+            )}
           </Flex>
         ) : (
           <Text size="2" color="gray">
@@ -211,9 +239,16 @@ export default function ExpansionSection({ query }: { query: string }) {
             search ran your words as you typed them.
           </Text>
         )}
-        {(expansionChanged || ontologiesChanged) && (
-          <Flex justify="end" mt="4">
-            <Button onClick={applyExpansion}>{applyLabel}</Button>
+        {(swapped || expansionChanged || ontologiesChanged) && (
+          <Flex justify="end" gap="3" wrap="wrap" mt="4">
+            {swapped && (
+              <Button variant="soft" onClick={searchSwapped}>
+                Search “{picked}” instead of “{active?.term}”
+              </Button>
+            )}
+            {(expansionChanged || ontologiesChanged) && (
+              <Button onClick={applyExpansion}>{applyLabel}</Button>
+            )}
           </Flex>
         )}
       </Dialog.Content>

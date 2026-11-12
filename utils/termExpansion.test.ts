@@ -5,6 +5,7 @@ import {
   disabledOntologies,
   expansionDisabled,
   inheritedSettings,
+  replaceTerm,
   sameOntologies,
   writeDisabledOntologies,
   readExpansionPreference,
@@ -118,9 +119,9 @@ describe("disabledOntologies", () => {
     expect(disabledOntologies(new URLSearchParams("q=liver"))).toEqual([]);
     // Unknown ids are dropped: the server ignores them, so keeping them would
     // only make the URL claim a filter that never ran.
-    expect(disabledOntologies(new URLSearchParams("exclude_ontology=MeSH,x"))).toEqual([
-      "MeSH",
-    ]);
+    expect(
+      disabledOntologies(new URLSearchParams("exclude_ontology=MeSH,x")),
+    ).toEqual(["MeSH"]);
   });
 });
 
@@ -156,5 +157,28 @@ describe("inheritedSettings", () => {
       writeDisabledOntologies([]);
       expect(inheritedSettings(new URLSearchParams("q=liver"))).toBe(null);
     });
+  });
+});
+
+describe("replaceTerm", () => {
+  it("swaps the term in place, ignoring case and spacing", () => {
+    expect(
+      replaceTerm(
+        "Breast  Cancer rna-seq",
+        "breast cancer",
+        "mammary carcinoma",
+      ),
+    ).toBe("mammary carcinoma rna-seq");
+  });
+
+  it("matches whole words only and gives null when absent", () => {
+    expect(replaceTerm("nashville nash", "nash", "NAFLD")).toBe(
+      "nashville NAFLD",
+    );
+    expect(replaceTerm("liver", "kidney", "renal")).toBeNull();
+  });
+
+  it("keeps regex and $ characters literal", () => {
+    expect(replaceTerm("il-2 (cd4+)", "cd4+", "$&")).toBe("il-2 ($&)");
   });
 });
