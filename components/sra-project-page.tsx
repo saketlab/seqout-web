@@ -2054,10 +2054,18 @@ function StudyHierarchy({ project }: { project: Project }) {
           <Text size="2" weight="medium">
             Child of:
           </Text>
-          <HierarchyBadge
-            accession={project.parent_accession}
-            title={project.parent_title ?? null}
-          />
+          {/* API joins multiple parents with ";"; parent_title is null then */}
+          {project.parent_accession
+            .split(";")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map((acc, _, all) => (
+              <HierarchyBadge
+                key={acc}
+                accession={acc}
+                title={all.length === 1 ? (project.parent_title ?? null) : null}
+              />
+            ))}
         </Flex>
       )}
       {total > 0 && (
