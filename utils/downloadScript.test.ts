@@ -34,4 +34,12 @@ describe("buildSupplementaryDownloadScript", () => {
       "curl -L -C - --retry 10 --retry-delay 5 --retry-all-errors --fail -O 'http://a/1' -O 'http://b/2'",
     );
   });
+  it("builds an axel loop with the chosen connection count", () => {
+    expect(
+      buildSupplementaryDownloadScript(
+        [{ browserDownloadUrl: "http://a/1" }, { browserDownloadUrl: "http://b/2" }],
+        6,
+      ),
+    ).toBe(`for url in 'http://a/1' 'http://b/2'; do axel -a -c -n 6 "$url"; done`);
+  });
 });

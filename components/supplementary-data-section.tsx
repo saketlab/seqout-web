@@ -1,5 +1,6 @@
 "use client";
 
+import { AxelControls } from "@/components/axel-controls";
 import SectionAnchor from "@/components/section-anchor";
 import { useToast } from "@/components/toast-provider";
 import {
@@ -61,6 +62,9 @@ export function SupplementaryDataSection({
     useState("");
   const [supplementaryScriptCopied, setSupplementaryScriptCopied] =
     useState(false);
+
+  // axel's -n; null uses curl.
+  const [axelN, setAxelN] = useState<number | null>(null);
 
   const supplementaryDataItems = React.useMemo(
     () =>
@@ -161,9 +165,12 @@ export function SupplementaryDataSection({
 
   const computeSupplementaryScriptText = (
     items: SupplementaryDataItem[],
+    axel: number | null = axelN,
   ): string => {
     if (items.length === 0) return "";
-    if (clientScriptOnly) return buildSupplementaryDownloadScript(items);
+    // The server script is curl-only, so axel always builds client-side.
+    if (clientScriptOnly || axel)
+      return buildSupplementaryDownloadScript(items, axel);
     return items.length === supplementaryDataItems.length
       ? cliDownloadCommand
       : buildSupplementaryDownloadScript(items);
@@ -288,6 +295,18 @@ export function SupplementaryDataSection({
                       {supplementaryScriptCopied ? "Copied!" : "Copy"}
                     </Button>
                   </Flex>
+                  <AxelControls
+                    value={axelN}
+                    onChange={(n) => {
+                      setAxelN(n);
+                      setSupplementaryScriptPreview(
+                        computeSupplementaryScriptText(
+                          getSupplementaryDownloadItems(supplementaryDataItems),
+                          n,
+                        ),
+                      );
+                    }}
+                  />
                   <div
                     style={{
                       width: "100%",
@@ -305,7 +324,7 @@ export function SupplementaryDataSection({
                         boxSizing: "border-box",
                         padding: "0.875rem",
                         overflowY: "auto",
-                        maxHeight: "24rem",
+                        maxHeight: "min(16rem, 45vh)",
                         fontSize: "12px",
                         lineHeight: "1.5",
                         fontFamily: "var(--default-mono-font-family)",

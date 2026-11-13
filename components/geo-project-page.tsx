@@ -38,6 +38,7 @@ import { PROJECT_HEADER_INSETS } from "@/utils/constants";
 import { PROJECT_READY_EVENT } from "@/utils/useProjectReady";
 import { dbForAccession } from "@/utils/db-colors";
 import { SeqoutCliCommand } from "@/components/seqout-cli-command";
+import { AxelControls } from "@/components/axel-controls";
 import { buildSupplementaryDownloadScript } from "@/utils/downloadScript";
 import { titleCaseCenter } from "@/utils/format";
 import {
@@ -239,6 +240,8 @@ export default function GeoProjectPage() {
     React.useRef<GridApi<SupplementaryDataItem> | null>(null);
   const [selectedSupplementaryCount, setSelectedSupplementaryCount] =
     useState(0);
+  // axel's -n for both supplementary script dialogs; null uses curl.
+  const [axelN, setAxelN] = useState<number | null>(null);
   const [supplementaryScriptDialogOpen, setSupplementaryScriptDialogOpen] =
     useState(false);
   const [supplementaryScriptPreview, setSupplementaryScriptPreview] =
@@ -613,8 +616,11 @@ export default function GeoProjectPage() {
 
   const computeSupplementaryScriptText = (
     items: SupplementaryDataItem[],
+    axel: number | null = axelN,
   ): string => {
     if (items.length === 0) return "";
+    // The server script is curl-only, so axel always builds client-side.
+    if (axel) return buildSupplementaryDownloadScript(items, axel);
     const isAll = items.length === supplementaryDataItems.length;
     return isAll ? cliDownloadCommand : buildSupplementaryDownloadScript(items);
   };
@@ -680,12 +686,14 @@ export default function GeoProjectPage() {
   );
 
   /** Rebuild the sample script preview from the full item set (may re-fetch). */
-  const refreshSampleSupplementaryScript = async () => {
+  const refreshSampleSupplementaryScript = async (
+    axel: number | null = axelN,
+  ) => {
     setIsPreparingSampleSupplementary(true);
     try {
       const items = await getSampleSupplementaryDownloadItems();
       setSampleSupplementaryScriptPreview(
-        buildSupplementaryDownloadScript(items),
+        buildSupplementaryDownloadScript(items, axel),
       );
     } finally {
       setIsPreparingSampleSupplementary(false);
@@ -1953,6 +1961,20 @@ export default function GeoProjectPage() {
                           {supplementaryScriptCopied ? "Copied!" : "Copy"}
                         </Button>
                       </Flex>
+                      <AxelControls
+                        value={axelN}
+                        onChange={(n) => {
+                          setAxelN(n);
+                          setSupplementaryScriptPreview(
+                            computeSupplementaryScriptText(
+                              getSupplementaryDownloadItems(
+                                supplementaryDataItems,
+                              ),
+                              n,
+                            ),
+                          );
+                        }}
+                      />
                       <div
                         style={{
                           width: "100%",
@@ -1970,7 +1992,7 @@ export default function GeoProjectPage() {
                             boxSizing: "border-box",
                             padding: "0.875rem",
                             overflowY: "auto",
-                            maxHeight: "24rem",
+                            maxHeight: "min(16rem, 45vh)",
                             fontSize: "12px",
                             lineHeight: "1.5",
                             fontFamily: "var(--default-mono-font-family)",
@@ -2146,6 +2168,13 @@ export default function GeoProjectPage() {
                                 : "Copy"}
                             </Button>
                           </Flex>
+                          <AxelControls
+                            value={axelN}
+                            onChange={(n) => {
+                              setAxelN(n);
+                              void refreshSampleSupplementaryScript(n);
+                            }}
+                          />
                           <div
                             style={{
                               width: "100%",
@@ -2163,7 +2192,7 @@ export default function GeoProjectPage() {
                                 boxSizing: "border-box",
                                 padding: "0.875rem",
                                 overflowY: "auto",
-                                maxHeight: "24rem",
+                                maxHeight: "min(16rem, 45vh)",
                                 fontSize: "12px",
                                 lineHeight: "1.5",
                                 fontFamily: "var(--default-mono-font-family)",

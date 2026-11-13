@@ -92,6 +92,8 @@ import type {
   ValueGetterParams,
 } from "ag-grid-community";
 import { AgGridReact } from "@/components/lazy-data-grid";
+import { AxelSlider, FasterBadge } from "@/components/axel-controls";
+import { AXEL_DEFAULT_CONNECTIONS } from "@/utils/downloadScript";
 import { useTheme } from "next-themes";
 import { useParams, useSearchParams } from "next/navigation";
 import React, {
@@ -439,6 +441,9 @@ const DOWNLOAD_SOURCE_LABELS: Record<DownloadSource, string> = {
   gcs: "SRA Lite via gsutil",
 };
 
+/** Sources fetched over HTTP, which axel can download in place of wget. */
+const AXEL_SOURCES: DownloadSource[] = ["fastq", "sra", "sra_lite"];
+
 const ABSTRACT_CHAR_LIMIT = 350;
 
 const WGET_RESUME_FLAGS =
@@ -460,6 +465,7 @@ const DOWNLOAD_HELPER = `# Verify file integrity.
 _is_complete() {
   local f="$1"
   [ -s "$f" ] || return 1
+  [ -f "$f.st" ] && return 1  # axel state file: transfer unfinished
   [ -f "$f.done" ] && [ ! "$f" -nt "$f.done" ] && return 0
   case "$f" in
     *.gz) gzip -t "$f" 2>/dev/null ;;
@@ -488,6 +494,8 @@ download_one() {
   _done_count=$((_done_count + 1))
   local prefix="[$_done_count/$_total_count] $out"
   local sz=0
+  # axel partials are sparse; only axel can resume them.
+  [ -f "$out.st" ] && [ "$method" != "axel" ] && rm -f "$out" "$out.st"
   [ -f "$out" ] && sz=$(stat -c %s "$out" 2>/dev/null || echo 0)
   local sz_msg=""
   [ "$expected" -gt 0 ] && sz_msg=" ($(_human $sz) / $(_human $expected))"
@@ -495,17 +503,18 @@ download_one() {
 
   if [ "$expected" -gt 0 ] && [ "$sz" -gt "$expected" ]; then
     echo "oversized, redownloading" >&2
-    rm -f "$out" "$out.done"
+    rm -f "$out" "$out.st" "$out.done"
   elif _is_complete "$out"; then
     : > "$out.done"
     echo "valid, skip" >&2
     return 0
-  elif [ "$sz" -gt 0 ] && { [ "$method" = "wget" ] || [ "$method" = "curl" ]; }; then
+  elif [ "$sz" -gt 0 ] && { [ "$method" = "wget" ] || [ "$method" = "curl" ] || [ "$method" = "axel" ]; }; then
     echo "partial, resuming" >&2
     rm -f "$out.done"
     case "$method" in
       wget) wget -c -q --show-progress --tries=10 --timeout=60 --retry-connrefused -O "$out" "$url" || true ;;
       curl) curl -L -C - --retry 10 --retry-delay 5 --retry-all-errors --fail -o "$out" "$url" || true ;;
+      axel) axel -a -n "\${AXEL_N:-12}" -o "$out" "$url" || true ;;  # resumes from $out.st
     esac
     if _is_complete "$out"; then
       : > "$out.done"
@@ -513,7 +522,7 @@ download_one() {
       return 0
     fi
     echo "$prefix: WARN integrity check failed after resume; redownloading from scratch" >&2
-    rm -f "$out" "$out.done"
+    rm -f "$out" "$out.st" "$out.done"
   else
     echo "missing, downloading" >&2
     rm -f "$out.done"
@@ -523,11 +532,12 @@ download_one() {
   case "$method" in
     wget)   wget -q --show-progress --tries=10 --timeout=60 --retry-connrefused -O "$out" "$url" ;;
     curl)   curl -L --retry 10 --retry-delay 5 --retry-all-errors --fail -o "$out" "$url" ;;
+    axel)   rm -f "$out" "$out.st"; axel -a -n "\${AXEL_N:-12}" -o "$out" "$url" ;;
     aws)    aws s3 cp --no-progress "$url" "$out" ;;
     gsutil) gsutil cp "$url" "$out" ;;
     *) echo "ERR: unknown download method '$method'" >&2; return 1 ;;
   esac
-  _is_complete "$out" || { echo "$prefix: ERR corrupted after fresh download (re-run script)" >&2; rm -f "$out" "$out.done"; return 1; }
+  _is_complete "$out" || { echo "$prefix: ERR corrupted after fresh download (re-run script)" >&2; rm -f "$out" "$out.st" "$out.done"; return 1; }
   : > "$out.done"
   echo "$prefix: done" >&2
 }
@@ -601,7 +611,9 @@ export function DownloadFastqSection({
   const [scriptCopied, setScriptCopied] = useState(false);
   const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
   const [downloadScriptPreview, setDownloadScriptPreview] = useState("");
-  const [selectedSource, setSelectedSource] = useState<DownloadSource>("seqout");
+  const [selectedSource, setSelectedSource] = useState<DownloadSource>("fastq");
+  // axel's -n for the wget-based sources; null uses wget.
+  const [axelN, setAxelN] = useState<number | null>(null);
   const [selectedRuns, setSelectedRuns] = useState<RunRow[]>([]);
   const selectedCount = selectedRuns.length;
   const [isExporting, setIsExporting] = useState(false);
@@ -717,7 +729,10 @@ export function DownloadFastqSection({
     const first = (
       Object.keys(DOWNLOAD_SOURCE_LABELS) as DownloadSource[]
     ).find((s) => availableSources.has(s));
-    if (first) setSelectedSource(first);
+    if (first) {
+      setSelectedSource(first);
+      setAxelN(null);
+    }
   }
 
   const onGridReady = useCallback((params: { api: GridApi<RunRow> }) => {
@@ -935,6 +950,7 @@ export function DownloadFastqSection({
   const buildDownloadScript = (
     runs: RunRow[],
     source: DownloadSource = "fastq",
+    axel: number | null = null,
   ) => {
     if (source === "seqout") return buildCliScript(runs);
     const entries = runs.flatMap((run) => resolveRunUrls(run, source));
@@ -945,11 +961,17 @@ export function DownloadFastqSection({
 
     type Entry = (typeof entries)[0];
     const method =
-      source === "s3" ? "aws" : source === "gcs" ? "gsutil" : "wget";
+      source === "s3"
+        ? "aws"
+        : source === "gcs"
+          ? "gsutil"
+          : axel
+            ? "axel"
+            : "wget";
     const downloadCmd = (u: Entry) =>
       `download_one "${u.url}" "${u.dirpath}/${u.filename}" ${method} ${u.bytes}`;
 
-    const sourceLabel = DOWNLOAD_SOURCE_LABELS[source];
+    const sourceLabel = DOWNLOAD_SOURCE_LABELS[source].replace("wget", method);
     const checksums = entries
       .filter((u) => u.md5)
       .map((u) => `${u.md5}  ${u.dirpath}/${u.filename}`);
@@ -963,6 +985,12 @@ export function DownloadFastqSection({
       "# Integrity-checked: corrupted .gz / .bam files are detected and redownloaded automatically.",
       "",
       ...SCRIPT_OPEN,
+      ...(method === "axel"
+        ? [
+            `AXEL_N=${axel}  # connections per file`,
+            'command -v axel >/dev/null || { echo "axel not found. Install it (e.g. apt install axel, brew install axel)." >&2; exit 1; }',
+          ]
+        : []),
       "",
       DOWNLOAD_HELPER,
       ...buildResumeStatusLines(
@@ -1014,11 +1042,12 @@ export function DownloadFastqSection({
   /** Rebuild the script preview from the full export rows (may re-fetch). */
   const refreshScriptPreview = async (
     source: DownloadSource = selectedSource,
+    axel: number | null = axelN,
   ) => {
     setScriptLoading(true);
     try {
       const rows = await getExportRows();
-      setDownloadScriptPreview(buildDownloadScript(rows, source));
+      setDownloadScriptPreview(buildDownloadScript(rows, source, axel));
     } finally {
       setScriptLoading(false);
     }
@@ -1432,22 +1461,42 @@ export function DownloadFastqSection({
                 <Flex align="center" gap="2">
                   <Select.Root
                     size="2"
-                    value={selectedSource}
+                    value={
+                      axelN !== null ? `${selectedSource}:axel` : selectedSource
+                    }
                     onValueChange={(v) => {
-                      const nextSource = v as DownloadSource;
+                      // "<source>:axel" is the axel variant of a wget source.
+                      const [src, tool] = v.split(":");
+                      const nextSource = src as DownloadSource;
+                      const nextAxel =
+                        tool === "axel"
+                          ? (axelN ?? AXEL_DEFAULT_CONNECTIONS)
+                          : null;
                       setSelectedSource(nextSource);
-                      void refreshScriptPreview(nextSource);
+                      setAxelN(nextAxel);
+                      void refreshScriptPreview(nextSource, nextAxel);
                     }}
                   >
                     <Select.Trigger variant="surface" />
                     <Select.Content>
                       {(Object.keys(DOWNLOAD_SOURCE_LABELS) as DownloadSource[])
                         .filter((src) => availableSources.has(src))
-                        .map((src) => (
+                        .flatMap((src) => [
                           <Select.Item key={src} value={src}>
                             {DOWNLOAD_SOURCE_LABELS[src]}
-                          </Select.Item>
-                        ))}
+                          </Select.Item>,
+                          AXEL_SOURCES.includes(src) && (
+                            <Select.Item key={`${src}:axel`} value={`${src}:axel`}>
+                              <Flex align="center" gap="2">
+                                {DOWNLOAD_SOURCE_LABELS[src].replace(
+                                  "wget",
+                                  "axel",
+                                )}
+                                <FasterBadge />
+                              </Flex>
+                            </Select.Item>
+                          ),
+                        ])}
                     </Select.Content>
                   </Select.Root>
                   <Button
@@ -1463,6 +1512,27 @@ export function DownloadFastqSection({
                   </Button>
                 </Flex>
               </Flex>
+              {axelN !== null && (
+                <Flex mb="3" align="center" gap="3" wrap="wrap">
+                  <Text size="2" color="gray">
+                    <Link
+                      href="https://github.com/axel-download-accelerator/axel"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      axel
+                    </Link>{" "}
+                    uses parallel connections
+                  </Text>
+                  <AxelSlider
+                    value={axelN}
+                    onChange={(n) => {
+                      setAxelN(n);
+                      void refreshScriptPreview(selectedSource, n);
+                    }}
+                  />
+                </Flex>
+              )}
               <div
                 style={{
                   width: "100%",
@@ -1481,7 +1551,7 @@ export function DownloadFastqSection({
                     padding: "0.875rem",
                     overflowX: "auto",
                     overflowY: "auto",
-                    maxHeight: "24rem",
+                    maxHeight: "min(16rem, 45vh)",
                     fontSize: "12px",
                     lineHeight: "1.5",
                     fontFamily: "var(--default-mono-font-family)",
