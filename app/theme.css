@@ -18,14 +18,8 @@
 @import "@radix-ui/themes/components.css";
 @import "@radix-ui/themes/utilities.css";
 
-/* "Faster" badge on the axel download option: yellow when it, or the menu
-   item holding it, is hovered; hidden in the closed select so the trigger
-   keeps its width. */
-.faster-badge:hover,
-.rt-SelectItem[data-highlighted] .faster-badge {
-  background-color: var(--amber-9);
-  color: var(--amber-contrast);
-}
+/* "Faster" badge on the axel download option: hidden in the closed select so
+   the trigger keeps its width. */
 .rt-SelectTrigger .faster-badge {
   display: none;
 }
